@@ -40,17 +40,28 @@ def finger_print(size, head='_'):
     return ret
 
 
-def main():
-    dataset = DatasetPackLoader().load_dataset("titanic")
-    train_set, valid_set = dataset.split('train', 'train', 'valid', (7, 3))
+@deco_timeit
+def test_transform_titanic():
+    data_pack = DatasetPackLoader().load_dataset("titanic")
+    data_pack.shuffle()
+    train_set, valid_set = data_pack.split('train', 'train', 'valid', (7, 3))
     train_Xs, train_Ys = train_set.full_batch(['Xs', 'Ys'])
     valid_Xs, valid_Ys = valid_set.full_batch(['Xs', 'Ys'])
 
+    def to_df(dataset):
+        df = pd.DataFrame()
+        for key in dataset.data:
+            df[key] = dataset.data[key]
+        return df
+
+    clf_pack = ClassifierPack(['LightGBM'])
+    clf_pack.fit(train_Xs, train_Ys)
+    score_pack = clf_pack.score_pack(valid_Xs, valid_Ys)
+    pprint(score_pack)
+
+    pass
 
 
-    # exp_titanic_statistic()
-    # print(exp_titanic_statistic.__name__)
-    # exp_stackingCV_metaclf()
-    # exp_stacking_metaclf()
-    # exp_voting()
+def main():
+    test_transform_titanic()
     pass
