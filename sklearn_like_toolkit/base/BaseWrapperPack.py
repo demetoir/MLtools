@@ -1,14 +1,13 @@
 import os
 from pprint import pformat
-
 from env_settting import SKLEARN_PARAMS_SAVE_PATH
 from sklearn_like_toolkit.ParamOptimizer import ParamOptimizer
 from sklearn_like_toolkit.base.MixIn import Reformat_Ys_MixIn, clf_metric_MixIn
-from util.MixIn import LoggerMixIn
+from util.MixIn import LoggerMixIn, PickleMixIn
 from util.misc_util import time_stamp, dump_pickle, load_pickle
 
 
-class BaseWrapperPack(Reformat_Ys_MixIn, clf_metric_MixIn, LoggerMixIn):
+class BaseWrapperPack(Reformat_Ys_MixIn, clf_metric_MixIn, LoggerMixIn, PickleMixIn):
     class_pack = {}
 
     def __init__(self):
@@ -109,3 +108,14 @@ class BaseWrapperPack(Reformat_Ys_MixIn, clf_metric_MixIn, LoggerMixIn):
         params = load_pickle(path)
 
         self.import_params(params)
+
+    def dump(self, path=None):
+        if path is None:
+            path = str(self) + time_stamp() + '.pkl'
+
+        super().dump(path)
+        self.log.info(f'pickle save at {path}')
+
+    def load(self, path):
+        self.log.info(f'pickle load from {path}')
+        return super().load(path)
