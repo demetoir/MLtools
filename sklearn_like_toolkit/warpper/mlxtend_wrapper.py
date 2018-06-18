@@ -9,7 +9,7 @@ from mlxtend.classifier import Perceptron as _Perceptron
 from mlxtend.classifier import SoftmaxRegression as _SoftmaxRegression
 from mlxtend.classifier import StackingCVClassifier as _StackingCVClassifier
 from mlxtend.classifier import StackingClassifier as _StackingClassifier
-from sklearn_like_toolkit.base._base import _clf_metric, _Reformat_Ys
+from sklearn_like_toolkit.base.MixIn import clf_metric_MixIn, Reformat_Ys_MixIn
 
 
 class mlxAdalineClf(_Adaline):
@@ -157,7 +157,7 @@ class mlxVotingClf(_EnsembleVoteClassifier):
         return super().score(X, y, sample_weight)
 
 
-class mlxStackingClf(_StackingClassifier, _clf_metric, _Reformat_Ys):
+class mlxStackingClf(clf_metric_MixIn, Reformat_Ys_MixIn, _StackingClassifier):
     # todo add param grid
     model_Ys_type = NP_ARRAY_TYPE_INDEX
 
@@ -166,7 +166,7 @@ class mlxStackingClf(_StackingClassifier, _clf_metric, _Reformat_Ys):
         _StackingClassifier.__init__(self, classifiers, meta_classifier, use_probas, average_probas, verbose,
                                      use_features_in_secondary,
                                      store_train_meta_features, use_clones)
-        _clf_metric.__init__(self)
+        clf_metric_MixIn.__init__(self)
 
     def fit(self, X, y):
         y = reformat_np_arr(y, self.model_Ys_type)
@@ -181,7 +181,7 @@ class mlxStackingClf(_StackingClassifier, _clf_metric, _Reformat_Ys):
         return self._apply_metric_pack(y, self.predict(X))
 
 
-class mlxStackingCVClf(_StackingCVClassifier, _clf_metric, _Reformat_Ys):
+class mlxStackingCVClf(clf_metric_MixIn, Reformat_Ys_MixIn, _StackingCVClassifier):
     # todo add param grid
     model_Ys_type = NP_ARRAY_TYPE_INDEX
 
@@ -190,7 +190,7 @@ class mlxStackingCVClf(_StackingCVClassifier, _clf_metric, _Reformat_Ys):
         _StackingCVClassifier.__init__(self, classifiers, meta_classifier, use_probas, cv, use_features_in_secondary,
                                        stratify, shuffle,
                                        verbose, store_train_meta_features, use_clones)
-        _clf_metric.__init__(self)
+        clf_metric_MixIn.__init__(self)
 
     def fit(self, X, y, groups=None):
         y = reformat_np_arr(y, self.model_Ys_type)

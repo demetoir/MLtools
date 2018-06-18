@@ -1,9 +1,9 @@
 import numpy as np
 from data_handler.DummyDataset import DummyDataset
-from sklearn_like_toolkit.base._base import _clf_metric, _Reformat_Ys
+from sklearn_like_toolkit.base.MixIn import clf_metric_MixIn, Reformat_Ys_MixIn
 
 
-class FoldingHardVote(_Reformat_Ys, _clf_metric):
+class FoldingHardVote(Reformat_Ys_MixIn, clf_metric_MixIn):
     def __init__(self, clfs, split_rate=0.8):
         super().__init__()
         self.clfs = [self._clone(clf) for clf in clfs]
