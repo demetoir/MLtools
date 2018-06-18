@@ -109,12 +109,9 @@ class BaseWrapperPack(Reformat_Ys_MixIn, clf_metric_MixIn, LoggerMixIn, PickleMi
 
         self.import_params(params)
 
-    def dump(self, path=None):
-        if path is None:
-            path = str(self) + time_stamp() + '.pkl'
-
-        super().dump(path)
+    def dump(self, path):
         self.log.info(f'pickle save at {path}')
+        super().dump(path)
 
     def load(self, path):
         self.log.info(f'pickle load from {path}')
