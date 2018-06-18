@@ -183,3 +183,22 @@ class test_clf_pack:
         pprint('score pack', score_pack)
 
         # initialize data
+
+    def test_pickle_clf_pack(self):
+        ClassifierPack = self.cls
+        dataset = self.dataset
+        train_Xs = self.train_Xs
+        train_Ys = self.train_Ys
+        valid_Xs = self.valid_Xs
+        valid_Ys = self.valid_Ys
+
+        clf_pack = ClassifierPack()
+        clf_pack.fit(train_Xs, train_Ys)
+
+        score = clf_pack.score_pack(train_Xs, train_Ys)
+        pprint(score)
+        clf_pack.dump('./clf.pkl')
+
+        clf_pack = clf_pack.load('./clf.pkl')
+        score = clf_pack.score_pack(train_Xs, train_Ys)
+        pprint(score)
