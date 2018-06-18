@@ -25,8 +25,7 @@ def dump_pickle(obj, path):
     :param path: dump path
     :param obj: target data to dump
     """
-    head, _ = os.path.split(path)
-    setup_directory(head)
+    setup_file(path)
 
     with open(path, 'wb') as f:
         pickle.dump(obj, f)
