@@ -99,12 +99,6 @@ class Logger:
         self._debug = deco_args_to_str(getattr(self.logger, 'debug'))
         self._critical = deco_args_to_str(getattr(self.logger, 'critical'))
 
-        if print_start_msg:
-            self.logger.debug('')
-            self.logger.debug(f'#' * 80)
-            self.logger.debug(f'start logger {name}')
-            self.logger.debug(f'#' * 80)
-
     def __repr__(self):
         return self.__class__.__name__
 

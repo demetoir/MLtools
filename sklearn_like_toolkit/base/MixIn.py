@@ -1,6 +1,16 @@
 from sklearn.metrics import accuracy_score, confusion_matrix, roc_auc_score, recall_score, precision_score
-
 from util.numpy_utils import reformat_np_arr, NP_ARRAY_TYPE_INDEX, NP_ARRAY_TYPE_ONEHOT
+
+
+class Reformat_Ys_MixIn:
+    @staticmethod
+    def _reformat_to_index(Xs):
+        return reformat_np_arr(Xs, NP_ARRAY_TYPE_INDEX)
+
+    @staticmethod
+    def _reformat_to_onehot(Xs):
+        return reformat_np_arr(Xs, NP_ARRAY_TYPE_ONEHOT)
+
 
 CLF_METRICS = {
     'accuracy': accuracy_score,
@@ -11,15 +21,7 @@ CLF_METRICS = {
 }
 
 
-class _Reformat_Ys:
-    def _reformat_to_index(self, Xs):
-        return reformat_np_arr(Xs, NP_ARRAY_TYPE_INDEX)
-
-    def _reformat_to_onehot(self, Xs):
-        return reformat_np_arr(Xs, NP_ARRAY_TYPE_ONEHOT)
-
-
-class _clf_metric:
+class clf_metric_MixIn:
     def __init__(self):
         self._metrics = CLF_METRICS
 
