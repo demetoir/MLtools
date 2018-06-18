@@ -41,6 +41,13 @@ def finger_print(size, head='_'):
 
 
 def main():
+    dataset = DatasetPackLoader().load_dataset("titanic")
+    train_set, valid_set = dataset.split('train', 'train', 'valid', (7, 3))
+    train_Xs, train_Ys = train_set.full_batch(['Xs', 'Ys'])
+    valid_Xs, valid_Ys = valid_set.full_batch(['Xs', 'Ys'])
+
+
+
     # exp_titanic_statistic()
     # print(exp_titanic_statistic.__name__)
     # exp_stackingCV_metaclf()

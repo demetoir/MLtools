@@ -141,7 +141,7 @@ class titanic_train(BaseDataset):
     def save(self):
         pass
 
-    def preprocess(self):
+    def transform(self):
         data = x_preprocess(self)
         self.add_data(Xs, data)
 
@@ -199,7 +199,7 @@ class titanic_test(BaseDataset):
     def save(self):
         pass
 
-    def preprocess(self):
+    def transform(self):
         data = x_preprocess(self)
         self.add_data(Xs, data)
 

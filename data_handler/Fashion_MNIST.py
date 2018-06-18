@@ -40,7 +40,7 @@ class Fashion_MNIST_train(BaseDataset):
     def save(self):
         pass
 
-    def preprocess(self):
+    def transform(self):
         self.data['Xs'] = X_transform(self.data['Xs'])
 
 
@@ -67,7 +67,7 @@ class Fashion_MNIST_test(BaseDataset):
     def save(self):
         pass
 
-    def preprocess(self):
+    def transform(self):
         self.data['Xs'] = X_transform(self.data['Xs'])
 
 

@@ -191,7 +191,7 @@ class BaseDataset(metaclass=MetaDataset):
         self.log.debug('%s fully loaded' % self.__str__())
 
         self.log.debug('%s preprocess end' % self.__str__())
-        self.preprocess()
+        self.transform()
 
         self.log.debug("generate input_shapes")
         self.input_shapes = {}
@@ -285,7 +285,7 @@ class BaseDataset(metaclass=MetaDataset):
 
         return batches[0] if len(batches) == 1 else batches
 
-    def preprocess(self):
+    def transform(self):
         """preprocess for loaded data
 
         """

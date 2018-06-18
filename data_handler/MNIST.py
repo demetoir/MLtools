@@ -31,7 +31,7 @@ class MNIST_train(BaseDataset):
     def save(self):
         pass
 
-    def preprocess(self):
+    def transform(self):
         data = self.data[Xs]
         shape = data.shape
         data = np.reshape(data, [shape[0], 28, 28, 1])
@@ -58,7 +58,7 @@ class MNIST_test(BaseDataset):
     def save(self):
         pass
 
-    def preprocess(self):
+    def transform(self):
         data = self.data[Xs]
         shape = data.shape
         data = np.reshape(data, [shape[0], 28, 28, 1])
