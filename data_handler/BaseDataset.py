@@ -5,6 +5,7 @@ import sys
 import numpy as np
 import os
 import sklearn.utils
+import pandas as pd
 
 
 class MetaDataset(type):
@@ -374,3 +375,15 @@ class BaseDataset(metaclass=MetaDataset):
     def _clone(self):
         obj = self.__class__(self.verbose, self.logger)
         return obj
+
+    def to_DataFrame(self, keys=None):
+        if keys is None:
+            keys = self.data.keys()
+
+        df = pd.DataFrame()
+        for key in keys:
+            try:
+                df[key] = self.data[key]
+            except BaseException as e:
+                pass
+        return df
