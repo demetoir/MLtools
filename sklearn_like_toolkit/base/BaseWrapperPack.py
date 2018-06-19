@@ -112,7 +112,3 @@ class BaseWrapperPack(Reformat_Ys_MixIn, clf_metric_MixIn, LoggerMixIn, PickleMi
     def dump(self, path):
         self.log.info(f'pickle save at {path}')
         super().dump(path)
-
-    def load(self, path):
-        self.log.info(f'pickle load from {path}')
-        return super().load(path)
