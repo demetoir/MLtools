@@ -9,10 +9,10 @@ from mlxtend.classifier import Perceptron as _Perceptron
 from mlxtend.classifier import SoftmaxRegression as _SoftmaxRegression
 from mlxtend.classifier import StackingCVClassifier as _StackingCVClassifier
 from mlxtend.classifier import StackingClassifier as _StackingClassifier
-from sklearn_like_toolkit.base.MixIn import clf_metric_MixIn, Reformat_Ys_MixIn
+from sklearn_like_toolkit.base.MixIn import clf_metric_MixIn, Reformat_Ys_MixIn, DummyParamMixIN
 
 
-class mlxAdalineClf(_Adaline):
+class mlxAdalineClf(DummyParamMixIN, _Adaline):
     model_Ys_type = NP_ARRAY_TYPE_INDEX
     tuning_grid = {
         'eta': [i / 10.0 for i in range(1, 10 + 1, 3)],
@@ -37,7 +37,7 @@ class mlxAdalineClf(_Adaline):
         return super().score(X, y)
 
 
-class mlxLogisticRegressionClf(_LogisticRegression):
+class mlxLogisticRegressionClf(DummyParamMixIN,_LogisticRegression):
     model_Ys_type = NP_ARRAY_TYPE_INDEX
     tuning_grid = {
         'eta': [i / 10.0 for i in range(1, 10 + 1, 3)],
@@ -62,7 +62,7 @@ class mlxLogisticRegressionClf(_LogisticRegression):
         return super().score(X, y)
 
 
-class mlxMLPClf(_MultiLayerPerceptron):
+class mlxMLPClf(DummyParamMixIN,_MultiLayerPerceptron):
     # todo add param grid
     model_Ys_type = NP_ARRAY_TYPE_INDEX
     tuning_grid = {
@@ -92,7 +92,7 @@ class mlxMLPClf(_MultiLayerPerceptron):
         return super().score(X, y)
 
 
-class mlxPerceptronClf(_Perceptron):
+class mlxPerceptronClf(DummyParamMixIN, _Perceptron):
     model_Ys_type = NP_ARRAY_TYPE_INDEX
     tuning_grid = {
         'eta': [i / 10.0 for i in range(1, 10 + 1, 3)],
@@ -115,7 +115,7 @@ class mlxPerceptronClf(_Perceptron):
         return super().score(X, y)
 
 
-class mlxSoftmaxRegressionClf(_SoftmaxRegression):
+class mlxSoftmaxRegressionClf(DummyParamMixIN, _SoftmaxRegression):
     model_Ys_type = NP_ARRAY_TYPE_INDEX
 
     tuning_grid = {
