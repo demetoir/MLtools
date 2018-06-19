@@ -69,11 +69,11 @@ class ClassifierPack(BaseWrapperPack):
         clfs = [v for k, v in self.pack.items()]
         return FoldingHardVote(clfs)
 
-    def make_stackingClf(self, meta_clf):
+    def make_stackingClf(self, meta_clf=None):
         clfs = [clf for k, clf in self.pack.items() if hasattr(clf, 'get_params')]
         return mlxStackingClf(clfs, meta_clf)
 
-    def make_stackingCVClf(self, meta_clf):
+    def make_stackingCVClf(self, meta_clf=None):
         clfs = [clf for k, clf in self.pack.items() if hasattr(clf, 'get_params')]
         return mlxStackingCVClf(clfs, meta_clf)
 
