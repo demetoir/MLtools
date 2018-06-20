@@ -50,7 +50,7 @@ class CIFAR100_train(BaseDataset):
     def save(self):
         pass
 
-    def preprocess(self):
+    def transform(self):
         self.data['Xs'] = X_transform(self.data['Xs'])
 
 
@@ -92,7 +92,7 @@ class CIFAR100_test(BaseDataset):
     def save(self):
         pass
 
-    def preprocess(self):
+    def transform(self):
         self.data['Xs'] = X_transform(self.data['Xs'])
 
 

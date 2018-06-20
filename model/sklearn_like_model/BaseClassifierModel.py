@@ -9,7 +9,7 @@ class Dataset(BaseDataset):
     def save(self):
         pass
 
-    def preprocess(self):
+    def transform(self):
         pass
 
 

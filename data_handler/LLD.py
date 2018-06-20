@@ -50,7 +50,7 @@ class LLD_clean(BaseDataset):
         #             cPickle.dump(icons[p * package_size:(p + 1) * package_size], f, protocol=cPickle.HIGHEST_PROTOCOL)
         pass
 
-    def preprocess(self):
+    def transform(self):
         pass
 
 

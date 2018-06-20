@@ -60,7 +60,7 @@ class CIFAR10_train(BaseDataset):
     def save(self):
         pass
 
-    def preprocess(self):
+    def transform(self):
         self.data['Xs'] = X_transform(self.data['Xs'])
         self.data['Ys'] = Y_transform(self.data['Ys'])
 
@@ -107,7 +107,7 @@ class CIFAR10_test(BaseDataset):
     def save(self):
         pass
 
-    def preprocess(self):
+    def transform(self):
         self.data['Xs'] = X_transform(self.data['Xs'])
         self.data['Ys'] = Y_transform(self.data['Ys'])
 

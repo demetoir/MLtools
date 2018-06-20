@@ -5,6 +5,7 @@ import sys
 import numpy as np
 import os
 import sklearn.utils
+import pandas as pd
 
 
 class MetaDataset(type):
@@ -191,7 +192,7 @@ class BaseDataset(metaclass=MetaDataset):
         self.log.debug('%s fully loaded' % self.__str__())
 
         self.log.debug('%s preprocess end' % self.__str__())
-        self.preprocess()
+        self.transform()
 
         self.log.debug("generate input_shapes")
         self.input_shapes = {}
@@ -285,7 +286,7 @@ class BaseDataset(metaclass=MetaDataset):
 
         return batches[0] if len(batches) == 1 else batches
 
-    def preprocess(self):
+    def transform(self):
         """preprocess for loaded data
 
         """
@@ -374,3 +375,15 @@ class BaseDataset(metaclass=MetaDataset):
     def _clone(self):
         obj = self.__class__(self.verbose, self.logger)
         return obj
+
+    def to_DataFrame(self, keys=None):
+        if keys is None:
+            keys = self.data.keys()
+
+        df = pd.DataFrame()
+        for key in keys:
+            try:
+                df[key] = self.data[key]
+            except BaseException as e:
+                pass
+        return df

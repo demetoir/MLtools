@@ -12,5 +12,6 @@ class PickleMixIn:
     def dump(self, path):
         dump_pickle(self, path)
 
-    def load(self, path):
+    @staticmethod
+    def load(path):
         return load_pickle(path)

@@ -5,7 +5,7 @@ from util.MixIn import PickleMixIn, LoggerMixIn
 class BaseWrapperClf(Reformat_Ys_MixIn, clf_metric_MixIn, LoggerMixIn, PickleMixIn):
     @staticmethod
     def _clone(clf):
-        return clf.__class__()
+        return clf.__class__(**clf.get_params())
 
     def fit(self, Xs, Ys):
         raise NotImplementedError

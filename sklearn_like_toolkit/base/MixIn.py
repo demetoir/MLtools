@@ -33,3 +33,11 @@ class clf_metric_MixIn:
             key: self._apply_metric(Y_true, Y_predict, key)
             for key in self._metrics
         }
+
+
+class DummyParamMixIN():
+    def get_params(self, deep=True):
+        return {}
+
+    def set_params(self, **params):
+        return None

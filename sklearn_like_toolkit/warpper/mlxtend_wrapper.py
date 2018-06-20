@@ -1,5 +1,7 @@
 import warnings
 
+from sklearn_like_toolkit.warpper.sklearn_wrapper import skBernoulli_NB
+from util.MixIn import PickleMixIn
 from util.numpy_utils import NP_ARRAY_TYPE_INDEX, reformat_np_arr
 from mlxtend.classifier import Adaline as _Adaline
 from mlxtend.classifier import EnsembleVoteClassifier as _EnsembleVoteClassifier
@@ -9,10 +11,10 @@ from mlxtend.classifier import Perceptron as _Perceptron
 from mlxtend.classifier import SoftmaxRegression as _SoftmaxRegression
 from mlxtend.classifier import StackingCVClassifier as _StackingCVClassifier
 from mlxtend.classifier import StackingClassifier as _StackingClassifier
-from sklearn_like_toolkit.base.MixIn import clf_metric_MixIn, Reformat_Ys_MixIn
+from sklearn_like_toolkit.base.MixIn import clf_metric_MixIn, Reformat_Ys_MixIn, DummyParamMixIN
 
 
-class mlxAdalineClf(_Adaline):
+class mlxAdalineClf(DummyParamMixIN, _Adaline):
     model_Ys_type = NP_ARRAY_TYPE_INDEX
     tuning_grid = {
         'eta': [i / 10.0 for i in range(1, 10 + 1, 3)],
@@ -37,7 +39,7 @@ class mlxAdalineClf(_Adaline):
         return super().score(X, y)
 
 
-class mlxLogisticRegressionClf(_LogisticRegression):
+class mlxLogisticRegressionClf(DummyParamMixIN, _LogisticRegression):
     model_Ys_type = NP_ARRAY_TYPE_INDEX
     tuning_grid = {
         'eta': [i / 10.0 for i in range(1, 10 + 1, 3)],
@@ -62,7 +64,7 @@ class mlxLogisticRegressionClf(_LogisticRegression):
         return super().score(X, y)
 
 
-class mlxMLPClf(_MultiLayerPerceptron):
+class mlxMLPClf(DummyParamMixIN, _MultiLayerPerceptron):
     # todo add param grid
     model_Ys_type = NP_ARRAY_TYPE_INDEX
     tuning_grid = {
@@ -92,7 +94,7 @@ class mlxMLPClf(_MultiLayerPerceptron):
         return super().score(X, y)
 
 
-class mlxPerceptronClf(_Perceptron):
+class mlxPerceptronClf(DummyParamMixIN, _Perceptron):
     model_Ys_type = NP_ARRAY_TYPE_INDEX
     tuning_grid = {
         'eta': [i / 10.0 for i in range(1, 10 + 1, 3)],
@@ -115,7 +117,7 @@ class mlxPerceptronClf(_Perceptron):
         return super().score(X, y)
 
 
-class mlxSoftmaxRegressionClf(_SoftmaxRegression):
+class mlxSoftmaxRegressionClf(DummyParamMixIN, _SoftmaxRegression):
     model_Ys_type = NP_ARRAY_TYPE_INDEX
 
     tuning_grid = {
@@ -157,12 +159,14 @@ class mlxVotingClf(_EnsembleVoteClassifier):
         return super().score(X, y, sample_weight)
 
 
-class mlxStackingClf(clf_metric_MixIn, Reformat_Ys_MixIn, _StackingClassifier):
+class mlxStackingClf(PickleMixIn, clf_metric_MixIn, Reformat_Ys_MixIn, _StackingClassifier):
     # todo add param grid
     model_Ys_type = NP_ARRAY_TYPE_INDEX
 
-    def __init__(self, classifiers, meta_classifier, use_probas=False, average_probas=False, verbose=0,
+    def __init__(self, classifiers, meta_classifier=None, use_probas=False, average_probas=False, verbose=0,
                  use_features_in_secondary=False, store_train_meta_features=False, use_clones=True):
+        if meta_classifier is None:
+            meta_classifier = skBernoulli_NB()
         _StackingClassifier.__init__(self, classifiers, meta_classifier, use_probas, average_probas, verbose,
                                      use_features_in_secondary,
                                      store_train_meta_features, use_clones)
@@ -181,12 +185,15 @@ class mlxStackingClf(clf_metric_MixIn, Reformat_Ys_MixIn, _StackingClassifier):
         return self._apply_metric_pack(y, self.predict(X))
 
 
-class mlxStackingCVClf(clf_metric_MixIn, Reformat_Ys_MixIn, _StackingCVClassifier):
+class mlxStackingCVClf(PickleMixIn, clf_metric_MixIn, Reformat_Ys_MixIn, _StackingCVClassifier):
     # todo add param grid
     model_Ys_type = NP_ARRAY_TYPE_INDEX
 
-    def __init__(self, classifiers, meta_classifier, use_probas=False, cv=2, use_features_in_secondary=False,
+    def __init__(self, classifiers, meta_classifier=None, use_probas=False, cv=2, use_features_in_secondary=False,
                  stratify=True, shuffle=True, verbose=0, store_train_meta_features=False, use_clones=True):
+
+        if meta_classifier is None:
+            meta_classifier = skBernoulli_NB()
         _StackingCVClassifier.__init__(self, classifiers, meta_classifier, use_probas, cv, use_features_in_secondary,
                                        stratify, shuffle,
                                        verbose, store_train_meta_features, use_clones)
