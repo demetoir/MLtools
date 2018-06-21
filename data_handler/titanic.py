@@ -366,7 +366,7 @@ class titanic_train(BaseDataset):
     def load(self, path, limit=None):
         trans_path = os.path.join(path, "trans_train.csv")
 
-        if not os.path.exists(trans_path):
+        if not self.caching or not os.path.exists(trans_path):
             df = load_merge_set()
             merge_transform = build_transform(df)
             train, test = split_train_test(merge_transform)
@@ -439,7 +439,7 @@ class titanic_test(BaseDataset):
     def load(self, path, limit=None):
         trans_path = os.path.join(path, "trans_test.csv")
 
-        if not os.path.exists(trans_path):
+        if not self.caching or not os.path.exists(trans_path):
             df = load_merge_set()
             merge_transform = build_transform(df)
             train, test = split_train_test(merge_transform)
@@ -480,10 +480,11 @@ class titanic_test(BaseDataset):
 class titanic(BaseDatasetPack):
     LABEL_SIZE = 2
 
-    def __init__(self):
-        super().__init__()
-        self.train_set = titanic_train()
-        self.test_set = titanic_test()
+    def __init__(self, caching=True, **kwargs):
+        super().__init__(caching, **kwargs)
+
+        self.train_set = titanic_train(caching=caching)
+        self.test_set = titanic_test(caching=caching)
         self.set['train'] = self.train_set
         self.set['test'] = self.test_set
 
