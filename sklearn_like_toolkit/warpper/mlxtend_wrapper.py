@@ -27,6 +27,7 @@ class mlxAdalineClf(DummyParamMixIN, _Adaline):
     }
 
     def __init__(self, eta=0.01, epochs=50, minibatches=None, random_seed=None, print_progress=0):
+        warnings.filterwarnings(module='mlxtend*', action='ignore', category=FutureWarning)
         minibatches = 1
         super().__init__(eta, epochs, minibatches, random_seed, print_progress)
 
@@ -53,6 +54,7 @@ class mlxLogisticRegressionClf(DummyParamMixIN, _LogisticRegression):
     }
 
     def __init__(self, eta=0.01, epochs=50, l2_lambda=0.0, minibatches=1, random_seed=None, print_progress=0):
+        warnings.filterwarnings(module='mlxtend*', action='ignore', category=FutureWarning)
         super().__init__(eta, epochs, l2_lambda, minibatches, random_seed, print_progress)
 
     def fit(self, X, y, init_params=True):
@@ -106,6 +108,7 @@ class mlxPerceptronClf(DummyParamMixIN, _Perceptron):
     }
 
     def __init__(self, eta=0.1, epochs=50, random_seed=None, print_progress=0):
+        warnings.filterwarnings(module='mlxtend*', action='ignore', category=FutureWarning)
         super().__init__(eta, epochs, random_seed, print_progress)
 
     def fit(self, X, y, init_params=True):
@@ -132,6 +135,7 @@ class mlxSoftmaxRegressionClf(DummyParamMixIN, _SoftmaxRegression):
     }
 
     def __init__(self, eta=0.01, epochs=50, l2=0.0, minibatches=1, n_classes=None, random_seed=None, print_progress=0):
+        warnings.filterwarnings(module='mlxtend*', action='ignore', category=FutureWarning)
         super().__init__(eta, epochs, l2, minibatches, n_classes, random_seed, print_progress)
 
     def fit(self, X, y, init_params=True):
@@ -148,6 +152,7 @@ class mlxVotingClf(_EnsembleVoteClassifier):
     model_Ys_type = NP_ARRAY_TYPE_INDEX
 
     def __init__(self, clfs, voting='hard', weights=None, verbose=0, refit=True):
+        warnings.filterwarnings(module='mlxtend*', action='ignore', category=FutureWarning)
         super().__init__(clfs, voting, weights, verbose, refit)
 
     def fit(self, X, y):
@@ -165,6 +170,7 @@ class mlxStackingClf(PickleMixIn, clf_metric_MixIn, Reformat_Ys_MixIn, _Stacking
 
     def __init__(self, classifiers, meta_classifier=None, use_probas=False, average_probas=False, verbose=0,
                  use_features_in_secondary=False, store_train_meta_features=False, use_clones=True):
+        warnings.filterwarnings(module='mlxtend*', action='ignore', category=FutureWarning)
         if meta_classifier is None:
             meta_classifier = skBernoulli_NB()
         _StackingClassifier.__init__(self, classifiers, meta_classifier, use_probas, average_probas, verbose,
@@ -191,6 +197,7 @@ class mlxStackingCVClf(PickleMixIn, clf_metric_MixIn, Reformat_Ys_MixIn, _Stacki
 
     def __init__(self, classifiers, meta_classifier=None, use_probas=False, cv=2, use_features_in_secondary=False,
                  stratify=True, shuffle=True, verbose=0, store_train_meta_features=False, use_clones=True):
+        warnings.filterwarnings(module='mlxtend*', action='ignore', category=FutureWarning)
 
         if meta_classifier is None:
             meta_classifier = skBernoulli_NB()
