@@ -395,7 +395,6 @@ class BaseDataset(metaclass=MetaDataset):
 
                 df[key] = data
             except BaseException as e:
-                print(e)
-                pass
+                log_error_trace(self.log.warn, e)
 
         return df
