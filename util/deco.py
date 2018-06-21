@@ -109,7 +109,7 @@ def deco_timeit(func):
     def wrapper(*args, **kwargs):
         start = time.time()
         ret = func(*args, **kwargs)
-        print(f"in {func.__name__}, time {time.time() - start:.4f}'s elapsed")
+        print(f"in {func.__name__}(), time {time.time() - start:.4f}'s elapsed")
         return ret
 
     wrapper.__name__ = func.__name__
