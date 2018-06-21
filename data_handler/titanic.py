@@ -73,9 +73,7 @@ def df_to_np_dict(df, dtype=None):
     for key in df.keys():
         np_arr = np.array(df[key].values, dtype=dtype)
         np_arr = np_arr.reshape([len(np_arr), 1])
-        pprint(np_arr.shape)
         ret[key] = np_arr
-    pprint(ret.keys())
     return ret
 
 
@@ -233,10 +231,8 @@ def trans_sex(df):
 
 
 def trans_embarked(df):
-    df = df[[EMBARKED]]
-
     idxs = list(df.query('Embarked.isna()').index.values)
-    df.loc[idxs] = "C"
+    df.loc[idxs, [EMBARKED]] = "C"
 
     return pd.DataFrame({EMBARKED: df[EMBARKED].values})
 
@@ -304,6 +300,7 @@ def trans_with_not_only_family(room_mate_number_df, group_first_name_count_df):
 
 def split_train_test(df):
     test = df.query('Survived.isnull()')
+    test = test.drop(columns=['Survived'])
     train = df.query('not Survived.isnull()')
     return train, test
 
@@ -397,7 +394,7 @@ class titanic_train(BaseDataset):
             'family_size',
             'ticket_head',
             'room_mate_number',
-            'group_first_name_count'
+            'group_first_name_count',
             'with_not_only_family'
         ]
         Xs_df = self.to_DataFrame(Xs_df_keys)
@@ -452,6 +449,7 @@ class titanic_test(BaseDataset):
             test.to_csv('trans_test.csv')
 
         df = pd.read_csv(trans_path)
+
         self.data = df_to_np_dict(df)
 
     def save(self):
@@ -470,10 +468,12 @@ class titanic_test(BaseDataset):
             'family_size',
             'ticket_head',
             'room_mate_number',
-            'group_first_name_count'
+            'group_first_name_count',
             'with_not_only_family'
         ]
         Xs_df = self.to_DataFrame(Xs_df_keys)
+
+        # pprint(Xs_df)
         self.add_data('Xs', df_to_np_onehot_embedding(Xs_df))
 
 
