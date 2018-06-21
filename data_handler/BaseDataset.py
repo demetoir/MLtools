@@ -70,7 +70,7 @@ class BaseDataset(metaclass=MetaDataset):
     def downloadInfos(self):
         return []
 
-    def __init__(self, verbose='WARN', logger=None):
+    def __init__(self, verbose='WARN', logger=None, caching=True, **kwargs):
         """create dataset handler class
 
         ***bellow attrs must initiate other value after calling super()***
@@ -94,6 +94,7 @@ class BaseDataset(metaclass=MetaDataset):
         self.cursor = 0
         self.data_size = 0
         self.input_shapes = None
+        self.caching = caching
 
     def __del__(self):
         if not self.external_logger:
