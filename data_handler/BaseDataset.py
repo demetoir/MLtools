@@ -380,10 +380,20 @@ class BaseDataset(metaclass=MetaDataset):
         if keys is None:
             keys = self.data.keys()
 
-        df = pd.DataFrame()
+        df = pd.DataFrame({})
         for key in keys:
             try:
-                df[key] = self.data[key]
+                shape = self.data[key].shape
+                data = self.data[key]
+
+                if shape[1] > 1:
+                    data = [str(i) for i in data]
+                else:
+                    data = data.reshape([shape[0]])
+
+                df[key] = data
             except BaseException as e:
+                print(e)
                 pass
+
         return df
