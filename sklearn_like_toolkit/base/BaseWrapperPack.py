@@ -116,19 +116,12 @@ class BaseWrapperPack(Reformat_Ys_MixIn, clf_metric_MixIn, LoggerMixIn, PickleMi
         self.log.info(f'pickle save at {path}')
         super().dump(path)
 
-
-    def _apply_confidence(self, proba):
-        shape = proba.shape
-        batch_size = shape[0]
-        n_class = shape[1]
-
-        np_arr = np.abs(1.0 / n_class - proba)
-        np_arr = np_arr.sum(axis=1)
-        return np_arr
-
     def predict_confidence(self, Xs):
         confidences = {}
         for clf_k, proba in self.predict_proba(Xs).items():
-            confidences[clf_k] = self._apply_confidence(proba)
+            n_class = proba.shape[1]
+            np_arr = np.abs(1.0 / n_class - proba)
+            np_arr = np_arr.sum(axis=1)
+            confidences[clf_k] = np_arr
 
         return confidences
