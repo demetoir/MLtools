@@ -188,3 +188,14 @@ def reformat_np_arr(np_arr, to_np_arr_type, from_np_arr_type=None):
         raise TypeError("np_arr reformat Error from '%s' type to '%s' type" % (from_np_arr_type, to_np_arr_type))
 
     return np_arr
+
+
+def np_stat_dict(a, mode='basic'):
+    a = np.array(a)
+    return {
+        'min': np.round(a.min(), decimals=4),
+        'mean': np.round(a.mean(), decimals=4),
+        'max': np.round(a.max(), decimals=4),
+        'std': np.round(a.std(), decimals=4),
+        'count': len(a),
+    }
