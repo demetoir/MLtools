@@ -5,6 +5,8 @@
 # print(built-in function) is not good for logging
 import os
 
+from data_handler.DummyDataset import DummyDataset
+from data_handler.titanic import df_to_np_onehot_embedding
 from sklearn_like_toolkit.ClassifierPack import ClassifierPack
 
 from data_handler.DatasetPackLoader import DatasetPackLoader
@@ -411,6 +413,164 @@ def exp_titanic_data_difficulty():
     # sort by difficulty
     # use best...
 
+
+def load_merge_set():
+    path = os.getcwd()
+    merge_set_path = os.path.join(path, "data", "titanic", "merge_set.csv")
+    if not os.path.exists(merge_set_path):
+        path = os.getcwd()
+        train_path = os.path.join(path, "data", "titanic", "train.csv")
+        test_path = os.path.join(path, "data", "titanic", "test.csv")
+
+        train_df = pd.read_csv(train_path)
+        test_df = pd.read_csv(test_path)
+
+        merged_df = pd.concat([train_df, test_df])
+        merged_df = merged_df.reset_index(drop=True)
+
+        merged_df.to_csv(merge_set_path)
+    else:
+        merged_df = pd.read_csv(merge_set_path)
+
+    return merged_df
+
+
+def exp_age_predict_regr():
+    def trans_build_predict_age_dataset():
+        path = os.getcwd()
+        trans_merge_path = os.path.join(path, "data", "titanic", "trans_merge.csv")
+        trans_df = pd.read_csv(trans_merge_path)
+
+        merge_set_path = os.path.join(path, 'data', 'titanic', 'merge_set.csv')
+        merge_set = pd.read_csv(merge_set_path)
+        age = merge_set[['Age']]
+
+        for col in trans_df.columns:
+            if 'Unnamed' in col:
+                del trans_df[col]
+        # trans_df = trans_df.drop(columns=['Survived'])
+        trans_df = trans_df.drop(columns=['Age_bucket'])
+
+        trans_df = pd.concat([trans_df, age], axis=1)
+
+        trans_df_with_age = trans_df.query("""not Age.isna()""")
+        # pprint(trans_df_with_age.head(1))
+        # pprint(trans_df_with_age.info())
+
+        keys = list(trans_df_with_age.keys().values)
+
+        keys.remove('Age')
+        # pprint(keys)
+
+        Xs_df = trans_df_with_age[keys]
+        Ys_df = trans_df_with_age[['Age']]
+        # pprint(list(Ys_df['Age'].unique()))
+        # pprint(Xs_df.info())
+        # pprint(Xs_df.head(5))
+        #
+        # pprint(Ys_df.info())
+        # pprint(Ys_df.head(5))
+
+        Xs = df_to_np_onehot_embedding(Xs_df)
+        # Ys = df_to_np_onehot_embedding(Ys_df)
+        Ys = np.array(Ys_df['Age'])
+        # pprint(Xs.shape)
+        # pprint(Ys.shape)
+        dataset = DummyDataset()
+        dataset.add_data('Xs', Xs)
+        dataset.add_data('Ys', Ys)
+
+        # pprint(dataset.to_DataFrame().info())
+
+        return dataset
+
+    def build_predict_age_dataset():
+        path = os.getcwd()
+        trans_merge_path = os.path.join(path, "data", "titanic", "trans_merge.csv")
+        trans_df = pd.read_csv(trans_merge_path)
+
+        for col in trans_df.columns:
+            if 'Unnamed' in col:
+                del trans_df[col]
+        trans_df = trans_df.drop(columns=['Survived'])
+
+        trans_df_with_age = trans_df.query("""Age_bucket != 'None' """)
+        pprint(trans_df_with_age.head(1))
+        pprint(trans_df_with_age.info())
+
+        keys = list(trans_df_with_age.keys().values)
+
+        keys.remove('Age_bucket')
+        pprint(keys)
+
+        Xs_df = trans_df_with_age[keys]
+        Ys_df = trans_df_with_age[['Age_bucket']]
+        pprint(list(Ys_df['Age_bucket'].unique()))
+        # pprint(Xs_df.info())
+        # pprint(Xs_df.head(5))
+
+        pprint(Ys_df.info())
+        pprint(Ys_df.head())
+
+        Xs = df_to_np_onehot_embedding(Xs_df)
+        Ys = df_to_np_onehot_embedding(Ys_df)
+        # pprint(Xs.shape)
+        # pprint(Ys.shape)
+        dataset = DummyDataset()
+        dataset.add_data('Xs', Xs)
+        dataset.add_data('Ys', Ys)
+
+        pprint(dataset.to_DataFrame().info())
+
+        return dataset
+
+    dataset = trans_build_predict_age_dataset()
+    dataset.shuffle()
+    train, test = dataset.split((20, 3))
+    train_Xs, train_Ys = train.full_batch(['Xs', 'Ys'])
+    test_Xs, test_Ys = test.full_batch(['Xs', 'Ys'])
+
+    from sklearn.neural_network.multilayer_perceptron import MLPRegressor
+    from lightgbm import LGBMRegressor
+    from catboost import CatBoostRegressor
+    from xgboost import XGBRegressor
+    # reg = MLPRegressor(hidden_layer_sizes=(500,))
+    # reg = LGBMRegressor()
+    # reg = CatBoostRegressor()
+    reg = XGBRegressor()
+    reg.fit(train_Xs, train_Ys)
+    pprint(reg.score(train_Xs, train_Ys))
+    pprint(reg.score(test_Xs, test_Ys))
+    n_sample = 5
+    pprint(reg.predict(train_Xs[:n_sample]), train_Ys[:n_sample])
+    pprint(reg.predict(test_Xs[:n_sample]), test_Ys[:n_sample])
+
+    stat = abs(reg.predict(train_Xs) - train_Ys)
+    stat = np_stat_dict(stat)
+    pprint(stat)
+
+    stat = abs(reg.predict(test_Xs) - test_Ys)
+    stat = np_stat_dict(stat)
+    pprint(stat)
+
+
+    # clf_pack = ClassifierPack(['skMLP'])
+    # clf_pack.pack['skMLP'].n_classes_ = test_Ys.shape[1]
+    # # clf_pack.fit(train_Xs, train_Ys)
+    # clf_pack.param_search(train_Xs, train_Ys)
+    # pprint('train', clf_pack.score_pack(train_Xs, train_Ys))
+    # pprint('test', clf_pack.score_pack(test_Xs, test_Ys))
+    # pprint(['19~30',
+    #         '30~40',
+    #         '50~60',
+    #         '1~3',
+    #         '12~15',
+    #         '3~6',
+    #         '15~19',
+    #         '6~12',
+    #         '40~50',
+    #         '60~81',
+    #         '0~1'])
 
 def main():
     print(exp_titanic_statistic.__name__)
