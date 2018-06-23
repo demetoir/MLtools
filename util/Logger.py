@@ -2,6 +2,7 @@ import logging
 import logging.handlers
 import os
 from util.misc_util import time_stamp, check_path
+from logging.handlers import RotatingFileHandler
 
 CRITICAL = 50
 FATAL = CRITICAL
@@ -55,7 +56,7 @@ class Logger:
     EMPTY_FORMAT = ""
 
     def __init__(self, name, path=None, file_name=None, level='INFO', with_file=True, empty_stdout_format=True,
-                 print_start_msg=True):
+                 print_start_msg=True, rotating_file=True):
         """create logger
 
         :param name:name of logger
@@ -77,10 +78,18 @@ class Logger:
                 file_name = "{name}.log".format(name=name)
 
             check_path(path)
-            self.file_handler = logging.FileHandler(os.path.join(path, file_name))
-            self.file_handler.setFormatter(logging.Formatter(self.FILE_LOGGER_FORMAT))
-            self.file_handler.setLevel('DEBUG')
-            self.logger.addHandler(self.file_handler)
+            if rotating_file:
+                max_byte = 16 * 1024 * 1024
+                self.file_handler = RotatingFileHandler(os.path.join(path, file_name), maxBytes=max_byte,
+                                                        backupCount=2)
+                self.file_handler.setFormatter(logging.Formatter(self.FILE_LOGGER_FORMAT))
+                self.file_handler.setLevel('DEBUG')
+                self.logger.addHandler(self.file_handler)
+            else:
+                self.file_handler = logging.FileHandler(os.path.join(path, file_name))
+                self.file_handler.setFormatter(logging.Formatter(self.FILE_LOGGER_FORMAT))
+                self.file_handler.setLevel('DEBUG')
+                self.logger.addHandler(self.file_handler)
 
         if empty_stdout_format:
             format_ = self.EMPTY_FORMAT
