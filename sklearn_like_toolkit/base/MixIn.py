@@ -29,10 +29,14 @@ class clf_metric_MixIn:
         return self._metrics[metric](Y_true, Y_predict)
 
     def _apply_metric_pack(self, Y_true, Y_predict):
-        return {
-            key: self._apply_metric(Y_true, Y_predict, key)
-            for key in self._metrics
-        }
+        ret = {}
+        for key in self._metrics:
+            try:
+                ret[key] = self._apply_metric(Y_true, Y_predict, key)
+            except BaseException as e:
+                # log_error_trace(self.log.warn, e)
+                pass
+        return ret
 
 
 class DummyParamMixIN():
