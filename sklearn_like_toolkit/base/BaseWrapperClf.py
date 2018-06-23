@@ -1,8 +1,8 @@
-from sklearn_like_toolkit.base.MixIn import Reformat_Ys_MixIn, clf_metric_MixIn
+from sklearn_like_toolkit.base.MixIn import Reformat_Ys_MixIn, Clf_metric_MixIn
 from util.MixIn import PickleMixIn, LoggerMixIn
 import numpy as np
 
-class BaseWrapperClf(Reformat_Ys_MixIn, clf_metric_MixIn, LoggerMixIn, PickleMixIn):
+class BaseWrapperClf(Reformat_Ys_MixIn, Clf_metric_MixIn, LoggerMixIn, PickleMixIn):
     @staticmethod
     def _clone(clf):
         return clf.__class__(**clf.get_params())

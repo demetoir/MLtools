@@ -11,7 +11,7 @@ from mlxtend.classifier import Perceptron as _Perceptron
 from mlxtend.classifier import SoftmaxRegression as _SoftmaxRegression
 from mlxtend.classifier import StackingCVClassifier as _StackingCVClassifier
 from mlxtend.classifier import StackingClassifier as _StackingClassifier
-from sklearn_like_toolkit.base.MixIn import clf_metric_MixIn, Reformat_Ys_MixIn, DummyParamMixIN
+from sklearn_like_toolkit.base.MixIn import Clf_metric_MixIn, Reformat_Ys_MixIn, DummyParamMixIN
 
 
 class mlxAdalineClf(DummyParamMixIN, _Adaline):
@@ -164,7 +164,7 @@ class mlxVotingClf(_EnsembleVoteClassifier):
         return super().score(X, y, sample_weight)
 
 
-class mlxStackingClf(PickleMixIn, clf_metric_MixIn, Reformat_Ys_MixIn, _StackingClassifier):
+class mlxStackingClf(PickleMixIn, Clf_metric_MixIn, Reformat_Ys_MixIn, _StackingClassifier):
     # todo add param grid
     model_Ys_type = NP_ARRAY_TYPE_INDEX
 
@@ -176,7 +176,7 @@ class mlxStackingClf(PickleMixIn, clf_metric_MixIn, Reformat_Ys_MixIn, _Stacking
         _StackingClassifier.__init__(self, classifiers, meta_classifier, use_probas, average_probas, verbose,
                                      use_features_in_secondary,
                                      store_train_meta_features, use_clones)
-        clf_metric_MixIn.__init__(self)
+        Clf_metric_MixIn.__init__(self)
 
     def fit(self, X, y):
         y = reformat_np_arr(y, self.model_Ys_type)
@@ -191,7 +191,7 @@ class mlxStackingClf(PickleMixIn, clf_metric_MixIn, Reformat_Ys_MixIn, _Stacking
         return self._apply_metric_pack(y, self.predict(X))
 
 
-class mlxStackingCVClf(PickleMixIn, clf_metric_MixIn, Reformat_Ys_MixIn, _StackingCVClassifier):
+class mlxStackingCVClf(PickleMixIn, Clf_metric_MixIn, Reformat_Ys_MixIn, _StackingCVClassifier):
     # todo add param grid
     model_Ys_type = NP_ARRAY_TYPE_INDEX
 
@@ -204,7 +204,7 @@ class mlxStackingCVClf(PickleMixIn, clf_metric_MixIn, Reformat_Ys_MixIn, _Stacki
         _StackingCVClassifier.__init__(self, classifiers, meta_classifier, use_probas, cv, use_features_in_secondary,
                                        stratify, shuffle,
                                        verbose, store_train_meta_features, use_clones)
-        clf_metric_MixIn.__init__(self)
+        Clf_metric_MixIn.__init__(self)
 
     def fit(self, X, y, groups=None):
         y = reformat_np_arr(y, self.model_Ys_type)

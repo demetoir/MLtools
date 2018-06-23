@@ -21,7 +21,7 @@ CLF_METRICS = {
 }
 
 
-class clf_metric_MixIn:
+class Clf_metric_MixIn:
     def __init__(self):
         self._metrics = CLF_METRICS
 
