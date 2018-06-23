@@ -4,7 +4,6 @@ from data_handler.BaseDataset import BaseDataset
 from data_handler.BaseDatasetPack import BaseDatasetPack
 import os
 import pandas as pd
-from workbench.bench_code import pprint
 
 FOLDER_NAME = "tatanic"
 PASSENGERID = 'PassengerId'
@@ -473,7 +472,6 @@ class titanic_test(BaseDataset):
         ]
         Xs_df = self.to_DataFrame(Xs_df_keys)
 
-        # pprint(Xs_df)
         self.add_data('Xs', df_to_np_onehot_embedding(Xs_df))
 
 
