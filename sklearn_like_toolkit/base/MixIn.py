@@ -5,11 +5,11 @@ from util.numpy_utils import reformat_np_arr, NP_ARRAY_TYPE_INDEX, NP_ARRAY_TYPE
 
 class Reformat_Ys_MixIn:
     @staticmethod
-    def _reformat_to_index(Xs):
+    def np_arr_to_index(Xs):
         return reformat_np_arr(Xs, NP_ARRAY_TYPE_INDEX)
 
     @staticmethod
-    def _reformat_to_onehot(Xs):
+    def np_arr_to_onehot(Xs):
         return reformat_np_arr(Xs, NP_ARRAY_TYPE_ONEHOT)
 
 
