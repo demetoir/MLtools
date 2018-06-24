@@ -22,7 +22,7 @@ class BaseWrapperPack(Reformat_Ys_MixIn, Clf_metric_MixIn, LoggerMixIn, PickleMi
 
     def param_search(self, Xs, Ys):
         result_csv_path = path_join('.', 'param_search_result', time_stamp())
-        Ys = self._reformat_to_index(Ys)
+        Ys = self.np_arr_to_index(Ys)
         for key in self.pack:
             cls = self.pack[key].__class__
             obj = cls()
@@ -39,7 +39,7 @@ class BaseWrapperPack(Reformat_Ys_MixIn, Clf_metric_MixIn, LoggerMixIn, PickleMi
                 self.log.info(pformat(result))
 
     def fit(self, Xs, Ys):
-        Ys = self._reformat_to_index(Ys)
+        Ys = self.np_arr_to_index(Ys)
         for key in self.pack:
             try:
                 self.pack[key].fit(Xs, Ys)
@@ -59,14 +59,14 @@ class BaseWrapperPack(Reformat_Ys_MixIn, Clf_metric_MixIn, LoggerMixIn, PickleMi
         return self._collect_predict(Xs)
 
     def score(self, Xs, Ys, metric='accuracy'):
-        Ys = self._reformat_to_index(Ys)
+        Ys = self.np_arr_to_index(Ys)
         scores = {}
         for clf_k, predict in self._collect_predict(Xs).items():
             scores[clf_k] = self._apply_metric(Ys, predict, metric)
         return scores
 
     def score_pack(self, Xs, Ys):
-        Ys = self._reformat_to_index(Ys)
+        Ys = self.np_arr_to_index(Ys)
         ret = {}
         for clf_k, predict in self._collect_predict(Xs).items():
             ret[clf_k] = self._apply_metric_pack(Ys, predict)
