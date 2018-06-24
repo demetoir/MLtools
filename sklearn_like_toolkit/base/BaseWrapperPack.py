@@ -3,7 +3,7 @@ from pprint import pformat
 from env_settting import SKLEARN_PARAMS_SAVE_PATH
 from sklearn_like_toolkit.ParamOptimizer import ParamOptimizer
 from sklearn_like_toolkit.base.MixIn import ClfWrapperMixIn, meta_BaseWrapperClf
-from util.misc_util import time_stamp, dump_pickle, load_pickle, path_join
+from util.misc_util import time_stamp, dump_pickle, load_pickle, path_join, log_error_trace
 import numpy as np
 
 
@@ -117,10 +117,10 @@ class BaseWrapperPack(ClfWrapperMixIn, metaclass=meta_BaseWrapperClf):
 
     def predict_confidence(self, Xs):
         confidences = {}
-        for clf_k, proba in self.predict_proba(Xs).items():
-            n_class = proba.shape[1]
-            np_arr = np.abs(1.0 / n_class - proba)
-            np_arr = np_arr.sum(axis=1)
-            confidences[clf_k] = np_arr
+        for key, clf in self.pack.items():
+            try:
+                confidences[key] = clf.predict_confidence(Xs)
+            except BaseException as e:
+                log_error_trace(self.log.warn, e, f'while execute confidence at {key},\n')
 
         return confidences
