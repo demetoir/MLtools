@@ -40,7 +40,7 @@ class Clf_metric_MixIn:
         return ret
 
 
-class DummyParamMixIN():
+class DummyParamMixIN:
     def get_params(self, deep=True):
         return {}
 
