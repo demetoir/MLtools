@@ -1,11 +1,10 @@
-from util.numpy_utils import NP_ARRAY_TYPE_INDEX, reformat_np_arr
+from sklearn_like_toolkit.base.BaseWrapperClf import BaseWrapperClf
+from sklearn_like_toolkit.base.MixIn import meta_BaseWrapperClf_with_ABC
 import warnings
 import lightgbm
-import numpy as np
 
 
-class LightGBMClf(lightgbm.LGBMClassifier):
-    model_Ys_type = NP_ARRAY_TYPE_INDEX
+class LightGBMClf(lightgbm.LGBMClassifier, BaseWrapperClf, metaclass=meta_BaseWrapperClf_with_ABC):
     tuning_grid = {
         'num_leaves': [4, 8, 16, 32],
         'min_child_samples': [4, 8, 16, 32],
@@ -61,28 +60,12 @@ class LightGBMClf(lightgbm.LGBMClassifier):
                  random_state=None, n_jobs=-1, silent=True, **kwargs):
         kwargs['verbose'] = -1
         warnings.filterwarnings(module='sklearn*', action='ignore', category=DeprecationWarning)
-        super().__init__(boosting_type, num_leaves, max_depth, learning_rate, n_estimators, subsample_for_bin,
-                         objective, class_weight, min_split_gain, min_child_weight, min_child_samples, subsample,
-                         subsample_freq, colsample_bytree, reg_alpha, reg_lambda, random_state, n_jobs, silent,
-                         **kwargs)
+        lightgbm.LGBMClassifier.__init__(self, boosting_type, num_leaves, max_depth, learning_rate, n_estimators,
+                                         subsample_for_bin,
+                                         objective, class_weight, min_split_gain, min_child_weight, min_child_samples,
+                                         subsample,
+                                         subsample_freq, colsample_bytree, reg_alpha, reg_lambda, random_state, n_jobs,
+                                         silent,
+                                         **kwargs)
 
-    def fit(self, X, y, sample_weight=None, init_score=None, eval_set=None, eval_names=None, eval_sample_weight=None,
-            eval_class_weight=None, eval_init_score=None, eval_metric="logloss", early_stopping_rounds=None,
-            verbose=True, feature_name='auto', categorical_feature='auto', callbacks=None):
-        y = reformat_np_arr(y, self.model_Ys_type)
-
-        return super().fit(X, y, sample_weight, init_score, eval_set, eval_names, eval_sample_weight, eval_class_weight,
-                           eval_init_score, eval_metric, early_stopping_rounds, verbose, feature_name,
-                           categorical_feature, callbacks)
-
-    def predict_proba(self, X, raw_score=False, num_iteration=0, transpose_shape=False):
-        ret = super().predict_proba(X, raw_score, num_iteration)
-
-        if transpose_shape is True:
-            ret = np.transpose(ret, axes=(1, 0, 2))
-
-        return ret
-
-    def score(self, X, y, sample_weight=None):
-        y = reformat_np_arr(y, self.model_Ys_type)
-        return super().score(X, y, sample_weight)
+        BaseWrapperClf.__init__(self)
