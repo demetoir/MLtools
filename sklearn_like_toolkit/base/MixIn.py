@@ -13,6 +13,19 @@ class Reformat_Ys_MixIn:
         return reformat_np_arr(Xs, NP_ARRAY_TYPE_ONEHOT)
 
 
+class DummyParamMixIN:
+    def get_params(self, deep=True):
+        if hasattr(self, 'get_params'):
+            return getattr(self, 'get_params')(self, deep=deep)
+        else:
+            return {}
+
+    def set_params(self, **params):
+        if hasattr(self, 'get_params'):
+            return getattr(self, 'get_params')(self, **params)
+        else:
+            return None
+
 CLF_METRICS = {
     'accuracy': accuracy_score,
     'confusion_matrix': confusion_matrix,
