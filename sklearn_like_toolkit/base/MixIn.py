@@ -21,11 +21,6 @@ CLF_METRICS = {
     'precision_score': precision_score,
 }
 
-
-class Clf_metric_MixIn:
-    def __init__(self):
-        self._metrics = CLF_METRICS
-
     def _apply_metric(self, Y_true, Y_predict, metric):
         return self._metrics[metric](Y_true, Y_predict)
 
@@ -35,9 +30,13 @@ class Clf_metric_MixIn:
             try:
                 ret[key] = self._apply_metric(Y_true, Y_predict, key)
             except BaseException as e:
-                # log_error_trace(self.log.warn, e)
-                pass
+                log_error_trace(getattr(self, 'log').warn, e,
+                                head=f'while {self.__class__} execute score_pack, skip to applying metric {key}\n')
         return ret
+
+    def score_pack(self, X, y):
+        y = self.np_arr_to_index(y)
+        return self._apply_metric_pack(y, getattr(self, 'predict')(X))
 
 
 class DummyParamMixIN:
