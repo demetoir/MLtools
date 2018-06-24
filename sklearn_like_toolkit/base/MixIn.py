@@ -1,5 +1,8 @@
+from abc import ABCMeta
+import numpy as np
 from sklearn.metrics import accuracy_score, confusion_matrix, roc_auc_score, recall_score, precision_score
-from util.MixIn import PickleMixIn
+from util.MixIn import PickleMixIn, LoggerMixIn
+from util.misc_util import log_error_trace
 from util.numpy_utils import reformat_np_arr, NP_ARRAY_TYPE_INDEX, NP_ARRAY_TYPE_ONEHOT
 
 
@@ -59,6 +62,12 @@ CLF_METRICS = {
     'precision_score': precision_score,
 }
 
+
+class score_pack_MixIn(Reformat_Ys_MixIn):
+    def __init__(self):
+        Reformat_Ys_MixIn.__init__(self)
+        self._metrics = CLF_METRICS
+
     def _apply_metric(self, Y_true, Y_predict, metric):
         return self._metrics[metric](Y_true, Y_predict)
 
@@ -90,6 +99,39 @@ class DummyParamMixIN:
         else:
             return None
 
+class ClfConfidenceMixIn:
+    @staticmethod
+    def _apply_confidence(proba):
+        shape = proba.shape
+        batch_size = shape[0]
+        n_class = shape[1]
 
-class ClfWrapperMixIn(Clf_metric_MixIn, Reformat_Ys_MixIn, PickleMixIn):
-    pass
+        np_arr = np.abs(1.0 / n_class - proba)
+        np_arr = np_arr.sum(axis=1)
+        return np_arr
+
+    def predict_confidence(self, Xs):
+        if hasattr(self, 'predict_proba'):
+            func = getattr(self, 'predict_proba')
+            confidences = func(Xs)
+        else:
+            getattr(self, 'log').warn(f'skip predict_confidence, {self.__class__} has no predict_proba')
+            confidences = None
+
+        return confidences
+
+
+class etc_MixIn:
+    @staticmethod
+    def _clone(clf):
+        return clf.__class__(**clf.get_params())
+
+
+class ClfWrapperMixIn(score_pack_MixIn, PickleMixIn, LoggerMixIn, DummyParamMixIN, ClfConfidenceMixIn, etc_MixIn):
+    def __init__(self):
+        score_pack_MixIn.__init__(self)
+        PickleMixIn.__init__(self)
+        LoggerMixIn.__init__(self)
+        DummyParamMixIN.__init__(self)
+        ClfConfidenceMixIn.__init__(self)
+        etc_MixIn.__init__(self)
