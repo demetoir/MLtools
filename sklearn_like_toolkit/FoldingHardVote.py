@@ -16,7 +16,7 @@ class FoldingHardVote(BaseWrapperClf):
         return np.array([clf.predict(Xs) for clf in self.clfs])
 
     def fit(self, Xs, Ys):
-        self.class_size = self._reformat_to_onehot(Ys).shape[1]
+        self.class_size = self.np_arr_to_onehot(Ys).shape[1]
         dset = DummyDataset({'Xs': Xs, 'Ys': Ys})
 
         for clf in self.clfs:
@@ -45,9 +45,9 @@ class FoldingHardVote(BaseWrapperClf):
         return maj
 
     def score(self, Xs, Ys, metric='accuracy'):
-        Ys = self._reformat_to_index(Ys)
+        Ys = self.np_arr_to_index(Ys)
         return self._apply_metric(Ys, self.predict(Xs), metric)
 
     def score_pack(self, Xs, Ys):
-        Ys = self._reformat_to_index(Ys)
+        Ys = self.np_arr_to_index(Ys)
         return self._apply_metric_pack(Ys, self.predict(Xs))
