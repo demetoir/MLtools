@@ -1,21 +1,9 @@
-from pprint import pprint
-
 from util.misc_util import path_join
 from util.numpy_utils import *
 from data_handler.BaseDataset import BaseDataset
 from data_handler.BaseDatasetPack import BaseDatasetPack
 import os
 import pandas as pd
-
-
-def np_str_labels_to_index(np_arr, labels):
-    np_arr = np.asarray(np_arr)
-    new_arr = np.zeros_like(np_arr)
-    for idx, label in enumerate(labels):
-        new_arr = np.where(np_arr == label, idx, new_arr)
-
-    return new_arr.astype(dtype=np.int)
-
 
 FOLDER_NAME = "tatanic"
 PASSENGERID = 'PassengerId'
@@ -34,28 +22,27 @@ Xs = 'Xs'
 Ys = 'Ys'
 
 
-# def pprint_info_pack(df):
-#     pprint(df.info())
-#     for key in df.keys():
-#         pprint(df[key].value_counts())
-# def trans_cabbin(df):
-#     return df
-#
-#
 # def trans_has_child(df):
 #     return df
 #
-# def trans_is_alone(df):
-#     return df
+
+def np_str_labels_to_index(np_arr, labels):
+    np_arr = np.asarray(np_arr)
+    new_arr = np.zeros_like(np_arr)
+    for idx, label in enumerate(labels):
+        new_arr = np.where(np_arr == label, idx, new_arr)
+
+    return new_arr.astype(dtype=np.int)
 
 
 def df_to_np_onehot_embedding(df):
-    np_arr = np.array(df)
     ret = {}
     for df_key in df.keys():
+        np_arr = np.array(df[df_key])
         for unique_key in df[df_key].unique():
-            ret[unique_key] = np.where(np_arr == unique_key, 1, 0).reshape([-1, 1])
+            ret[f'{df_key}_{unique_key}'] = np.where(np_arr == unique_key, 1, 0).reshape([-1, 1])
 
+    ret = np.concatenate([v for k, v in ret.items()], axis=1)
     return ret
 
 
@@ -64,7 +51,7 @@ def df_bucketize(df, key, bucket_range, column='bucket', na='None', null='None')
 
     for i in range(len(bucket_range) - 1):
         a, b = bucket_range[i: i + 2]
-        name = f'{key}_range_{a}~{b}'
+        name = f'{a}~{b}'
 
         query = f'{a} <= {key} < {b}'
 
@@ -78,6 +65,15 @@ def df_bucketize(df, key, bucket_range, column='bucket', na='None', null='None')
     new_df.loc[idx] = null
 
     return new_df
+
+
+def df_to_np_dict(df, dtype=None):
+    ret = {}
+    for key in df.keys():
+        np_arr = np.array(df[key].values, dtype=dtype)
+        np_arr = np_arr.reshape([len(np_arr), 1])
+        ret[key] = np_arr
+    return ret
 
 
 def load_merge_set():
@@ -101,262 +97,259 @@ def load_merge_set():
     return merged_df
 
 
-def trans_fare(self):
-    df = self.to_DataFrame([FARE])
+def trans_fare(df):
+    df = df[[FARE]]
     df = df.astype(float)
+
     bucket_range = [0, 10, 20, 30, 120, 6000]
     df = df_bucketize(df, 'Fare', bucket_range, 'Fare_bucket')
 
-    np_arr = np.array(df)
-    ret = {}
-    for key in df['Fare_bucket'].unique():
-        ret[key] = np.where(np_arr == key, 1, 0).reshape([-1, 1])
-    return ret
+    return df
 
 
-def trans_age(self):
-    df = self.to_DataFrame([AGE])
+def trans_age(df):
+    df = df[[AGE]]
     df = df.astype(float)
     bucket_range = [0, 1, 3, 6, 12, 15, 19, 30, 40, 50, 60, 80 + 1]
     df = df_bucketize(df, 'Age', bucket_range, 'Age_bucket')
 
-    np_arr = np.array(df)
-    ret = {}
-    for key in df['Age_bucket'].unique():
-        ret[key] = np.where(np_arr == key, 1, 0).reshape([-1, 1])
-
-    return ret
+    return df
 
 
-def trans_ticket(self):
-    def split_ticket_head_num(ticket_df):
-        part = ticket_df["Ticket"].str.split(" ")
-        ticket_head = []
-        ticket_num = []
-        for item in part:
-            if len(item) == 1:
-                ticket_head.append("None")
-                ticket_num.append(item[0])
-            else:
-                ticket_head.append(item[0])
-                ticket_num.append(item[-1])
+def split_ticket(df):
+    part = df["Ticket"].str.split(" ")
+    ticket_head = []
+    ticket_num = []
+    for item in part:
+        if len(item) == 1:
+            ticket_head.append("None")
+            ticket_num.append(item[0])
+        else:
+            ticket_head.append(item[0])
+            ticket_num.append(item[-1])
 
-        ticket_head = pd.DataFrame({"ticket_head": ticket_head}, dtype=str)
-        ticket_num = pd.DataFrame({"ticket_num": ticket_num}, dtype=str)
-        return ticket_head, ticket_num
-
-    def trans_ticket_head(df):
-        merge_set_df = load_merge_set()
-        merge_set_df[SURVIVED] = pd.to_numeric(merge_set_df[SURVIVED], downcast='float')
-        merge_ticket_head, _ = split_ticket_head_num(merge_set_df)
-        merge_set_df = pd.concat([merge_set_df, merge_ticket_head], axis=1)
-
-        data = merge_set_df
-        data = data.groupby('ticket_head')['Survived']
-        data = data.agg(['mean'])
-        data = data.sort_values('mean')
-        ticket_head_per_survived = data
-
-        def get_idx(df, query):
-            return list(df.query(query).index)
-
-        idx_survived_0 = get_idx(ticket_head_per_survived, "mean == 0.0")
-        df.loc[df['ticket_head'].isin(idx_survived_0), ['ticket_head']] = 'ticket_head_survived_0'
-
-        idx_survived_0_20 = get_idx(ticket_head_per_survived, f'0.0 < mean <= 0.2')
-        df.loc[df['ticket_head'].isin(idx_survived_0_20), ['ticket_head']] = 'ticket_head_survived_0_20'
-
-        idx_survived_30_40 = get_idx(ticket_head_per_survived, f'0.3 < mean < 0.4')
-        df.loc[df['ticket_head'].isin(idx_survived_30_40), ['ticket_head']] = 'ticket_head_survived_30_40'
-
-        idx_survived_40_50 = get_idx(ticket_head_per_survived, f'0.4 <= mean < 0.5')
-        df.loc[df['ticket_head'].isin(idx_survived_40_50), ['ticket_head']] = 'ticket_head_survived_40_50'
-
-        idx_survived_50_60 = get_idx(ticket_head_per_survived, f'0.5 <= mean <= 0.6')
-        df.loc[df['ticket_head'].isin(idx_survived_50_60), ['ticket_head']] = 'ticket_head_survived_50_60'
-
-        idx_survived_60_80 = get_idx(ticket_head_per_survived, f'0.6 < mean <= 0.8')
-        df.loc[df['ticket_head'].isin(idx_survived_60_80), ['ticket_head']] = 'ticket_head_survived_60_80'
-
-        idx_survived_80_100 = get_idx(ticket_head_per_survived, f'0.8 < mean ')
-        df.loc[df['ticket_head'].isin(idx_survived_80_100), ['ticket_head']] = 'ticket_head_survived_80_100'
-
-        idx_survived_nan = ticket_head_per_survived[ticket_head_per_survived['mean'].isna()]
-        idx_survived_nan = list(idx_survived_nan.index)
-        df.loc[df['ticket_head'].isin(idx_survived_nan), ['ticket_head']] = 'ticket_head_survived_nan'
-
-        return df
-
-    df = self.to_DataFrame()
-    ticket_head_df, ticket_num_df = split_ticket_head_num(df)
-
-    ticket_head_df = trans_ticket_head(ticket_head_df)
-    ticket_head = df_to_np_onehot_embedding(ticket_head_df)
-
-    ticket_num = np.array(ticket_num_df)
-
+    ticket_head = pd.DataFrame({"ticket_head": ticket_head}, dtype=str)
+    ticket_num = pd.DataFrame({"ticket_num": ticket_num}, dtype=str)
     return ticket_head, ticket_num
 
 
-def df_to_np_dict(df, dtype=None):
-    ret = {}
-    for key in df.keys():
-        ret[key] = np.array(df[key], dtype=dtype)
+def trans_ticket_head(df):
+    merge_set_df = load_merge_set()
+    merge_set_df[SURVIVED] = pd.to_numeric(merge_set_df[SURVIVED], downcast='float')
+    merge_ticket_head, _ = split_ticket(merge_set_df)
+    merge_set_df = pd.concat([merge_set_df, merge_ticket_head], axis=1)
+
+    data = merge_set_df
+    data = data.groupby('ticket_head')['Survived']
+    data = data.agg(['mean'])
+    data = data.sort_values('mean')
+    groupby = data
+
+    def get_idx(df, query):
+        return list(df.query(query).index)
+
+    idx_survived_0 = get_idx(groupby, "mean == 0.0")
+    df.loc[df['ticket_head'].isin(idx_survived_0), ['ticket_head']] = 'ticket_head_survived_0'
+
+    idx_survived_0_20 = get_idx(groupby, f'0.0 < mean <= 0.2')
+    df.loc[df['ticket_head'].isin(idx_survived_0_20), ['ticket_head']] = 'ticket_head_survived_0_20'
+
+    idx_survived_30_40 = get_idx(groupby, f'0.3 < mean < 0.4')
+    df.loc[df['ticket_head'].isin(idx_survived_30_40), ['ticket_head']] = 'ticket_head_survived_30_40'
+
+    idx_survived_40_50 = get_idx(groupby, f'0.4 <= mean < 0.5')
+    df.loc[df['ticket_head'].isin(idx_survived_40_50), ['ticket_head']] = 'ticket_head_survived_40_50'
+
+    idx_survived_50_60 = get_idx(groupby, f'0.5 <= mean <= 0.6')
+    df.loc[df['ticket_head'].isin(idx_survived_50_60), ['ticket_head']] = 'ticket_head_survived_50_60'
+
+    idx_survived_60_80 = get_idx(groupby, f'0.6 < mean <= 0.8')
+    df.loc[df['ticket_head'].isin(idx_survived_60_80), ['ticket_head']] = 'ticket_head_survived_60_80'
+
+    idx_survived_80_100 = get_idx(groupby, f'0.8 < mean ')
+    df.loc[df['ticket_head'].isin(idx_survived_80_100), ['ticket_head']] = 'ticket_head_survived_80_100'
+
+    idx_survived_nan = groupby[groupby['mean'].isna()]
+    idx_survived_nan = list(idx_survived_nan.index)
+    df.loc[df['ticket_head'].isin(idx_survived_nan), ['ticket_head']] = 'ticket_head_survived_nan'
+
+    return pd.DataFrame({'ticket_head': df['ticket_head']})
+
+
+def split_name(df):
+    data = df[NAME]
+
+    # split full_name and alias_name
+    data = data.str.split("(", expand=True)
+    full_name = data[0]
+
+    # split full_name to first honorific last
+    full_name = full_name.str.split(",", expand=True)
+    first_name = pd.Series(full_name[0])
+
+    full_name = full_name[1].str.split(".", expand=True)
+    Honorific = full_name[0].str.replace(' ', '')
+    last_name = full_name[1]
+
+    first_name = pd.DataFrame({
+        "first_name": first_name.astype(str),
+    })
+
+    Honorific = pd.DataFrame({
+        "Honorific": Honorific.astype(str),
+    })
+
+    last_name = pd.DataFrame({
+        "last_name": last_name.astype(str)
+    })
+
+    return first_name, Honorific, last_name
+
+
+def trans_Honorific(df):
+    df = df[['Honorific']]
+
+    # most survived
+    merge_most_survived = ['theCountess', 'Sir', 'Ms', 'Mme', 'Mlle', 'Lady']
+
+    # most died
+    merge_most_died = ['Capt', 'Don', 'Jonkheer', 'Rev', 'Dona']
+
+    # half died
+    merge_half_died = ['Col', 'Dr', 'major']
+
+    df.loc[df["Honorific"].isin(merge_most_survived), ['Honorific']] = 'Honorific_survived'
+    df.loc[df["Honorific"].isin(merge_most_died), ['Honorific']] = 'Honorific_most_died'
+    df.loc[df["Honorific"].isin(merge_half_died), ['Honorific']] = 'Honorific_half_died'
+
+    return pd.DataFrame({'Honorific': df['Honorific'].values})
+
+
+def trans_sex(df):
+    return pd.DataFrame({SEX: df[SEX].values})
+
+
+def trans_embarked(df):
+    idxs = list(df.query('Embarked.isna()').index.values)
+    df.loc[idxs, [EMBARKED]] = "C"
+
+    return pd.DataFrame({EMBARKED: df[EMBARKED].values})
+
+
+def trans_pclass(df):
+    df = df[[PCLASS]]
+    df = df.astype(int)
+
+    return pd.DataFrame({PCLASS: df[PCLASS].values})
+
+
+def trans_sibsp(df):
+    df = df[[SIBSP]]
+    df = df.astype(np.int)
+    return pd.DataFrame({SIBSP: df[SIBSP].values})
+
+
+def trans_parch(df):
+    df = df[[PARCH]]
+    df = df.astype(np.int)
+    return pd.DataFrame({PARCH: df[PARCH].values})
+
+
+def trans_family_size(df):
+    return pd.DataFrame({'family_size': df[SIBSP] + df[PARCH] + 1})
+
+
+def trans_room_mate_number(ticket_df, passangerId_df):
+    df = pd.concat([ticket_df, passangerId_df], axis=1)
+    groupby = df.groupby('Ticket')['PassengerId'].count()
+
+    ret = pd.DataFrame({'room_mate_number': [0] * len(df)})
+    for ticket in list(groupby.index.values):
+        ret.loc[df['Ticket'] == ticket, ['room_mate_number']] = groupby[ticket]
+
     return ret
 
 
-def trans_name(self):
-    def split_name(df):
-        data = df['Name']
+def trans_group_first_name_count(ticket_df, first_name_df):
+    df = pd.concat([ticket_df, first_name_df], axis=1)
 
-        # split full_name and alias_name
-        data = data.str.split("(", expand=True)
-        full_name = data[0]
+    groupby = df.groupby(['Ticket'])['first_name'].value_counts()
 
-        # split full_name to first honorific last
-        full_name = full_name.str.split(",", expand=True)
-        first_name = pd.Series(full_name[0])
+    ret = pd.DataFrame({'group_first_name_count': [0] * len(df)})
+    for ticket, first_name in list(groupby.index.values):
+        idxs = df.query(f"""Ticket == "{ticket}" and first_name == "{first_name}" """).index
+        ret.loc[idxs, 'group_first_name_count'] = groupby[ticket, first_name]
 
-        full_name = full_name[1].str.split(".", expand=True)
-        Honorific = full_name[0].str.replace(' ', '')
-        last_name = full_name[1]
-
-        first_name = pd.DataFrame({
-            "first_name": first_name.astype(str),
-        })
-
-        Honorific = pd.DataFrame({
-            "Honorific": Honorific.astype(str),
-        })
-
-        last_name = pd.DataFrame({
-            "last_name": last_name.astype(str)
-        })
-
-        return first_name, Honorific, last_name
-
-    def trans_Honorific(df):
-        # most survived
-        merge_most_survived = ['theCountess', 'Sir', 'Ms', 'Mme', 'Mlle', 'Lady']
-
-        # most died
-        merge_most_died = ['Capt', 'Don', 'Jonkheer', 'Rev', 'Dona']
-
-        # half died
-        merge_half_died = ['Col', 'Dr', 'major']
-
-        df.loc[df["Honorific"].isin(merge_most_survived), ['Honorific']] = 'Honorific_survived'
-        df.loc[df["Honorific"].isin(merge_most_died), ['Honorific']] = 'Honorific_most_died'
-        df.loc[df["Honorific"].isin(merge_half_died), ['Honorific']] = 'Honorific_half_died'
-
-        return df
-
-    df = self.to_DataFrame([NAME])
-    first_name_df, honorific_df, last_name_df = split_name(df)
-
-    first_name = df_to_np_dict(first_name_df, dtype=str)
-
-    honorific_df = trans_Honorific(honorific_df)
-    honorific = df_to_np_onehot_embedding(honorific_df)
-
-    last_name = df_to_np_dict(last_name_df, dtype=str)
-
-    return first_name, honorific, last_name
-
-
-def trans_sex(self):
-    ret = {}
-    data = self.data[SEX]
-    ret["Sex_male"] = np.where(data == "male", 1, 0).reshape([-1, 1])
-    ret["Sex_female"] = np.where(data == "female", 1, 0).reshape([-1, 1])
     return ret
 
 
-def trans_embarked(self):
-    ret = {}
-    data = self.data[EMBARKED]
-    ret["Embarked_C"] = np.where(data == "C", 1, 0).reshape([-1, 1])
-    ret["Embarked_S"] = np.where(data == "S", 1, 0).reshape([-1, 1])
-    ret["Embarked_Q"] = np.where(data == "Q", 1, 0).reshape([-1, 1])
-    ret["Embarked_nan"] = np.where(data == "nan", 1, 0).reshape([-1, 1])
+def trans_with_not_only_family(room_mate_number_df, group_first_name_count_df):
+    df = pd.concat([room_mate_number_df, group_first_name_count_df], axis=1)
+
+    ret = pd.DataFrame({'with_not_only_family': [0] * len(df)})
+    idxs = df.query(f""" room_mate_number != group_first_name_count""").index
+    ret.loc[idxs, 'with_not_only_family'] = 1
+
     return ret
 
 
-def trans_pclass(self):
-    ret = {}
-    data = self.data[PCLASS]
-    data = data.astype(np.int)
-    data = np_index_to_onehot(data)
-    ret["pclass_onehot"] = data
-    return ret
+def split_train_test(df):
+    test = df.query('Survived.isnull()')
+    test = test.drop(columns=['Survived'])
+    train = df.query('not Survived.isnull()')
+    return train, test
 
 
-def trans_sibsp(self):
-    ret = {}
-    data = self.data[SIBSP]
-    data = data.astype(np.int)
-    data = np_index_to_onehot(data)
-    ret["sibsp_onehot"] = data
-    return ret
+def trans_cabin(df):
+    df = pd.DataFrame(df['Cabin'])
+
+    cabin_head = df.query('not Cabin.isna()')
+    cabin_head = cabin_head['Cabin'].astype(str)
+    cabin_head = cabin_head.str.slice(0, 1)
+
+    na = df.query('Cabin.isna()')
+
+    df.loc[na.index, 'Cabin'] = 'None'
+    df.loc[cabin_head.index, 'Cabin'] = cabin_head
+    return df
 
 
-def trans_parch(self):
-    ret = {}
-    data = self.data[PARCH]
-    data = data.astype(np.int)
-    data = np_index_to_onehot(data, n=10)
-    ret["parch_onehot"] = data
-    return ret
+def build_transform(df):
+    fare = trans_fare(df)
+    age = trans_age(df)
+    first_name, honorific, last_name = split_name(df)
+    honorific = trans_Honorific(honorific)
+    ticket_head, ticket_num = split_ticket(df)
+    ticket_head = trans_ticket_head(ticket_head)
+    sex = trans_sex(df)
+    embarked = trans_embarked(df)
+    pclass = trans_pclass(df)
+    sibsp = trans_sibsp(df)
+    parch = trans_parch(df)
+    cabin = trans_cabin(df)
 
+    room_mate_number = trans_room_mate_number(df[[TICKET]], df[[PASSENGERID]])
+    family_size = trans_family_size(df)
+    group_first_name_count = trans_group_first_name_count(df[[TICKET]], first_name)
+    with_not_only_family = trans_with_not_only_family(room_mate_number, group_first_name_count)
 
-def trans_family_size(self):
-    ret = {}
-    sibsp = self.data[SIBSP].astype(np.int)
-    parch = self.data[PARCH].astype(np.int)
-    ret["family_size_onehot"] = np_index_to_onehot(sibsp + parch + 1, n=20)
-    return ret
-
-
-def x_preprocess(self):
-    # df = self.to_DataFrame()
-    # fare = trans_fare(df)
-    # age = trans_age(df)
-    # name = trans_name(df)
-    # ticket = trans_ticket(df)
-    #
-    # merge_df = pd.concat([df, fare, age, name, ticket], axis=1)
-    # merge_df = merge_df.drop(columns=['Name', 'Ticket', 'Fare', 'Age'])
-
-    x_dict = {}
-    data = self.data[PASSENGERID]
-    data = data.astype(np.int)
-    self.data[PASSENGERID] = data
-
-    # df = self.to_DataFrame()
-
-    fare = trans_fare(self)
-    age = trans_age(self)
-    first_name, honorific, last_name = trans_name(self)
-    ticket_head, ticket_num = trans_ticket(self)
-    sex = trans_sex(self)
-    embarked = trans_embarked(self)
-    pclass = trans_pclass(self)
-    sibsp = trans_sibsp(self)
-    parch = trans_parch(self)
-    family_size = trans_family_size(self)
-
-    x_dict.update(sex)
-    x_dict.update(embarked)
-    x_dict.update(pclass)
-    x_dict.update(sibsp)
-    x_dict.update(parch)
-    x_dict.update(family_size)
-    x_dict.update(fare)
-    x_dict.update(age)
-    x_dict.update(honorific)
-    x_dict.update(ticket_head)
-    # pprint(x_dict.keys())
-    return np.concatenate(list(x_dict.values()), axis=1)
+    x_df = pd.concat(
+        [df[[SURVIVED]],
+         fare,
+         age,
+         honorific,
+         sex,
+         embarked,
+         pclass,
+         sibsp,
+         parch,
+         family_size,
+         ticket_head,
+         room_mate_number,
+         group_first_name_count,
+         with_not_only_family,
+         cabin], axis=1)
+    return x_df
 
 
 class titanic_train(BaseDataset):
@@ -395,30 +388,45 @@ class titanic_train(BaseDataset):
     FILE_NAME = "train.csv"
 
     def load(self, path, limit=None):
-        data_path = os.path.join(path, self.FILE_NAME)
-        pd_data = pd.read_csv(
-            data_path,
-            sep=',',
-            header=None,
-            error_bad_lines=False,
-            names=self.CSV_COLUMNS,
-        )
-        pd_data = pd_data.fillna("nan")
-        for col, key in zip(self.CSV_COLUMNS, self.BATCH_KEYS):
-            self.data[key] = np.array(pd_data[col])[1:]
+        trans_path = os.path.join(path, "trans_train.csv")
+
+        if not self.caching or not os.path.exists(trans_path):
+            df = load_merge_set()
+            merge_transform = build_transform(df)
+            train, test = split_train_test(merge_transform)
+
+            merge_transform.to_csv(path_join(path, 'trans_merge.csv'))
+            train.to_csv(path_join(path, 'trans_train.csv'))
+            test.to_csv(path_join(path, 'trans_test.csv'))
+
+        df = pd.read_csv(trans_path)
+        self.data = df_to_np_dict(df)
 
     def save(self):
         pass
 
     def transform(self):
-        data = x_preprocess(self)
-        self.add_data(Xs, data)
+        Xs_df_keys = [
+            'Fare_bucket',
+            'Age_bucket',
+            'Honorific',
+            'Sex',
+            'Embarked',
+            'Pclass',
+            'SibSp',
+            'Parch',
+            'family_size',
+            'ticket_head',
+            'room_mate_number',
+            'group_first_name_count',
+            'with_not_only_family'
+        ]
+        Xs_df = self.to_DataFrame(Xs_df_keys)
+        self.add_data('Xs', df_to_np_onehot_embedding(Xs_df))
 
-        # add train_label
-        data = self.data[SURVIVED]
-        data = data.astype(np.int)
-        data = np_index_to_onehot(data)
-        self.add_data(Ys, data)
+        ys_df = self.to_DataFrame(['Survived'])
+        ys_df = ys_df.astype(int)
+        self.add_data('Ys', df_to_np_onehot_embedding(ys_df))
 
 
 class titanic_test(BaseDataset):
@@ -453,33 +461,53 @@ class titanic_test(BaseDataset):
     FILE_NAME = "test.csv"
 
     def load(self, path, limit=None):
-        data_path = os.path.join(path, self.FILE_NAME)
-        pd_data = pd.read_csv(
-            data_path,
-            sep=',',
-            header=None,
-            error_bad_lines=False,
-            names=self.CSV_COLUMNS,
-        )
-        pd_data = pd_data.fillna('nan')
-        for col, key in zip(self.CSV_COLUMNS, self.BATCH_KEYS):
-            self.data[key] = np.array(pd_data[col])[1:]
+        trans_path = os.path.join(path, "trans_test.csv")
+
+        if not self.caching or not os.path.exists(trans_path):
+            df = load_merge_set()
+            merge_transform = build_transform(df)
+            train, test = split_train_test(merge_transform)
+
+            merge_transform.to_csv('trans_merge.csv')
+            train.to_csv('trans_train.csv')
+            test.to_csv('trans_test.csv')
+
+        df = pd.read_csv(trans_path)
+
+        self.data = df_to_np_dict(df)
 
     def save(self):
         pass
 
     def transform(self):
-        data = x_preprocess(self)
-        self.add_data(Xs, data)
+        Xs_df_keys = [
+            'Fare_bucket',
+            'Age_bucket',
+            'Honorific',
+            'Sex',
+            'Embarked',
+            'Pclass',
+            'SibSp',
+            'Parch',
+            'family_size',
+            'ticket_head',
+            'room_mate_number',
+            'group_first_name_count',
+            'with_not_only_family'
+        ]
+        Xs_df = self.to_DataFrame(Xs_df_keys)
+
+        self.add_data('Xs', df_to_np_onehot_embedding(Xs_df))
 
 
 class titanic(BaseDatasetPack):
     LABEL_SIZE = 2
 
-    def __init__(self):
-        super().__init__()
-        self.train_set = titanic_train()
-        self.test_set = titanic_test()
+    def __init__(self, caching=True, **kwargs):
+        super().__init__(caching, **kwargs)
+
+        self.train_set = titanic_train(caching=caching)
+        self.test_set = titanic_test(caching=caching)
         self.set['train'] = self.train_set
         self.set['test'] = self.test_set
 
@@ -491,5 +519,4 @@ class titanic(BaseDatasetPack):
         df[PASSENGERID] = [i for i in range(892, 1309 + 1)]
         df[SURVIVED] = Ys
 
-        pprint(df.head())
         df.to_csv(path, index=False)

@@ -3,7 +3,7 @@ import sklearn
 import pandas as pd
 from data_handler.BaseDataset import BaseDataset
 from util.Logger import StdoutOnlyLogger
-from util.misc_util import time_stamp, setup_directory, path_join, log_error_trace
+from util.misc_util import time_stamp, path_join, log_error_trace, setup_file
 from util.numpy_utils import reformat_np_arr
 
 
@@ -145,10 +145,10 @@ class ParamOptimizer:
 
         if path is None:
             save_path = path_join('.', 'param_search_result', time_stamp())
-            setup_directory(save_path)
             file_name = str(self.estimator.__class__.__name__) + '.csv'
             path = path_join(save_path, file_name)
 
+        setup_file(path)
         pd.DataFrame(self.result).to_csv(path)
         self.log.info("param search result csv saved at %s" % path)
 

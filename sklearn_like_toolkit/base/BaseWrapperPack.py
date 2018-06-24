@@ -2,12 +2,13 @@ import os
 from pprint import pformat
 from env_settting import SKLEARN_PARAMS_SAVE_PATH
 from sklearn_like_toolkit.ParamOptimizer import ParamOptimizer
-from sklearn_like_toolkit.base.MixIn import Reformat_Ys_MixIn, clf_metric_MixIn
+from sklearn_like_toolkit.base.MixIn import Reformat_Ys_MixIn, Clf_metric_MixIn
 from util.MixIn import LoggerMixIn, PickleMixIn
-from util.misc_util import time_stamp, dump_pickle, load_pickle
+from util.misc_util import time_stamp, dump_pickle, load_pickle, path_join
+import numpy as np
 
 
-class BaseWrapperPack(Reformat_Ys_MixIn, clf_metric_MixIn, LoggerMixIn, PickleMixIn):
+class BaseWrapperPack(Reformat_Ys_MixIn, Clf_metric_MixIn, LoggerMixIn, PickleMixIn):
     class_pack = {}
 
     def __init__(self):
@@ -20,6 +21,7 @@ class BaseWrapperPack(Reformat_Ys_MixIn, clf_metric_MixIn, LoggerMixIn, PickleMi
         return self.__class__.__name__
 
     def param_search(self, Xs, Ys):
+        result_csv_path = path_join('.', 'param_search_result', time_stamp())
         Ys = self._reformat_to_index(Ys)
         for key in self.pack:
             cls = self.pack[key].__class__
@@ -29,7 +31,8 @@ class BaseWrapperPack(Reformat_Ys_MixIn, clf_metric_MixIn, LoggerMixIn, PickleMi
             self.pack[key] = optimizer.optimize(Xs, Ys)
             self.optimize_result[key] = optimizer.result
 
-            optimizer.result_to_csv()
+            path = path_join(result_csv_path, cls.__name__ + '.csv')
+            optimizer.result_to_csv(path)
 
             self.log.info("top 5 result")
             for result in optimizer.top_k_result():
@@ -112,3 +115,13 @@ class BaseWrapperPack(Reformat_Ys_MixIn, clf_metric_MixIn, LoggerMixIn, PickleMi
     def dump(self, path):
         self.log.info(f'pickle save at {path}')
         super().dump(path)
+
+    def predict_confidence(self, Xs):
+        confidences = {}
+        for clf_k, proba in self.predict_proba(Xs).items():
+            n_class = proba.shape[1]
+            np_arr = np.abs(1.0 / n_class - proba)
+            np_arr = np_arr.sum(axis=1)
+            confidences[clf_k] = np_arr
+
+        return confidences

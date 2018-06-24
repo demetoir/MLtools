@@ -2,11 +2,11 @@ from util.Logger import Logger
 
 
 class BaseDatasetPack:
-    def __init__(self):
+    def __init__(self, caching=True,**kwargs):
         self.logger = Logger(self.__class__.__name__)
         self.log = self.logger.get_log()
-
         self.set = {}
+        self.caching = caching
 
     def load(self, path, **kwargs):
         for k in self.set:

@@ -70,7 +70,7 @@ class BaseDataset(metaclass=MetaDataset):
     def downloadInfos(self):
         return []
 
-    def __init__(self, verbose='WARN', logger=None):
+    def __init__(self, verbose='WARN', logger=None, caching=True, **kwargs):
         """create dataset handler class
 
         ***bellow attrs must initiate other value after calling super()***
@@ -94,6 +94,7 @@ class BaseDataset(metaclass=MetaDataset):
         self.cursor = 0
         self.data_size = 0
         self.input_shapes = None
+        self.caching = caching
 
     def __del__(self):
         if not self.external_logger:
@@ -187,18 +188,20 @@ class BaseDataset(metaclass=MetaDataset):
             self.data_size = max(len(self.data[key]), self.data_size)
             self.log.debug("batch data '%s' %d item(s) loaded" % (key, len(self.data[key])))
 
-        self.data['id_'] = np.array([i for i in range(1, self.data_size + 1)])
-
-        self.log.debug('%s fully loaded' % self.__str__())
-
-        self.log.debug('%s preprocess end' % self.__str__())
-        self.transform()
+        if 'id_' in self.data.keys():
+            self.log.warn(f"overwrite column 'id_', column already exist")
+        self.data['id_'] = np.array([i for i in range(1, self.data_size + 1)]).reshape([self.data_size, 1])
+        self.log.debug("insert 'id_' column")
 
         self.log.debug("generate input_shapes")
         self.input_shapes = {}
         for key in self.data:
             self.input_shapes[key] = list(self.data[key].shape[1:])
             self.log.debug("key=%s, shape=%s" % (key, self.input_shapes[key]))
+
+        self.transform()
+        self.log.debug(f'{self.__str__()} transformed')
+        self.log.debug('%s fully loaded' % self.__str__())
 
     def load(self, path, limit=None):
         """load dataset from file should implement
@@ -380,10 +383,19 @@ class BaseDataset(metaclass=MetaDataset):
         if keys is None:
             keys = self.data.keys()
 
-        df = pd.DataFrame()
+        df = pd.DataFrame({})
         for key in keys:
             try:
-                df[key] = self.data[key]
+                shape = self.data[key].shape
+                data = self.data[key]
+
+                if shape[1] > 1:
+                    data = [str(i) for i in data]
+                else:
+                    data = data.reshape([shape[0]])
+
+                df[key] = data
             except BaseException as e:
-                pass
+                log_error_trace(self.log.warn, e)
+
         return df

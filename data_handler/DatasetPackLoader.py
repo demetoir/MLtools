@@ -15,7 +15,7 @@ class DatasetPackLoader:
     def __repr__(self):
         return self.__class__.__name__
 
-    def load_dataset(self, dataset_name, limit=None):
+    def load_dataset(self, dataset_name, limit=None, **kwargs):
         """load dataset, return dataset, input_shapes
 
         :type dataset_name: str
@@ -34,7 +34,7 @@ class DatasetPackLoader:
 
             dataset_class = self.dataset_class[dataset_name]
             path = os.path.join(DATA_PATH, dataset_class.__name__)
-            dataset = dataset_class()
+            dataset = dataset_class(**kwargs)
             dataset.load(path=path, limit=limit)
 
         except KeyError:
