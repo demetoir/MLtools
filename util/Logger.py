@@ -159,6 +159,11 @@ class StdoutOnlyLogger(Logger):
         super().__init__(name, with_file=False, empty_stdout_format=True, level=level)
 
 
+class LoggerMixIn:
+    def __init__(self):
+        self.log = Logger(self.__class__.__name__)
+
+
 def pprint_logger(log_func):
     def wrapper(*args, **kwargs):
         import pprint
