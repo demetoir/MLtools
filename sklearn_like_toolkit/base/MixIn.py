@@ -1,4 +1,5 @@
 from sklearn.metrics import accuracy_score, confusion_matrix, roc_auc_score, recall_score, precision_score
+from util.MixIn import PickleMixIn
 from util.numpy_utils import reformat_np_arr, NP_ARRAY_TYPE_INDEX, NP_ARRAY_TYPE_ONEHOT
 
 
@@ -45,3 +46,7 @@ class DummyParamMixIN():
 
     def set_params(self, **params):
         return None
+
+
+class ClfWrapperMixIn(Clf_metric_MixIn, Reformat_Ys_MixIn, PickleMixIn):
+    pass
