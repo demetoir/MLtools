@@ -3,6 +3,31 @@ from util.MixIn import PickleMixIn
 from util.numpy_utils import reformat_np_arr, NP_ARRAY_TYPE_INDEX, NP_ARRAY_TYPE_ONEHOT
 
 
+class meta_BaseWrapperClf(type):
+    def __init__(cls, name, bases, cls_dict):
+        type.__init__(cls, name, bases, cls_dict)
+
+        def deco_reformat_y(func):
+            def wrapper(*args, **kwargs):
+                y = args[2]
+                args = list(args[:2]) + [Reformat_Ys_MixIn.np_arr_to_index(y)] + list(args[3:])
+
+                ret = func(*args, **kwargs)
+                return ret
+
+            return wrapper
+
+        func_names = ['score', 'score_pack', 'fit']
+        for func_name in func_names:
+            if hasattr(cls, func_name):
+                func = getattr(cls, func_name)
+                setattr(cls, func_name, deco_reformat_y(func))
+
+
+class meta_BaseWrapperClf_with_ABC(meta_BaseWrapperClf, ABCMeta):
+    pass
+
+
 class Reformat_Ys_MixIn:
     @staticmethod
     def np_arr_to_index(Xs):
