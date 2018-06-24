@@ -283,10 +283,6 @@ def trans_group_first_name_count(ticket_df, first_name_df):
     return ret
 
 
-def _family_size(df):
-    return pd.DataFrame({'Family_size': df['SibSp'] + df['Parch'] + 1})
-
-
 def trans_with_not_only_family(room_mate_number_df, group_first_name_count_df):
     df = pd.concat([room_mate_number_df, group_first_name_count_df], axis=1)
 
@@ -304,6 +300,20 @@ def split_train_test(df):
     return train, test
 
 
+def trans_cabin(df):
+    df = pd.DataFrame(df['Cabin'])
+
+    cabin_head = df.query('not Cabin.isna()')
+    cabin_head = cabin_head['Cabin'].astype(str)
+    cabin_head = cabin_head.str.slice(0, 1)
+
+    na = df.query('Cabin.isna()')
+
+    df.loc[na.index, 'Cabin'] = 'None'
+    df.loc[cabin_head.index, 'Cabin'] = cabin_head
+    return df
+
+
 def build_transform(df):
     fare = trans_fare(df)
     age = trans_age(df)
@@ -316,14 +326,29 @@ def build_transform(df):
     pclass = trans_pclass(df)
     sibsp = trans_sibsp(df)
     parch = trans_parch(df)
+    cabin = trans_cabin(df)
+
     room_mate_number = trans_room_mate_number(df[[TICKET]], df[[PASSENGERID]])
     family_size = trans_family_size(df)
     group_first_name_count = trans_group_first_name_count(df[[TICKET]], first_name)
     with_not_only_family = trans_with_not_only_family(room_mate_number, group_first_name_count)
 
     x_df = pd.concat(
-        [df[[SURVIVED]], fare, age, honorific, sex, embarked, pclass, sibsp, parch, family_size, ticket_head,
-         room_mate_number, group_first_name_count, with_not_only_family], axis=1)
+        [df[[SURVIVED]],
+         fare,
+         age,
+         honorific,
+         sex,
+         embarked,
+         pclass,
+         sibsp,
+         parch,
+         family_size,
+         ticket_head,
+         room_mate_number,
+         group_first_name_count,
+         with_not_only_family,
+         cabin], axis=1)
     return x_df
 
 
