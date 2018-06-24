@@ -2,13 +2,12 @@ import os
 from pprint import pformat
 from env_settting import SKLEARN_PARAMS_SAVE_PATH
 from sklearn_like_toolkit.ParamOptimizer import ParamOptimizer
-from sklearn_like_toolkit.base.MixIn import Reformat_Ys_MixIn, Clf_metric_MixIn
-from util.MixIn import LoggerMixIn, PickleMixIn
+from sklearn_like_toolkit.base.MixIn import ClfWrapperMixIn, meta_BaseWrapperClf
 from util.misc_util import time_stamp, dump_pickle, load_pickle, path_join
 import numpy as np
 
 
-class BaseWrapperPack(Reformat_Ys_MixIn, Clf_metric_MixIn, LoggerMixIn, PickleMixIn):
+class BaseWrapperPack(ClfWrapperMixIn, metaclass=meta_BaseWrapperClf):
     class_pack = {}
 
     def __init__(self):
