@@ -1,10 +1,10 @@
-from util.numpy_utils import NP_ARRAY_TYPE_INDEX, reformat_np_arr
+from sklearn_like_toolkit.base.BaseWrapperClf import BaseWrapperClf
+from sklearn_like_toolkit.base.MixIn import meta_BaseWrapperClf_with_ABC
 import warnings
 import xgboost as xgb
 
 
-class XGBoostClf(xgb.XGBClassifier):
-    model_Ys_type = NP_ARRAY_TYPE_INDEX
+class XGBoostClf(xgb.XGBClassifier, BaseWrapperClf, metaclass=meta_BaseWrapperClf_with_ABC):
     tuning_grid = {
         'max_depth': [4, 6, 8],
         # 'n_estimators': [128, 256],
@@ -48,10 +48,11 @@ class XGBoostClf(xgb.XGBClassifier):
                  booster='gbtree', n_jobs=1, nthread=None, gamma=0, min_child_weight=1, max_delta_step=0, subsample=1,
                  colsample_bytree=1, colsample_bylevel=1, reg_alpha=0, reg_lambda=1, scale_pos_weight=1, base_score=0.5,
                  random_state=0, seed=None, missing=None, **kwargs):
-        super().__init__(max_depth, learning_rate, n_estimators, silent, objective, booster, n_jobs, nthread, gamma,
-                         min_child_weight, max_delta_step, subsample, colsample_bytree, colsample_bylevel, reg_alpha,
-                         reg_lambda, scale_pos_weight, base_score, random_state, seed, missing, **kwargs)
-
+        xgb.XGBClassifier.__init__(self, max_depth, learning_rate, n_estimators, silent, objective, booster, n_jobs,
+                                   nthread, gamma, min_child_weight, max_delta_step, subsample, colsample_bytree,
+                                   colsample_bylevel, reg_alpha, reg_lambda, scale_pos_weight, base_score, random_state,
+                                   seed, missing, **kwargs)
+        BaseWrapperClf.__init__(self)
         warnings.filterwarnings(module='sklearn*', action='ignore', category=DeprecationWarning)
         # params.update({"tree_method": 'auto'})
         # params.update({"tree_method": 'gpu_hist'})
@@ -60,16 +61,3 @@ class XGBoostClf(xgb.XGBClassifier):
         # params.update({"tree_method": 'gpu_exact'})
         # params.update({'nthread': 1})
         # params.update({"silent": 1})
-
-    def fit(self, X, y, sample_weight=None, eval_set=None, eval_metric=None, early_stopping_rounds=None, verbose=True,
-            xgb_model=None, sample_weight_eval_set=None):
-        y = reformat_np_arr(y, self.model_Ys_type)
-        return super().fit(X, y, sample_weight, eval_set, eval_metric, early_stopping_rounds, verbose, xgb_model,
-                           sample_weight_eval_set)
-
-    def predict_proba(self, data, ntree_limit=0):
-        return super().predict_proba(data, ntree_limit)
-
-    def score(self, X, y, sample_weight=None):
-        y = reformat_np_arr(y, self.model_Ys_type)
-        return super().score(X, y, sample_weight)
