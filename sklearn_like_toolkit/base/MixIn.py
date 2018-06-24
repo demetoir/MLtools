@@ -41,7 +41,6 @@ class Reformat_Ys_MixIn:
         return reformat_np_arr(Xs, NP_ARRAY_TYPE_ONEHOT)
 
 
-
 CLF_METRICS = {
     'accuracy': accuracy_score,
     'confusion_matrix': confusion_matrix,
@@ -87,6 +86,7 @@ class DummyParamMixIN:
         else:
             return None
 
+
 class ClfConfidenceMixIn:
     @staticmethod
     def _apply_confidence(proba):
@@ -98,7 +98,7 @@ class ClfConfidenceMixIn:
         np_arr = np_arr.sum(axis=1)
         return np_arr
 
-    def predict_confidence(self, Xs):
+    def _predict_confidence(self, Xs):
         if hasattr(self, 'predict_proba'):
             func = getattr(self, 'predict_proba')
             confidences = func(Xs)
@@ -107,6 +107,9 @@ class ClfConfidenceMixIn:
             confidences = None
 
         return confidences
+
+    def predict_confidence(self, Xs):
+        return self._predict_confidence(Xs)
 
 
 class etc_MixIn:
