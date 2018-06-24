@@ -79,10 +79,16 @@ CLF_METRICS = {
 
 class DummyParamMixIN:
     def get_params(self, deep=True):
-        return {}
+        if hasattr(self, 'get_params'):
+            return getattr(self, 'get_params')(self, deep=deep)
+        else:
+            return {}
 
     def set_params(self, **params):
-        return None
+        if hasattr(self, 'get_params'):
+            return getattr(self, 'get_params')(self, **params)
+        else:
+            return None
 
 
 class ClfWrapperMixIn(Clf_metric_MixIn, Reformat_Ys_MixIn, PickleMixIn):
