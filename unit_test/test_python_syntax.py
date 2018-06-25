@@ -19,6 +19,7 @@ def test_metaclass_mixIn():
         def __init__(self):
             print('class_B')
 
+    # noinspection PyMethodParameters
     class meta_AB(meta_A, meta_B):
         def __init__(cls, name, bases, cls_dict):
             meta_A.__init__(cls, name, bases, cls_dict)
