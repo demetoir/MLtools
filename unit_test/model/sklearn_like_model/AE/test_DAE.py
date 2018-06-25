@@ -3,15 +3,12 @@ from script.model.sklearn_like_model.AE.DAE import DAE
 import numpy as np
 
 
-class test_DAE:
-    def __init__(self):
-        self.test_mnist()
-        self.test_titanic()
+class Test_DAE:
 
     def test_mnist(self):
         class_ = DAE
         dataset = DatasetPackLoader().load_dataset("MNIST")
-        dataset = dataset.train_set
+        dataset = dataset['train']
 
         model = class_(dataset.input_shapes)
         model.build()
@@ -51,7 +48,7 @@ class test_DAE:
         class_ = DAE
 
         dataset = DatasetPackLoader().load_dataset("titanic")
-        dataset = dataset.train_set
+        dataset = dataset['train']
 
         model = class_(dataset.input_shapes)
         model.build()
