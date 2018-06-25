@@ -93,7 +93,7 @@ class BaseDataset(metaclass=MetaDataset):
         self.data = {}
         self.cursor = 0
         self.data_size = 0
-        self.input_shapes = None
+        self.input_shapes = {}
         self.caching = caching
 
     def __del__(self):
@@ -194,14 +194,15 @@ class BaseDataset(metaclass=MetaDataset):
         self.data['id_'] = np.array([i for i in range(1, self.data_size + 1)]).reshape([self.data_size, 1])
         self.log.debug("insert 'id_' column")
 
+        self.transform()
+        self.log.debug(f'{self.__str__()} transformed')
+
         self.log.debug("generate input_shapes")
         self.input_shapes = {}
         for key in self.data:
             self.input_shapes[key] = list(self.data[key].shape[1:])
             self.log.debug("key=%s, shape=%s" % (key, self.input_shapes[key]))
 
-        self.transform()
-        self.log.debug(f'{self.__str__()} transformed')
         self.log.debug('%s fully loaded' % self.__str__())
 
     def load(self, path, limit=None):
