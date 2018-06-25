@@ -2,7 +2,7 @@ from util.Logger import Logger
 
 
 class BaseDatasetPack:
-    def __init__(self, caching=True,**kwargs):
+    def __init__(self, caching=True, **kwargs):
         self.logger = Logger(self.__class__.__name__)
         self.log = self.logger.get_log()
         self.set = {}

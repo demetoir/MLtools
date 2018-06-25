@@ -129,7 +129,8 @@ class AAE(BaseModel):
 
         return stack.last_layer
 
-    def discriminator_gauss(self, zs, net_shapes, reuse=False, name='discriminator_gauss'):
+    @staticmethod
+    def discriminator_gauss(zs, net_shapes, reuse=False, name='discriminator_gauss'):
         with tf.variable_scope(name, reuse=reuse):
             layer = Stacker(zs)
             for shape in net_shapes:
@@ -140,7 +141,8 @@ class AAE(BaseModel):
 
         return layer.last_layer
 
-    def discriminator_cate(self, zs, net_shapes, reuse=False, name='discriminator_cate'):
+    @staticmethod
+    def discriminator_cate(zs, net_shapes, reuse=False, name='discriminator_cate'):
         with tf.variable_scope(name, reuse=reuse):
             layer = Stacker(zs)
             for shape in net_shapes:
@@ -279,7 +281,8 @@ class AAE(BaseModel):
     def random_z(self):
         pass
 
-    def get_z_noise(self, shape):
+    @staticmethod
+    def get_z_noise(shape):
         return np.random.uniform(-1, 1, size=shape)
 
     def train(self, Xs, Ys, epoch=100, save_interval=None, batch_size=None):

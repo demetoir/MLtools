@@ -135,7 +135,8 @@ class BaseDataset(metaclass=MetaDataset):
             if self._is_invalid(path, info):
                 self.download_data(path, info)
 
-    def _is_invalid(self, path, downloadInfos):
+    @staticmethod
+    def _is_invalid(path, downloadInfos):
         """check dataset file validation"""
         validation = None
         files = glob(os.path.join(path, '**'), recursive=True)
