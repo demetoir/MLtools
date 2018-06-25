@@ -296,8 +296,12 @@ class BaseDataset(metaclass=MetaDataset):
         """
         raise NotImplementedError
 
-    def split(self, ratio, shuffle=False):
+    def split(self, ratio=None, shuffle=False):
         """return split part of dataset"""
+
+        if ratio is None:
+            ratio = (7, 3)
+
         a_set = self._clone()
         b_set = self._clone()
         a_set.input_shapes = self.input_shapes
