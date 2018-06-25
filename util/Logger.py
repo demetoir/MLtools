@@ -56,7 +56,7 @@ class Logger:
     EMPTY_FORMAT = ""
 
     def __init__(self, name, path=None, file_name=None, level='INFO', with_file=True, empty_stdout_format=True,
-                 print_start_msg=True, rotating_file=True):
+                 rotating_file=True):
         """create logger
 
         :param name:name of logger

@@ -3,7 +3,7 @@ from glob import glob
 from data_handler.BaseDataset import BaseDataset, DownloadInfo
 from data_handler.BaseDatasetPack import BaseDatasetPack
 from dict_keys.dataset_batch_keys import *
-import _pickle as cPickle
+import _pickle as pickle
 import os
 
 
@@ -35,7 +35,7 @@ class LLD_clean(BaseDataset):
         self.data[BATCH_KEY_TRAIN_X] = None
         for file in files:
             with open(file, 'rb') as f:
-                data = cPickle.load(f, encoding='latin1')
+                data = pickle.load(f, encoding='latin1')
                 self.log('pickle load :%s' % file)
             self._append_data('Xs', data)
 
@@ -56,6 +56,6 @@ class LLD_clean(BaseDataset):
 
 class LLD(BaseDatasetPack):
 
-    def __init__(self, train_set=None, test_set=None, validation_set=None):
-        super().__init__(train_set, test_set, validation_set)
+    def __init__(self, caching=True, **kwargs):
+        super().__init__(caching, **kwargs)
         self.train_set = LLD_clean()

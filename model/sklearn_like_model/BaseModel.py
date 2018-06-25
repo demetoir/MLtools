@@ -151,7 +151,7 @@ class BaseModel:
             del self.sess
             del self.root_path
             del self.log
-        except BaseException as e:
+        except BaseException:
             pass
 
     @property

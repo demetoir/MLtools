@@ -100,7 +100,7 @@ class AAE(BaseModel):
         self.Y_size = self.Y_shape[0]
 
         self.z_shape = [self.z_size]
-        self.zs_shape = [None] + self.z_shape
+        self.zs_shape = [None, self.z_size]
 
     def encoder(self, Xs, net_shapes, reuse=False, name='encoder'):
         with tf.variable_scope(name, reuse=reuse):

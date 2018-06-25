@@ -106,7 +106,3 @@ class ClassifierPack(BaseWrapperPack):
             raise KeyError(f"key '{key}' is not unique")
 
         self.pack[key] = clf
-
-    def clone_clf(self, key, n=1, param=None):
-        if key not in self.pack:
-            raise KeyError(f"key '{key}' not exist")

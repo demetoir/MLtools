@@ -72,8 +72,7 @@ class Fashion_MNIST_test(BaseDataset):
 
 
 class Fashion_MNIST(BaseDatasetPack):
-
-    def __init__(self, train_set=None, test_set=None, validation_set=None):
-        super().__init__(train_set, test_set, validation_set)
+    def __init__(self, caching=True, **kwargs):
+        super().__init__(caching, **kwargs)
         self.train_set = Fashion_MNIST_train()
         self.test_set = Fashion_MNIST_test()

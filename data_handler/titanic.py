@@ -511,7 +511,8 @@ class titanic(BaseDatasetPack):
         self.set['train'] = self.train_set
         self.set['test'] = self.test_set
 
-    def to_kaggle_submit_csv(self, path, Ys):
+    @staticmethod
+    def to_kaggle_submit_csv(path, Ys):
         if path is None:
             path = path_join('.', 'submit.csv')
         df = pd.DataFrame()

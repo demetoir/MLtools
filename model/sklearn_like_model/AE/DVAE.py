@@ -77,7 +77,7 @@ class DVAE(BaseAutoEncoder):
         self.X_flatten_size = reduce(lambda x, y: x * y, self.X_shape)
 
         self.z_shape = [self.z_size]
-        self.zs_shape = [None] + self.z_shape
+        self.zs_shape = [None, self.z_size]
         self.noise_shape = self.Xs_shape
 
     def encoder(self, Xs, net_shapes, reuse=False, name='encoder'):

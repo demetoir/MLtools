@@ -75,7 +75,7 @@ class CVAE(BaseModel):
         self.X_flatten_size = reduce(lambda x, y: x * y, self.X_shape)
 
         self.z_shape = [self.z_size]
-        self.zs_shape = [None] + self.z_shape
+        self.zs_shape = [None, self.z_size]
 
         self.Y_batch_key = 'Ys'
         self.Y_shape = input_shapes[self.Y_batch_key]

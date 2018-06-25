@@ -69,7 +69,7 @@ class GAN(BaseModel):
         self.X_flatten_size = reduce(lambda x, y: x * y, self.X_shape)
 
         self.z_shape = [self.n_noise]
-        self.zs_shape = [None] + self.z_shape
+        self.zs_shape = [None, self.n_noise]
 
     def generator(self, z, net_shapes, reuse=False, name='generator'):
         with tf.variable_scope(name, reuse=reuse):
@@ -84,7 +84,8 @@ class GAN(BaseModel):
 
         return layer.last_layer
 
-    def discriminator(self, X, net_shapes, reuse=False, name='discriminator'):
+    @staticmethod
+    def discriminator(X, net_shapes, reuse=False, name='discriminator'):
         with tf.variable_scope(name, reuse=reuse):
             layer = Stacker(flatten(X))
 
@@ -124,7 +125,8 @@ class GAN(BaseModel):
         self.train_G = tf.train.AdamOptimizer(learning_rate=self.G_learning_rate) \
             .minimize(self.G_loss, var_list=self.G_vals)
 
-    def get_z_noise(self, shape):
+    @staticmethod
+    def get_z_noise(shape):
         return np.random.uniform(-1.0, 1.0, size=shape)
 
     def train(self, Xs, epoch=1, save_interval=None, batch_size=None, shuffle=True):
