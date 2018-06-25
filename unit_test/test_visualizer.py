@@ -1,5 +1,9 @@
-from script.visualizer.image_tile import image_tile
 
-if __name__ == '__main__':
-    v = image_tile()
-    v.task()
+
+
+def test_image_tile():
+    # from script.visualizer.image_tile import image_tile
+    # v = image_tile()
+    # v.task()
+
+    pass
