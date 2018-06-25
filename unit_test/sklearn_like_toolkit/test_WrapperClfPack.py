@@ -1,36 +1,19 @@
 from pprint import pprint
-from script.sklearn_like_toolkit.warpper.sklearn_wrapper import skMLP
+from script.sklearn_like_toolkit.warpper.sklearn_wrapper import skMLP, skBernoulli_NB
 from script.sklearn_like_toolkit.wrapperGridSearchCV import wrapperGridSearchCV
 from script.data_handler.DatasetPackLoader import DatasetPackLoader
 from script.sklearn_like_toolkit.ClassifierPack import ClassifierPack
 
+meta_clf = skBernoulli_NB()
 datapack = DatasetPackLoader().load_dataset("titanic")
-train_set = datapack.pack['train']
-train_set, valid_set = train_set.split('train', 'train', 'valid', (7, 3))
+train_set = datapack['train']
+train_set, valid_set = train_set.split((7, 3))
 train_Xs, train_Ys = train_set.full_batch(['Xs', 'Ys'])
 valid_Xs, valid_Ys = valid_set.full_batch(['Xs', 'Ys'])
+sample_Xs, sample_Ys = valid_Xs[:2], valid_Ys[:2]
 
 
-# print('reset current dir')
-#
-# print('cur dir')
-# print(os.getcwd())
-# head, tail = os.path.split(os.getcwd())
-# os.chdir(head)
-# print(os.getcwd())
-
-
-def test_save_params():
-    clf_pack = ClassifierPack(['skMLP'])
-    clf_pack.param_search(train_Xs, train_Ys)
-    train_score = clf_pack.score(train_Xs, train_Ys)
-    valid_score = clf_pack.score(valid_Xs, valid_Ys)
-
-    pprint(train_score)
-    pprint(valid_score)
-
-
-def test_load_params():
+def test_param_search():
     clf_pack = ClassifierPack(['skMLP'])
     clf_pack.param_search(train_Xs, train_Ys)
     train_score = clf_pack.score(train_Xs, train_Ys)
@@ -48,51 +31,28 @@ def test_load_params():
     pprint(valid_score)
 
 
-def test_hard_voting():
-    clf = ClassifierPack()
+def test_make_FoldingHardVote():
+    clf = ClassifierPack(['skMLP', "skBernoulli_NB", "skDecisionTree"])
     clf = clf.make_FoldingHardVote()
     clf.fit(train_Xs, train_Ys)
 
-    predict = clf.predict(valid_Xs[:4])
+    predict = clf.predict(sample_Xs)
     print(f'predict {predict}')
 
-    proba = clf.predict_proba(valid_Xs[:4])
+    proba = clf.predict_proba(sample_Xs)
     print(f'proba {proba}')
 
-    predict_bincount = clf.predict_bincount(valid_Xs[:4])
+    predict_bincount = clf.predict_bincount(sample_Xs)
     print(f'predict_bincount {predict_bincount}')
 
-    score = clf.score(valid_Xs, valid_Ys)
+    score = clf.score(sample_Xs, sample_Ys)
     print(f'score {score}')
 
 
-def test_stacking(self):
-    ClassifierPack = self.cls
-    train_Xs = self.train_Xs
-    train_Ys = self.train_Ys
-    valid_Xs = self.valid_Xs
-    valid_Ys = self.valid_Ys
-
+def test_make_stackingClf():
     clf = ClassifierPack()
-    metaclf = clf.pack['XGBoost']
-    clf = clf.make_stackingClf(metaclf)
-    clf.fit(train_Xs, train_Ys)
 
-    predict = clf.predict(valid_Xs[:4])
-    print(f'predict {predict}')
-
-    proba = clf.predict_proba(valid_Xs[:4])
-    print(f'proba {proba}')
-
-    score = clf.score(valid_Xs, valid_Ys)
-    print(f'score {score}')
-    pass
-
-
-def test_stackingCV():
-    clf = ClassifierPack()
-    metaclf = clf.pack['XGBoost']
-    clf = clf.make_stackingCVClf(metaclf)
+    clf = clf.make_stackingClf(meta_clf)
     clf.fit(train_Xs, train_Ys)
 
     predict = clf.predict(valid_Xs[:4])
@@ -105,17 +65,23 @@ def test_stackingCV():
     print(f'score {score}')
 
 
-def test_clf_pack_param_search():
+def test_make_stackingCVClf():
     clf = ClassifierPack()
-    clf.param_search(train_Xs, train_Xs)
+    meta_clf = clf.pack["skBernoulli_NB"]
+    clf = clf.make_stackingCVClf(meta_clf)
+    clf.fit(train_Xs, train_Ys)
 
-    pprint('train score', clf.score(train_Xs, train_Ys))
-    pprint('test score', clf.score(valid_Xs, valid_Ys))
-    pprint('predict', clf.predict(valid_Xs[:2]))
-    pprint('predict_proba', clf.predict_proba(valid_Xs[:2]))
+    predict = clf.predict(valid_Xs[:4])
+    print(f'predict {predict}')
+
+    proba = clf.predict_proba(valid_Xs[:4])
+    print(f'proba {proba}')
+
+    score = clf.score(valid_Xs, valid_Ys)
+    print(f'score {score}')
 
 
-def test_clfpack():
+def test_ClassifierPack():
     clf = ClassifierPack()
     clf.fit(train_Xs, train_Ys)
     predict = clf.predict(valid_Xs[:2])
@@ -129,18 +95,16 @@ def test_clfpack():
     score_pack = clf.score_pack(valid_Xs, valid_Ys)
     pprint('score pack', score_pack)
 
-    # initialize data
-
 
 def test_pickle_clf_pack():
-    clf_pack = ClassifierPack()
+    clf_pack = ClassifierPack(['skMLP'])
     clf_pack.fit(train_Xs, train_Ys)
 
     score = clf_pack.score_pack(train_Xs, train_Ys)
     pprint(score)
-    clf_pack.dump('./clf.pkl')
+    clf_pack.dump('./test_pickle_clf_pack.pkl')
 
-    clf_pack = clf_pack.load('./clf.pkl')
+    clf_pack = clf_pack.load('./test_pickle_clf_pack.pkl')
     score = clf_pack.score_pack(train_Xs, train_Ys)
     pprint(score)
 
