@@ -24,6 +24,7 @@ from util.numpy_utils import np_stat_dict
 
 bprint = print
 logger = StdoutOnlyLogger()
+# noinspection PyShadowingBuiltins
 print = logger.get_log()
 pprint = pprint_logger(print)
 
@@ -289,7 +290,7 @@ def exp_titanic_data_difficulty():
     clf_pack.drop_clf('mlxMLP')
     clf_pack.drop_clf('skQDA')
 
-    def difficulty_stat(pack, dataset, iter=100):
+    def difficulty_stat(pack, dataset, n=100):
         dataset.sort()
         full_Xs, full_Ys = dataset.full_batch(['Xs', 'Ys'])
 
@@ -297,7 +298,7 @@ def exp_titanic_data_difficulty():
         for clf_key, clf in pack.pack.items():
             print(clf_key)
             predicts = []
-            for _ in trange(iter):
+            for _ in trange(n):
                 dataset.shuffle()
                 train_set, valid_set = dataset.split((7, 3))
                 train_Xs, train_Ys = train_set.full_batch(['Xs', 'Ys'])
@@ -329,9 +330,9 @@ def exp_titanic_data_difficulty():
         esm_pack = clf_pack.make_ensembleClfpack()
         esm_pack.fit(train_Xs, train_Ys)
 
-        pack_dict = difficulty_stat(clf_pack, train_dataset, iter=100)
+        pack_dict = difficulty_stat(clf_pack, train_dataset, n=100)
         clf_pack_result_df = pd.DataFrame(pack_dict)
-        esm_pack_dict = difficulty_stat(esm_pack, train_dataset, iter=100)
+        esm_pack_dict = difficulty_stat(esm_pack, train_dataset, n=100)
         esm_pack_dict_df = pd.DataFrame(esm_pack_dict)
 
         train_dataset.sort()
@@ -529,7 +530,6 @@ def exp_age_predict_regr():
     train, test = dataset.split((20, 3))
     train_Xs, train_Ys = train.full_batch(['Xs', 'Ys'])
     test_Xs, test_Ys = test.full_batch(['Xs', 'Ys'])
-
 
     from xgboost import XGBRegressor
     reg = MLPRegressor(hidden_layer_sizes=(500,))

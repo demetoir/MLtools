@@ -21,7 +21,6 @@ from sklearn.svm import LinearSVC as _skLinearSVC
 from sklearn.svm import SVC as _skSVC
 from sklearn_like_toolkit.base.BaseWrapperClf import BaseWrapperClf
 from sklearn_like_toolkit.base.MixIn import meta_BaseWrapperClf, meta_BaseWrapperClf_with_ABC
-from util.numpy_utils import reformat_np_arr, NP_ARRAY_TYPE_INDEX
 
 
 class skMLP(BaseWrapperClf, _skMLPClassifier, metaclass=meta_BaseWrapperClf_with_ABC):
@@ -98,7 +97,6 @@ class skBernoulli_NB(BaseWrapperClf, _skBernoulliNB, metaclass=meta_BaseWrapperC
         _skBernoulliNB.__init__(self, alpha, binarize, fit_prior, class_prior)
         BaseWrapperClf.__init__(self)
 
-    model_Ys_type = NP_ARRAY_TYPE_INDEX
     tuning_grid = {
         'alpha': [0.00001, 0.0001, 0.001, 0.01, 0.1, 1.0, 10.0],
         'binarize': [i / 10.0 for i in range(0, 10)],

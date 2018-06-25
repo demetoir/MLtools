@@ -103,7 +103,7 @@ def rnn_autocomplete():
             # 여기서 생성하는 input_batch 와 target_batch 는
             # 알파벳 배열의 인덱스 번호 입니다.
             # [22, 14, 17] [22, 14, 14] [3, 4, 4] [3, 8, 21] ...
-            input = [num_dic[n] for n in seq[:-1]]
+            input_ = [num_dic[n] for n in seq[:-1]]
             # 3, 3, 15, 4, 3 ...
             target = num_dic[seq[-1]]
             # one-hot 인코딩을 합니다.
@@ -111,7 +111,7 @@ def rnn_autocomplete():
             # [[ 1.  0.  0.  0.  0.  0.  0.  0.  0.  0.]
             #  [ 0.  1.  0.  0.  0.  0.  0.  0.  0.  0.]
             #  [ 0.  0.  1.  0.  0.  0.  0.  0.  0.  0.]]
-            input_batch.append(np.eye(dic_len)[input])
+            input_batch.append(np.eye(dic_len)[input_])
             # 지금까지 손실함수로 사용하던 softmax_cross_entropy_with_logits 함수는
             # label 값을 one-hot 인코딩으로 넘겨줘야 하지만,
             # 이 예제에서 사용할 손실 함수인 sparse_softmax_cross_entropy_with_logits 는
@@ -236,13 +236,13 @@ def rnn_seq2seq():
 
         for seq in seq_data:
             # 인코더 셀의 입력값. 입력단어의 글자들을 한글자씩 떼어 배열로 만든다.
-            input = [num_dic[n] for n in seq[0]]
+            input_ = [num_dic[n] for n in seq[0]]
             # 디코더 셀의 입력값. 시작을 나타내는 S 심볼을 맨 앞에 붙여준다.
             output = [num_dic[n] for n in ('S' + seq[1])]
             # 학습을 위해 비교할 디코더 셀의 출력값. 끝나는 것을 알려주기 위해 마지막에 E 를 붙인다.
             target = [num_dic[n] for n in (seq[1] + 'E')]
 
-            input_batch.append(np.eye(dic_len)[input])
+            input_batch.append(np.eye(dic_len)[input_])
             output_batch.append(np.eye(dic_len)[output])
             # 출력값만 one-hot 인코딩이 아님 (sparse_softmax_cross_entropy_with_logits 사용)
             target_batch.append(target)

@@ -2,7 +2,6 @@ from model.AbstractModel import AbstractModel
 from util.Stacker import Stacker
 from util.tensor_ops import *
 from util.summary_func import *
-from data_handler.titanic import *
 
 
 class TitanicModel(AbstractModel):
@@ -17,10 +16,11 @@ class TitanicModel(AbstractModel):
         self.K_average_top_k_loss = 10
 
     def load_input_shapes(self, input_shapes):
-        self.x_shape = input_shapes[BK_X]
-        self.label_shape = input_shapes[BK_LABEL]
+        self.x_shape = input_shapes['Xs']
+        self.label_shape = input_shapes['Ys']
 
-    def classifier(self, x, dropout_rate):
+    @staticmethod
+    def classifier(x, dropout_rate):
         with tf.variable_scope('classifier'):
             layer = Stacker(x)
 
@@ -79,7 +79,7 @@ class TitanicModel(AbstractModel):
     def train_model(self, sess=None, iter_num=None, dataset=None):
         batch_xs, batch_labels = dataset.train_set.next_batch(
             self.batch_size,
-            batch_keys=[BK_X, BK_LABEL]
+            batch_keys=['Xs', 'Ys']
         )
         sess.run(
             [self.train, self.op_inc_global_step],
@@ -102,7 +102,7 @@ class TitanicModel(AbstractModel):
     def write_summary(self, sess=None, iter_num=None, dataset=None, summary_writer=None):
         batch_xs, batch_labels = dataset.train_set.next_batch(
             self.batch_size,
-            batch_keys=[BK_X, BK_LABEL]
+            batch_keys=['Xs', 'Ys']
         )
         summary, global_step = sess.run(
             [self.op_merge_summary, self.global_step],
