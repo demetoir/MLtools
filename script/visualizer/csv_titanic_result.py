@@ -1,4 +1,3 @@
-from script.dict_keys.dataset_batch_keys import *
 from script.visualizer.AbstractVisualizer import AbstractVisualizer
 import pandas as pd
 import os
@@ -13,7 +12,7 @@ class csv_titanic_result(AbstractVisualizer):
         for i in range(batch_loop):
             batch_xs = dataset.test_set.next_batch(
                 model.batch_size,
-                batch_keys=[BK_X]
+                batch_keys=['Xs']
             )
             predict = sess.run(
                 model.predict_index,
