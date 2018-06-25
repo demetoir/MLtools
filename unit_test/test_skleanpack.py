@@ -212,7 +212,7 @@ class test_clf_pack:
         pprint(score)
 
 
-def test_warpperGridSearchCV():
+def test_wrapperGridSearchCV():
     data_pack = DatasetPackLoader().load_dataset("titanic")
     train_dataset = data_pack.set['train']
     train_dataset.shuffle()
@@ -256,6 +256,7 @@ def test_warpperGridSearchCV():
     # pprint(score)
 
     pass
+
 
 def test_wrapper_pack_grid_search():
     data_pack = DatasetPackLoader().load_dataset("titanic")
