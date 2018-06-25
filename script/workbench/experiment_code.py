@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 from tqdm import trange
 from script.data_handler.DummyDataset import DummyDataset
-from script.data_handler.titanic import df_to_np_onehot_embedding, build_transform
+from script.data_handler.titanic import build_transform
 from script.sklearn_like_toolkit.ClassifierPack import ClassifierPack
 from script.data_handler.DatasetPackLoader import DatasetPackLoader
 from script.sklearn_like_toolkit.EnsembleClfPack import EnsembleClfPack
@@ -21,6 +21,7 @@ from script.util.numpy_utils import np_stat_dict
 
 ########################################################################################################################
 # print(built-in function) is not good for logging
+from script.util.pandas_util import df_to_onehot_embedding, df_to_np_onehot_embedding
 
 bprint = print
 logger = StdoutOnlyLogger()
@@ -603,7 +604,7 @@ def exp_titanic_corr_heatmap():
     df = df.query('not Survived.isna()')
     pprint(df.info())
 
-    df = df_onehot_embedding(df)
+    df = df_to_onehot_embedding(df)
     pprint(df.info())
 
     corr = df.corr()
@@ -613,15 +614,3 @@ def exp_titanic_corr_heatmap():
     # plot_corr_matrix(df, df.keys(), 3)
 
 
-def df_onehot_embedding(df):
-    ret = pd.DataFrame({'_idx': [i for i in range(len(df))]})
-    for df_key in df.keys():
-        # print(df_key)
-        np_arr = np.array(df[df_key])
-        for unique_key in sorted(df[df_key].unique()):
-            # print(unique_key)
-            ret[f'{df_key}_{unique_key}'] = np.array(np.where(np_arr == unique_key, 1, 0).reshape([-1, 1]))
-
-    # ret = np.concatenate([v for k, v in ret.items()], axis=1)
-    ret = ret.drop(columns=['_idx'])
-    return ret
