@@ -4,7 +4,6 @@ import pandas as pd
 from script.data_handler.BaseDataset import BaseDataset
 from script.util.Logger import StdoutOnlyLogger
 from script.util.misc_util import time_stamp, path_join, log_error_trace, setup_file
-from script.util.numpy_utils import reformat_np_arr
 
 
 class Dataset(BaseDataset):
@@ -87,8 +86,7 @@ class ParamOptimizer:
 
             yield param
 
-    def optimize(self, Xs, Ys, Ys_type=None, split_rate=0.7):
-        Ys = reformat_np_arr(Ys, self.estimator.model_Ys_type, from_np_arr_type=Ys_type)
+    def optimize(self, Xs, Ys, split_rate=0.7):
         dataset = Dataset()
         dataset.add_data('Xs', Xs)
         dataset.add_data('Ys', Ys)
@@ -96,9 +94,6 @@ class ParamOptimizer:
         train_set, test_set = dataset.split((split_rate, 1 - split_rate), shuffle=False)
         train_Xs, train_Ys = train_set.full_batch()
         test_Xs, test_Ys = test_set.full_batch()
-
-        train_Ys = reformat_np_arr(train_Ys, self.estimator.model_Ys_type, from_np_arr_type=Ys_type)
-        test_Ys = reformat_np_arr(test_Ys, self.estimator.model_Ys_type, from_np_arr_type=Ys_type)
 
         param_grid_size = self.param_grid_size
         self.log.info(("optimize [%s], total %s's candidate estimator" % (self.estimator, param_grid_size)))
