@@ -25,7 +25,7 @@ from sklearn_like_toolkit.base.MixIn import meta_BaseWrapperClf, meta_BaseWrappe
 
 class skMLP(BaseWrapperClf, _skMLPClassifier, metaclass=meta_BaseWrapperClf_with_ABC):
     tuning_grid = {
-        'activation': ['identity', 'logistic', 'tanh', 'relu'],
+        'activation': ['relu'],
         'alpha': [0.01, 0.1, 1, 10],
         'hidden_layer_sizes': [(32,), (64,), (128,)],
     }
@@ -205,8 +205,8 @@ class skRandomForest(BaseWrapperClf, _skRandomForestClassifier, metaclass=meta_B
         BaseWrapperClf.__init__(self)
 
     tuning_grid = {
-        'n_estimators': [2, 4, 8, 16, 32, 64],
-        'max_depth': [i for i in range(1, 10)],
+        'n_estimators': [16, 32, 64],
+        'max_depth': [i for i in range(1, 10, 2)],
         'min_samples_leaf': [i for i in range(1, 5)],
         'min_samples_split': [i for i in range(2, 5)],
     }
@@ -252,8 +252,8 @@ class skExtraTrees(BaseWrapperClf, _skExtraTreesClassifier, metaclass=meta_BaseW
         BaseWrapperClf.__init__(self)
 
     tuning_grid = {
-        'n_estimators': [2, 4, 8, 16, 32, 64],
-        'max_depth': [i for i in range(1, 10)],
+        'n_estimators': [16, 32, 64],
+        'max_depth': [i for i in range(1, 10, 2)],
         'min_samples_leaf': [i for i in range(1, 5)],
         'min_samples_split': [i for i in range(2, 5)],
     }
@@ -292,8 +292,8 @@ class skAdaBoost(BaseWrapperClf, _skAdaBoostClassifier, metaclass=meta_BaseWrapp
         BaseWrapperClf.__init__(self)
 
     tuning_grid = {
-        'learning_rate': [0.00001, 0.0001, 0.001, 0.01, 0.1, 1.0, 10],
-        'n_estimators': [2, 4, 8, 16, 32, 64, 128, 256],
+        'learning_rate': [0.00001, 0.0001, 0.001, 0.01, 0.1, 1.0],
+        'n_estimators': [8, 16, 32, 64, 128, 256],
     }
     tuning_params = {
         'base_estimator': None,
@@ -328,8 +328,8 @@ class skGradientBoosting(BaseWrapperClf, _skGradientBoostingClassifier, metaclas
 
     tuning_grid = {
         'learning_rate': [0.001, 0.01, 0.1, 1],
-        'max_depth': [i for i in range(1, 10)],
-        'n_estimators': [2, 4, 8, 16, 32, 64, 128, 256],
+        'max_depth': [i for i in range(1, 10, 2)],
+        'n_estimators': [16, 32, 64, 128, 256],
         'min_samples_leaf': [i for i in range(1, 5)],
         'min_samples_split': [i for i in range(2, 5)],
     }
