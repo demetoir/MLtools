@@ -66,6 +66,9 @@ class ClassifierPack(BaseWrapperPack):
         for key in pack_keys:
             self.pack[key] = self.class_pack[key]()
 
+    def __getitem__(self, item):
+        return self.pack.__getitem__(item)
+
     def make_FoldingHardVote(self):
         clfs = [v for k, v in self.pack.items()]
         return FoldingHardVote(clfs)
