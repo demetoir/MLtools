@@ -73,20 +73,6 @@ class score_pack_MixIn(Reformat_Ys_MixIn):
         return self._apply_metric_pack(y, getattr(self, 'predict')(X))
 
 
-class DummyParamMixIN:
-    def get_params(self, deep=True):
-        if hasattr(self, 'get_params'):
-            return getattr(self, 'get_params')(self, deep=deep)
-        else:
-            return {}
-
-    def set_params(self, **params):
-        if hasattr(self, 'get_params'):
-            return getattr(self, 'get_params')(self, **params)
-        else:
-            return None
-
-
 class ClfConfidenceMixIn:
     @staticmethod
     def _apply_confidence(proba):
@@ -118,11 +104,10 @@ class etc_MixIn:
         return clf.__class__(**clf.get_params())
 
 
-class ClfWrapperMixIn(score_pack_MixIn, PickleMixIn, LoggerMixIn, DummyParamMixIN, ClfConfidenceMixIn, etc_MixIn):
+class ClfWrapperMixIn(score_pack_MixIn, PickleMixIn, LoggerMixIn, ClfConfidenceMixIn, etc_MixIn):
     def __init__(self):
         score_pack_MixIn.__init__(self)
         PickleMixIn.__init__(self)
         LoggerMixIn.__init__(self)
-        DummyParamMixIN.__init__(self)
         ClfConfidenceMixIn.__init__(self)
         etc_MixIn.__init__(self)
