@@ -3,6 +3,7 @@ import numpy as np
 import os
 
 from data_handler.DatasetPackLoader import DatasetPackLoader
+from sklearn_like_toolkit.ClassifierPack import ClassifierPack
 from sklearn_like_toolkit.warpper.catboost_wrapper import CatBoostClf
 from sklearn_like_toolkit.warpper.mlxtend_wrapper import mlxMLPClf
 from sklearn_like_toolkit.warpper.xgboost_wrapper import XGBoostClf
@@ -255,3 +256,30 @@ def test_warpperGridSearchCV():
     # pprint(score)
 
     pass
+
+def test_wrapper_pack_grid_search():
+    data_pack = DatasetPackLoader().load_dataset("titanic")
+    train_dataset = data_pack.set['train']
+    train_dataset.shuffle()
+    train_set, valid_set = train_dataset.split((7, 3))
+    train_Xs, train_Ys = train_set.full_batch(['Xs', 'Ys'])
+    valid_Xs, valid_Ys = valid_set.full_batch(['Xs', 'Ys'])
+
+    path = './test_wrapper_pack_grid_search.pkl'
+    clf_pack = ClassifierPack()
+    clf_pack.fit(train_Xs, train_Ys)
+    clf_pack.gridSearchCV(train_Xs, train_Ys)
+    score = clf_pack.score_pack(train_Xs, train_Ys)
+    pprint(score)
+    clf_pack.dump(path)
+
+    clf_pack = ClassifierPack().load(path)
+    score = clf_pack.score_pack(train_Xs, train_Ys)
+    pprint(score)
+    score = clf_pack.score_pack(valid_Xs, valid_Ys)
+    pprint(score)
+
+    score = clf_pack.score(valid_Xs, valid_Ys)
+    pprint(score)
+    result = clf_pack.optimize_result
+    pprint(result)
