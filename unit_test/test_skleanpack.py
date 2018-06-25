@@ -2,6 +2,13 @@ from pprint import pprint
 import numpy as np
 import os
 
+from data_handler.DatasetPackLoader import DatasetPackLoader
+from sklearn_like_toolkit.warpper.catboost_wrapper import CatBoostClf
+from sklearn_like_toolkit.warpper.mlxtend_wrapper import mlxMLPClf
+from sklearn_like_toolkit.warpper.xgboost_wrapper import XGBoostClf
+from sklearn_like_toolkit.wrapperGridSearchCV import wrapperGridSearchCV
+from util.numpy_utils import reformat_np_arr, NP_ARRAY_TYPE_INDEX
+
 
 def finger_print(size, head=''):
     ret = head
@@ -202,3 +209,49 @@ class test_clf_pack:
         clf_pack = clf_pack.load('./clf.pkl')
         score = clf_pack.score_pack(train_Xs, train_Ys)
         pprint(score)
+
+
+def test_warpperGridSearchCV():
+    data_pack = DatasetPackLoader().load_dataset("titanic")
+    train_dataset = data_pack.set['train']
+    train_dataset.shuffle()
+    train_set, valid_set = train_dataset.split((7, 3))
+    train_Xs, train_Ys = train_set.full_batch(['Xs', 'Ys'])
+    valid_Xs, valid_Ys = valid_set.full_batch(['Xs', 'Ys'])
+    train_Ys = reformat_np_arr(train_Ys, NP_ARRAY_TYPE_INDEX)
+    valid_Ys = reformat_np_arr(valid_Ys, NP_ARRAY_TYPE_INDEX)
+
+    from sklearn_like_toolkit.warpper.sklearn_wrapper import skMLP
+
+    path = './temp.pkl'
+    # if not os.path.exists(path):
+    clf_cls = mlxMLPClf
+    clf_cls = XGBoostClf
+    clf_cls = CatBoostClf
+    clf_cls = skMLP
+    # clf_cls = MultiLayerPerceptron
+    base_clf = clf_cls()
+    base_clf.fit(train_Xs, train_Ys)
+    # base_clf.dump(path)
+
+    # base_clf = clf_cls().load(path)
+    pprint(base_clf.score(valid_Xs, valid_Ys))
+    # pprint(base_clf.score_pack(valid_Xs, valid_Ys))
+    # pprint(base_clf.predict_confidence(valid_Xs[:1]))
+
+    base_clf = clf_cls()
+    param_search = wrapperGridSearchCV(base_clf, clf_cls.tuning_grid)
+
+    param_search.fit(train_Xs, train_Ys)
+    result = param_search.cv_results_
+    pprint(result)
+
+    # best_clf = param_search.best_estimator_
+    # pprint(best_clf)
+    # score = best_clf.score(valid_Xs, valid_Ys)
+    # pprint(score)
+    #
+    # score = best_clf.score_pack(valid_Xs, valid_Ys)
+    # pprint(score)
+
+    pass
