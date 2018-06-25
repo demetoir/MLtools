@@ -68,10 +68,5 @@ class MNIST_test(BaseDataset):
 class MNIST(BaseDatasetPack):
     def __init__(self):
         super().__init__()
-        self.train_set = MNIST_train()
-        self.test_set = MNIST_test()
-
-    def load(self, path, **kwargs):
-        super().load(path, **kwargs)
-        self.train_set.shuffle()
-        self.test_set.shuffle()
+        self.pack['train'] = MNIST_train()
+        self.pack['test'] = MNIST_test()
