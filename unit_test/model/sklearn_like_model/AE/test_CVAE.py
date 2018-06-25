@@ -3,17 +3,13 @@ from script.data_handler.DatasetPackLoader import DatasetPackLoader
 from script.model.sklearn_like_model.AE.CVAE import CVAE
 
 
-class test_CVAE:
+class Test_CVAE:
     class_ = CVAE
-
-    def __init__(self):
-        self.test_mnist()
-        self.test_titanic()
 
     def test_mnist(self):
         class_ = self.class_
-        dataset = DatasetPackLoader().load_dataset("MNIST")
-        dataset = dataset.train_set
+        data_pack = DatasetPackLoader().load_dataset("MNIST")
+        dataset = data_pack['train']
         Xs, Ys = dataset.full_batch(['Xs', 'Ys'])
         sample_X = Xs[:2]
         sample_Y = Ys[:2]
