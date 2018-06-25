@@ -3,14 +3,10 @@ from script.model.sklearn_like_model.AE.VAE import VAE
 import numpy as np
 
 
-class test_VAE:
-    def __init__(self):
-        self.test_mnist()
-        self.test_titanic()
-
+class Test_VAE:
     def test_mnist(self):
         dataset = DatasetPackLoader().load_dataset("MNIST")
-        dataset = dataset.train_set
+        dataset = dataset['train']
 
         model = VAE(dataset.input_shapes)
         model.build()
@@ -48,7 +44,7 @@ class test_VAE:
 
     def test_titanic(self):
         dataset = DatasetPackLoader().load_dataset("titanic")
-        dataset = dataset.train_set
+        dataset = dataset['train']
 
         model = VAE(dataset.input_shapes)
         model.build()
