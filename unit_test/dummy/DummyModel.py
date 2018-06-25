@@ -1,4 +1,4 @@
-from model.AbstractModel import AbstractModel
+from script.model.AbstractModel import AbstractModel
 import tensorflow as tf
 
 

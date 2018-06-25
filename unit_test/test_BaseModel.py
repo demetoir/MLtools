@@ -1,11 +1,11 @@
-from model.sklearn_like_model.AE.AAE import AAE
-from model.sklearn_like_model.AE.CVAE import CVAE
-from model.sklearn_like_model.AE.DVAE import DVAE
-from model.sklearn_like_model.AE.VAE import VAE
-from model.sklearn_like_model.AE.DAE import DAE
-from model.sklearn_like_model.MLPClassifier import MLPClassifier
-from model.sklearn_like_model.AE.AutoEncoder import AutoEncoder
-from data_handler.DatasetPackLoader import DatasetPackLoader
+from script.model.sklearn_like_model.AE.AAE import AAE
+from script.model.sklearn_like_model.AE.CVAE import CVAE
+from script.model.sklearn_like_model.AE.DVAE import DVAE
+from script.model.sklearn_like_model.AE.VAE import VAE
+from script.model.sklearn_like_model.AE.DAE import DAE
+from script.model.sklearn_like_model.MLPClassifier import MLPClassifier
+from script.model.sklearn_like_model.AE.AutoEncoder import AutoEncoder
+from script.data_handler.DatasetPackLoader import DatasetPackLoader
 import numpy as np
 
 

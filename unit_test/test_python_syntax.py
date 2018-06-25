@@ -33,4 +33,7 @@ def test_metaclass_mixIn():
             A.__init__(self)
             B.__init__(self)
 
+    A()
+    B()
     C()
+

@@ -2,13 +2,13 @@ from pprint import pprint
 import numpy as np
 import os
 
-from data_handler.DatasetPackLoader import DatasetPackLoader
-from sklearn_like_toolkit.ClassifierPack import ClassifierPack
-from sklearn_like_toolkit.warpper.catboost_wrapper import CatBoostClf
-from sklearn_like_toolkit.warpper.mlxtend_wrapper import mlxMLPClf
-from sklearn_like_toolkit.warpper.xgboost_wrapper import XGBoostClf
-from sklearn_like_toolkit.wrapperGridSearchCV import wrapperGridSearchCV
-from util.numpy_utils import reformat_np_arr, NP_ARRAY_TYPE_INDEX
+from script.data_handler.DatasetPackLoader import DatasetPackLoader
+from script.sklearn_like_toolkit.ClassifierPack import ClassifierPack
+from script.sklearn_like_toolkit.warpper.catboost_wrapper import CatBoostClf
+from script.sklearn_like_toolkit.warpper.mlxtend_wrapper import mlxMLPClf
+from script.sklearn_like_toolkit.warpper.xgboost_wrapper import XGBoostClf
+from script.sklearn_like_toolkit.wrapperGridSearchCV import wrapperGridSearchCV
+from script.util.numpy_utils import reformat_np_arr, NP_ARRAY_TYPE_INDEX
 
 
 def finger_print(size, head=''):
@@ -30,8 +30,8 @@ class test_clf_pack:
         os.chdir(head)
         print(os.getcwd())
 
-        from data_handler.DatasetPackLoader import DatasetPackLoader
-        from sklearn_like_toolkit.ClassifierPack import ClassifierPack
+        from script.data_handler.DatasetPackLoader import DatasetPackLoader
+        from script.sklearn_like_toolkit.ClassifierPack import ClassifierPack
 
         self.cls = ClassifierPack
 
@@ -222,7 +222,7 @@ def test_wrapperGridSearchCV():
     train_Ys = reformat_np_arr(train_Ys, NP_ARRAY_TYPE_INDEX)
     valid_Ys = reformat_np_arr(valid_Ys, NP_ARRAY_TYPE_INDEX)
 
-    from sklearn_like_toolkit.warpper.sklearn_wrapper import skMLP
+    from script.sklearn_like_toolkit.warpper.sklearn_wrapper import skMLP
 
     path = './temp.pkl'
     # if not os.path.exists(path):

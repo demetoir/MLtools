@@ -1,8 +1,8 @@
 # usage
 # after load instance to InstanceManager
-from util.numpy_utils import np_img_float32_to_uint8, np_img_to_tile, np_img_to_PIL_img
-from visualizer.VisualizerClassLoader import VisualizerClassLoader
-from visualizer.AbstractVisualizer import AbstractVisualizer
+from script.util.numpy_utils import np_img_float32_to_uint8, np_img_to_tile, np_img_to_PIL_img
+from script.visualizer.VisualizerClassLoader import VisualizerClassLoader
+from script.visualizer.AbstractVisualizer import AbstractVisualizer
 import numpy as np
 import os
 

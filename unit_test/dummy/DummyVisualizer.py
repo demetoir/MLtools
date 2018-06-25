@@ -1,4 +1,4 @@
-from visualizer.AbstractVisualizer import AbstractVisualizer
+from script.visualizer.AbstractVisualizer import AbstractVisualizer
 
 
 class DummyVisualizer_1(AbstractVisualizer):

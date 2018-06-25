@@ -1,4 +1,4 @@
-from workbench.bench_code import main
+from script.workbench.bench_code import main
 
 
 if __name__ == '__main__':

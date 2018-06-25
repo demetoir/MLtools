@@ -3,16 +3,16 @@ import os
 
 FILE = 'env_setting.py'
 ENV_SETTING_PATH = os.path.dirname(os.path.realpath(FILE))
-ROOT_PATH = ENV_SETTING_PATH
+ROOT_PATH = os.path.join(ENV_SETTING_PATH)
 
 # model
-MODEL_MODULE_PATH = os.path.join(ROOT_PATH, 'model')
+MODEL_MODULE_PATH = os.path.join(ROOT_PATH, 'script', 'model')
 
 # visualizer
-VISUALIZER_MODULE_PATH = os.path.join(ROOT_PATH, 'visualizer')
+VISUALIZER_MODULE_PATH = os.path.join(ROOT_PATH, 'script', 'visualizer')
 
 # dataset handler
-DATA_HANDLER_PATH = os.path.join(ROOT_PATH, 'data_handler')
+DATA_HANDLER_PATH = os.path.join(ROOT_PATH, 'script', 'data_handler')
 
 # dataset
 DATA_PATH = os.path.join(ROOT_PATH, 'data')
