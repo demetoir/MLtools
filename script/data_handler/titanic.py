@@ -508,8 +508,8 @@ class titanic(BaseDatasetPack):
 
         self.train_set = titanic_train(caching=caching)
         self.test_set = titanic_test(caching=caching)
-        self.set['train'] = self.train_set
-        self.set['test'] = self.test_set
+        self.pack['train'] = self.train_set
+        self.pack['test'] = self.test_set
 
     @staticmethod
     def to_kaggle_submit_csv(path, Ys):
