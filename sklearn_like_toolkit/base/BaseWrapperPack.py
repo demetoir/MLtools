@@ -3,6 +3,7 @@ from pprint import pformat
 from env_settting import SKLEARN_PARAMS_SAVE_PATH
 from sklearn_like_toolkit.ParamOptimizer import ParamOptimizer
 from sklearn_like_toolkit.base.MixIn import ClfWrapperMixIn, meta_BaseWrapperClf
+from sklearn_like_toolkit.wrapperGridSearchCV import wrapperGridSearchCV
 from util.misc_util import time_stamp, dump_pickle, load_pickle, path_join, log_error_trace
 
 
@@ -12,6 +13,7 @@ class BaseWrapperPack(ClfWrapperMixIn, metaclass=meta_BaseWrapperClf):
     def __init__(self):
         super().__init__()
         self.pack = {}
+        self.optimizers = {}
         self.optimize_result = {}
         self.params_save_path = SKLEARN_PARAMS_SAVE_PATH
 
@@ -35,6 +37,24 @@ class BaseWrapperPack(ClfWrapperMixIn, metaclass=meta_BaseWrapperClf):
             self.log.info("top 5 result")
             for result in optimizer.top_k_result():
                 self.log.info(pformat(result))
+
+    def gridSearchCV(self, Xs, Ys):
+        Ys = self.np_arr_to_index(Ys)
+
+        total = len(self.pack)
+        current = 0
+        for key, clf in self.pack.items():
+            current += 1
+            try:
+                self.log.info(f'gridSearchCV at {key} {current}/{total}')
+                optimizer = wrapperGridSearchCV(clf, clf.tuning_grid)
+                optimizer.fit(Xs, Ys)
+                self.pack[key] = optimizer.best_estimator_
+                self.optimize_result = optimizer.cv_results_
+                # self.optimizers[key] = optimizer
+            except BaseException as e:
+                log_error_trace(self.log.warn, e, head=f'while GridSearchCV at {key}')
+                self.log.warn(f'while, GridSearchCV at {key}, raise ')
 
     def fit(self, Xs, Ys):
         Ys = self.np_arr_to_index(Ys)
