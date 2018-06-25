@@ -2,17 +2,13 @@ from script.data_handler.DatasetPackLoader import DatasetPackLoader
 from script.model.sklearn_like_model.AE.AAE import AAE
 
 
-class test_AAE:
+class Test_AAE:
     class_ = AAE
-
-    def __init__(self):
-        self.test_mnist()
-        self.test_titanic()
 
     def test_mnist(self):
         class_ = self.class_
-        dataset = DatasetPackLoader().load_dataset("MNIST")
-        dataset = dataset.train_set
+        data_pack = DatasetPackLoader().load_dataset("MNIST")
+        dataset = data_pack['train']
         Xs, Ys = dataset.full_batch(['Xs', 'Ys'])
         sample_X = Xs[:2]
         sample_Y = Ys[:2]
@@ -70,8 +66,8 @@ class test_AAE:
 
     def test_titanic(self):
         class_ = self.class_
-        dataset = DatasetPackLoader().load_dataset("titanic")
-        dataset = dataset.train_set
+        data_pack = DatasetPackLoader().load_dataset("titanic")
+        dataset = data_pack['train']
         Xs, Ys = dataset.full_batch(['Xs', 'Ys'])
         sample_X = Xs[:2]
         sample_Y = Ys[:2]
