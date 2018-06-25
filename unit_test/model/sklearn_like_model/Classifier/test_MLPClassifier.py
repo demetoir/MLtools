@@ -2,15 +2,14 @@ from script.data_handler.DatasetPackLoader import DatasetPackLoader
 from script.model.sklearn_like_model.MLPClassifier import MLPClassifier
 
 
-class test_MLPClassifier:
-    def __init__(self):
-        self.test()
+class Test_MLPClassifier:
 
     def test(self):
-        dataset = DatasetPackLoader().load_dataset("titanic")
-        input_shapes = dataset.train_set.input_shapes
+        data_pack = DatasetPackLoader().load_dataset("titanic")
+        train_set = data_pack['train']
+        input_shapes = train_set.input_shapes
 
-        Xs, Ys = dataset.train_set.full_batch(
+        Xs, Ys = train_set.full_batch(
             batch_keys=["Xs", "Ys"],
         )
 
@@ -18,7 +17,7 @@ class test_MLPClassifier:
         model.build()
         model.train(Xs, Ys, epoch=1)
 
-        Xs, Ys = dataset.train_set.next_batch(
+        Xs, Ys = train_set.next_batch(
             5,
             batch_keys=["Xs", "Ys"],
         )
