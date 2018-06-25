@@ -6,7 +6,6 @@ import numpy as np
 class Test_DVAE:
     class_ = DVAE
 
-
     def test_mnist(self):
         class_ = self.class_
         dataset = DatasetPackLoader().load_dataset("MNIST")
