@@ -1,5 +1,4 @@
 import warnings
-
 from sklearn.exceptions import ConvergenceWarning
 from sklearn.gaussian_process.kernels import RBF as _RBF
 from sklearn.linear_model.stochastic_gradient import DEFAULT_EPSILON
@@ -10,20 +9,22 @@ from sklearn.naive_bayes import MultinomialNB as _skMultinomialNB
 from sklearn.linear_model import SGDClassifier as _skSGDClassifier
 from sklearn.gaussian_process import GaussianProcessClassifier as _skGaussianProcessClassifier
 from sklearn.neighbors import KNeighborsClassifier as _skKNeighborsClassifier
-from sklearn.ensemble import GradientBoostingClassifier as _skGradientBoostingClassifier, \
-    VotingClassifier as _skVotingClassifier, BaggingClassifier as _BaggingClassifier
 from sklearn.ensemble import AdaBoostClassifier as _skAdaBoostClassifier
 from sklearn.ensemble import ExtraTreesClassifier as _skExtraTreesClassifier
 from sklearn.ensemble import RandomForestClassifier as _skRandomForestClassifier
+from sklearn.ensemble import GradientBoostingClassifier as _skGradientBoostingClassifier
+from sklearn.ensemble import VotingClassifier as _skVotingClassifier
+from sklearn.ensemble import BaggingClassifier as _BaggingClassifier
 from sklearn.tree import DecisionTreeClassifier as _skDecisionTreeClassifier
 from sklearn.discriminant_analysis import QuadraticDiscriminantAnalysis as _skQDA
 from sklearn.svm import LinearSVC as _skLinearSVC
 from sklearn.svm import SVC as _skSVC
+from sklearn_like_toolkit.base.BaseWrapperClf import BaseWrapperClf
+from sklearn_like_toolkit.base.MixIn import meta_BaseWrapperClf, meta_BaseWrapperClf_with_ABC
 from util.numpy_utils import reformat_np_arr, NP_ARRAY_TYPE_INDEX
 
 
-class skMLP(_skMLPClassifier):
-    model_Ys_type = NP_ARRAY_TYPE_INDEX
+class skMLP(BaseWrapperClf, _skMLPClassifier, metaclass=meta_BaseWrapperClf_with_ABC):
     tuning_grid = {
         'activation': ['identity', 'logistic', 'tanh', 'relu'],
         'alpha': [0.01, 0.1, 1, 10],
@@ -36,9 +37,11 @@ class skMLP(_skMLPClassifier):
                  early_stopping=False, validation_fraction=0.1, beta_1=0.9, beta_2=0.999, epsilon=1e-8):
         warnings.filterwarnings(module='sklearn*', action='ignore', category=ConvergenceWarning)
 
-        super().__init__(hidden_layer_sizes, activation, solver, alpha, batch_size, learning_rate, learning_rate_init,
-                         power_t, max_iter, shuffle, random_state, tol, verbose, warm_start, momentum,
-                         nesterovs_momentum, early_stopping, validation_fraction, beta_1, beta_2, epsilon)
+        BaseWrapperClf.__init__(self)
+        _skMLPClassifier.__init__(self, hidden_layer_sizes, activation, solver, alpha, batch_size, learning_rate,
+                                  learning_rate_init,
+                                  power_t, max_iter, shuffle, random_state, tol, verbose, warm_start, momentum,
+                                  nesterovs_momentum, early_stopping, validation_fraction, beta_1, beta_2, epsilon)
 
     tuning_params = {
         'hidden_layer_sizes': (100,),
@@ -77,32 +80,24 @@ class skMLP(_skMLPClassifier):
 
     }
 
-    def fit(self, X, y):
-        y = reformat_np_arr(y, self.model_Ys_type)
-        return super().fit(X, y)
 
-    def score(self, X, y, sample_weight=None):
-        y = reformat_np_arr(y, self.model_Ys_type)
-        return super().score(X, y, sample_weight)
+class skGaussian_NB(BaseWrapperClf, _skGaussianNB, metaclass=meta_BaseWrapperClf_with_ABC):
 
+    def __init__(self, priors=None):
+        _skGaussianNB.__init__(self, priors)
+        BaseWrapperClf.__init__(self)
 
-class skGaussian_NB(_skGaussianNB):
-    model_Ys_type = NP_ARRAY_TYPE_INDEX
     tuning_grid = {}
     tuning_params = {
         'priors': None
     }
 
-    def fit(self, X, y, sample_weight=None):
-        y = reformat_np_arr(y, self.model_Ys_type)
-        return super().fit(X, y, sample_weight)
 
-    def score(self, X, y, sample_weight=None):
-        y = reformat_np_arr(y, self.model_Ys_type)
-        return super().score(X, y, sample_weight)
+class skBernoulli_NB(BaseWrapperClf, _skBernoulliNB, metaclass=meta_BaseWrapperClf_with_ABC):
+    def __init__(self, alpha=1.0, binarize=.0, fit_prior=True, class_prior=None):
+        _skBernoulliNB.__init__(self, alpha, binarize, fit_prior, class_prior)
+        BaseWrapperClf.__init__(self)
 
-
-class skBernoulli_NB(_skBernoulliNB):
     model_Ys_type = NP_ARRAY_TYPE_INDEX
     tuning_grid = {
         'alpha': [0.00001, 0.0001, 0.001, 0.01, 0.1, 1.0, 10.0],
@@ -115,17 +110,12 @@ class skBernoulli_NB(_skBernoulliNB):
         'fit_prior': True
     }
 
-    def fit(self, X, y, sample_weight=None):
-        y = reformat_np_arr(y, self.model_Ys_type)
-        return super().fit(X, y, sample_weight)
 
-    def score(self, X, y, sample_weight=None):
-        y = reformat_np_arr(y, self.model_Ys_type)
-        return super().score(X, y, sample_weight)
+class skMultinomial_NB(BaseWrapperClf, _skMultinomialNB, metaclass=meta_BaseWrapperClf_with_ABC):
+    def __init__(self, alpha=1.0, fit_prior=True, class_prior=None):
+        _skMultinomialNB.__init__(self, alpha, fit_prior, class_prior)
+        BaseWrapperClf.__init__(self)
 
-
-class skMultinomial_NB(_skMultinomialNB):
-    model_Ys_type = NP_ARRAY_TYPE_INDEX
     tuning_grid = {
         'alpha': [0.00001, 0.0001, 0.001, 0.01, 0.1, 1.0, 10.0],
     }
@@ -135,23 +125,15 @@ class skMultinomial_NB(_skMultinomialNB):
         'fit_prior': True
     }
 
-    def fit(self, X, y, sample_weight=None):
-        y = reformat_np_arr(y, self.model_Ys_type)
-        return super().fit(X, y, sample_weight)
 
-    def score(self, X, y, sample_weight=None):
-        y = reformat_np_arr(y, self.model_Ys_type)
-        return super().score(X, y, sample_weight)
-
-
-class skQDA(_skQDA):
+class skQDA(BaseWrapperClf, _skQDA, metaclass=meta_BaseWrapperClf):
     def __init__(self, priors=None, reg_param=0., store_covariance=False, tol=1.0e-4, store_covariances=None):
         warnings.filterwarnings(module='sklearn*', action='ignore', category=Warning)
-        super().__init__(priors, reg_param, store_covariance, tol, store_covariances)
 
-    model_Ys_type = NP_ARRAY_TYPE_INDEX
+        BaseWrapperClf.__init__(self)
+        _skQDA.__init__(self, priors, reg_param, store_covariance, tol, store_covariances)
+
     tuning_grid = {
-
     }
     tuning_params = {
 
@@ -166,20 +148,22 @@ class skQDA(_skQDA):
         'tol': 0.0001
     }
 
-    def fit(self, X, y):
-        y = reformat_np_arr(y, self.model_Ys_type)
-        return super().fit(X, y)
 
-    def score(self, X, y, sample_weight=None):
-        y = reformat_np_arr(y, self.model_Ys_type)
-        return super().score(X, y, sample_weight)
-
-
-class skDecisionTree(_skDecisionTreeClassifier):
+class skDecisionTree(BaseWrapperClf, _skDecisionTreeClassifier, metaclass=meta_BaseWrapperClf_with_ABC):
     """
     sklearn base DecisionTreeClassifier
     """
-    model_Ys_type = NP_ARRAY_TYPE_INDEX
+
+    def __init__(self, criterion="gini", splitter="best", max_depth=None, min_samples_split=2, min_samples_leaf=1,
+                 min_weight_fraction_leaf=0., max_features=None, random_state=None, max_leaf_nodes=None,
+                 min_impurity_decrease=0., min_impurity_split=None, class_weight=None, presort=False):
+        _skDecisionTreeClassifier.__init__(self, criterion, splitter, max_depth, min_samples_split, min_samples_leaf,
+                                           min_weight_fraction_leaf,
+                                           max_features, random_state, max_leaf_nodes, min_impurity_decrease,
+                                           min_impurity_split,
+                                           class_weight, presort)
+        BaseWrapperClf.__init__(self)
+
     tuning_grid = {
         'max_depth': [i for i in range(1, 10)],
         'min_samples_leaf': [i for i in range(1, 5)],
@@ -207,17 +191,21 @@ class skDecisionTree(_skDecisionTreeClassifier):
         'random_state': None,
     }
 
-    def fit(self, X, y, sample_weight=None, check_input=True, X_idx_sorted=None):
-        y = reformat_np_arr(y, self.model_Ys_type)
-        return super().fit(X, y, sample_weight, check_input, X_idx_sorted)
 
-    def score(self, X, y, sample_weight=None):
-        y = reformat_np_arr(y, self.model_Ys_type)
-        return super().score(X, y, sample_weight)
+class skRandomForest(BaseWrapperClf, _skRandomForestClassifier, metaclass=meta_BaseWrapperClf_with_ABC):
+    def __init__(self, n_estimators=10, criterion="gini", max_depth=None, min_samples_split=2, min_samples_leaf=1,
+                 min_weight_fraction_leaf=0., max_features="auto", max_leaf_nodes=None, min_impurity_decrease=0.,
+                 min_impurity_split=None, bootstrap=True, oob_score=False, n_jobs=1, random_state=None, verbose=0,
+                 warm_start=False, class_weight=None):
+        _skRandomForestClassifier.__init__(self, n_estimators, criterion, max_depth, min_samples_split,
+                                           min_samples_leaf,
+                                           min_weight_fraction_leaf, max_features, max_leaf_nodes,
+                                           min_impurity_decrease,
+                                           min_impurity_split, bootstrap, oob_score, n_jobs, random_state, verbose,
+                                           warm_start,
+                                           class_weight)
+        BaseWrapperClf.__init__(self)
 
-
-class skRandomForest(_skRandomForestClassifier):
-    model_Ys_type = NP_ARRAY_TYPE_INDEX
     tuning_grid = {
         'n_estimators': [2, 4, 8, 16, 32, 64],
         'max_depth': [i for i in range(1, 10)],
@@ -251,17 +239,20 @@ class skRandomForest(_skRandomForestClassifier):
         'bootstrap': True,
     }
 
-    def fit(self, X, y, sample_weight=None):
-        y = reformat_np_arr(y, self.model_Ys_type)
-        return super().fit(X, y, sample_weight)
 
-    def score(self, X, y, sample_weight=None):
-        y = reformat_np_arr(y, self.model_Ys_type)
-        return super().score(X, y, sample_weight)
+class skExtraTrees(BaseWrapperClf, _skExtraTreesClassifier, metaclass=meta_BaseWrapperClf_with_ABC):
 
+    def __init__(self, n_estimators=10, criterion="gini", max_depth=None, min_samples_split=2, min_samples_leaf=1,
+                 min_weight_fraction_leaf=0., max_features="auto", max_leaf_nodes=None, min_impurity_decrease=0.,
+                 min_impurity_split=None, bootstrap=False, oob_score=False, n_jobs=1, random_state=None, verbose=0,
+                 warm_start=False, class_weight=None):
+        _skExtraTreesClassifier.__init__(self, n_estimators, criterion, max_depth, min_samples_split, min_samples_leaf,
+                                         min_weight_fraction_leaf, max_features, max_leaf_nodes, min_impurity_decrease,
+                                         min_impurity_split, bootstrap, oob_score, n_jobs, random_state, verbose,
+                                         warm_start,
+                                         class_weight)
+        BaseWrapperClf.__init__(self)
 
-class skExtraTrees(_skExtraTreesClassifier):
-    model_Ys_type = NP_ARRAY_TYPE_INDEX
     tuning_grid = {
         'n_estimators': [2, 4, 8, 16, 32, 64],
         'max_depth': [i for i in range(1, 10)],
@@ -296,17 +287,12 @@ class skExtraTrees(_skExtraTreesClassifier):
         'warm_start': False,
     }
 
-    def fit(self, X, y, sample_weight=None):
-        y = reformat_np_arr(y, self.model_Ys_type)
-        return super().fit(X, y, sample_weight)
 
-    def score(self, X, y, sample_weight=None):
-        y = reformat_np_arr(y, self.model_Ys_type)
-        return super().score(X, y, sample_weight)
+class skAdaBoost(BaseWrapperClf, _skAdaBoostClassifier, metaclass=meta_BaseWrapperClf_with_ABC):
+    def __init__(self, base_estimator=None, n_estimators=50, learning_rate=1., algorithm='SAMME.R', random_state=None):
+        _skAdaBoostClassifier.__init__(self, base_estimator, n_estimators, learning_rate, algorithm, random_state)
+        BaseWrapperClf.__init__(self)
 
-
-class skAdaBoost(_skAdaBoostClassifier):
-    model_Ys_type = NP_ARRAY_TYPE_INDEX
     tuning_grid = {
         'learning_rate': [0.00001, 0.0001, 0.001, 0.01, 0.1, 1.0, 10],
         'n_estimators': [2, 4, 8, 16, 32, 64, 128, 256],
@@ -324,17 +310,24 @@ class skAdaBoost(_skAdaBoostClassifier):
         'algorithm': ['SAMME.R', 'SAMME'],
     }
 
-    def fit(self, X, y, sample_weight=None):
-        y = reformat_np_arr(y, self.model_Ys_type)
-        return super().fit(X, y, sample_weight)
 
-    def score(self, X, y, sample_weight=None):
-        y = reformat_np_arr(y, self.model_Ys_type)
-        return super().score(X, y, sample_weight)
+class skGradientBoosting(BaseWrapperClf, _skGradientBoostingClassifier, metaclass=meta_BaseWrapperClf_with_ABC):
+    def _make_estimator(self, append=True):
+        pass
 
+    def __init__(self, loss='deviance', learning_rate=0.1, n_estimators=100, subsample=1.0, criterion='friedman_mse',
+                 min_samples_split=2, min_samples_leaf=1, min_weight_fraction_leaf=0., max_depth=3,
+                 min_impurity_decrease=0., min_impurity_split=None, init=None, random_state=None, max_features=None,
+                 verbose=0, max_leaf_nodes=None, warm_start=False, presort='auto'):
+        _skGradientBoostingClassifier.__init__(self, loss, learning_rate, n_estimators, subsample, criterion,
+                                               min_samples_split,
+                                               min_samples_leaf,
+                                               min_weight_fraction_leaf, max_depth, min_impurity_decrease,
+                                               min_impurity_split,
+                                               init,
+                                               random_state, max_features, verbose, max_leaf_nodes, warm_start, presort)
+        BaseWrapperClf.__init__(self)
 
-class skGradientBoosting(_skGradientBoostingClassifier):
-    model_Ys_type = NP_ARRAY_TYPE_INDEX
     tuning_grid = {
         'learning_rate': [0.001, 0.01, 0.1, 1],
         'max_depth': [i for i in range(1, 10)],
@@ -371,20 +364,8 @@ class skGradientBoosting(_skGradientBoostingClassifier):
         'warm_start': False,
     }
 
-    def fit(self, X, y, sample_weight=None, monitor=None):
-        y = reformat_np_arr(y, self.model_Ys_type)
-        return super().fit(X, y, sample_weight, monitor)
 
-    def score(self, X, y, sample_weight=None):
-        y = reformat_np_arr(y, self.model_Ys_type)
-        return super().score(X, y, sample_weight)
-
-    def _make_estimator(self, append=True):
-        pass
-
-
-class skKNeighbors(_skKNeighborsClassifier):
-    model_Ys_type = NP_ARRAY_TYPE_INDEX
+class skKNeighbors(BaseWrapperClf, _skKNeighborsClassifier, metaclass=meta_BaseWrapperClf_with_ABC):
     tuning_grid = {
         'n_neighbors': [i for i in range(1, 32)],
     }
@@ -403,18 +384,21 @@ class skKNeighbors(_skKNeighborsClassifier):
         'metric_params': None,
     }
 
-    def fit(self, X, y):
-        y = reformat_np_arr(y, self.model_Ys_type)
-        return super().fit(X, y)
+    def __init__(self, n_neighbors=5, weights='uniform', algorithm='auto', leaf_size=30, p=2, metric='minkowski',
+                 metric_params=None, n_jobs=1, **kwargs):
+        _skKNeighborsClassifier.__init__(self, n_neighbors, weights, algorithm, leaf_size, p, metric,
+                                         metric_params, n_jobs,
+                                         **kwargs)
+        BaseWrapperClf.__init__(self)
 
-    def score(self, X, y, sample_weight=None):
-        y = reformat_np_arr(y, self.model_Ys_type)
-        return super().score(X, y, sample_weight)
 
+class skGaussianProcess(BaseWrapperClf, _skGaussianProcessClassifier, metaclass=meta_BaseWrapperClf_with_ABC):
+    def __init__(self, kernel=None, optimizer="fmin_l_bfgs_b", n_restarts_optimizer=0, max_iter_predict=100,
+                 warm_start=False, copy_X_train=True, random_state=None, multi_class="one_vs_rest", n_jobs=1):
+        _skGaussianProcessClassifier.__init__(self, kernel, optimizer, n_restarts_optimizer, max_iter_predict,
+                                              warm_start, copy_X_train, random_state, multi_class, n_jobs)
+        BaseWrapperClf.__init__(self, )
 
-class skGaussianProcess(_skGaussianProcessClassifier):
-    model_Ys_type = NP_ARRAY_TYPE_INDEX
-    # todo
     tuning_grid = {
 
     }
@@ -440,21 +424,8 @@ class skGaussianProcess(_skGaussianProcessClassifier):
         'copy_X_train': True,
     }
 
-    def fit(self, X, y):
-        y = reformat_np_arr(y, self.model_Ys_type)
-        return super().fit(X, y)
 
-    def predict_proba(self, X):
-        return super().predict_proba(X)
-
-    def score(self, X, y, sample_weight=None):
-        y = reformat_np_arr(y, self.model_Ys_type)
-        return super().score(X, y, sample_weight)
-
-
-class skSGD(_skSGDClassifier):
-    model_Ys_type = NP_ARRAY_TYPE_INDEX
-
+class skSGD(BaseWrapperClf, _skSGDClassifier, metaclass=meta_BaseWrapperClf_with_ABC):
     # todo wtf?
     # http://scikit-learn.org/stable/modules/generated/sklearn.linear_model.SGDClassifier.html#sklearn.linear_model.SGDClassifier
     tuning_grid = {
@@ -498,20 +469,21 @@ class skSGD(_skSGDClassifier):
                  tol=None, shuffle=True, verbose=0, epsilon=DEFAULT_EPSILON, n_jobs=1, random_state=None,
                  learning_rate="optimal", eta0=0.0, power_t=0.5, class_weight=None, warm_start=False, average=False,
                  n_iter=None):
-        super().__init__(loss, penalty, alpha, l1_ratio, fit_intercept, max_iter, tol, shuffle, verbose, epsilon,
-                         n_jobs, random_state, learning_rate, eta0, power_t, class_weight, warm_start, average, n_iter)
-
-    def fit(self, X, y, coef_init=None, intercept_init=None, sample_weight=None):
-        y = reformat_np_arr(y, self.model_Ys_type)
-        return super().fit(X, y, coef_init, intercept_init, sample_weight)
-
-    def score(self, X, y, sample_weight=None):
-        y = reformat_np_arr(y, self.model_Ys_type)
-        return super().score(X, y, sample_weight)
+        _skSGDClassifier.__init__(self, loss, penalty, alpha, l1_ratio, fit_intercept, max_iter, tol, shuffle, verbose,
+                                  epsilon,
+                                  n_jobs, random_state, learning_rate, eta0, power_t, class_weight, warm_start, average,
+                                  n_iter)
+        BaseWrapperClf.__init__(self)
 
 
-class skLinear_SVC(_skLinearSVC):
-    model_Ys_type = NP_ARRAY_TYPE_INDEX
+class skLinear_SVC(BaseWrapperClf, _skLinearSVC, metaclass=meta_BaseWrapperClf_with_ABC):
+    def __init__(self):
+        _skLinearSVC.__init__(self, penalty='l2', loss='squared_hinge', dual=True, tol=1e-4,
+                              C=1.0, multi_class='ovr', fit_intercept=True,
+                              intercept_scaling=1, class_weight=None, verbose=0,
+                              random_state=None, max_iter=1000)
+        BaseWrapperClf.__init__(self)
+
     tuning_grid = {
         'C': [0.00001, 0.0001, 0.001, 0.01, 0.1, 1.0, 10],
         'max_iter': [2 ** i for i in range(6, 13)],
@@ -538,27 +510,15 @@ class skLinear_SVC(_skLinearSVC):
         'verbose': 1e-4,
     }
 
-    @property
-    def predict_proba(self):
-        return self._predict_proba_lr
 
-    def fit(self, X, y, sample_weight=None):
-        y = reformat_np_arr(y, self.model_Ys_type)
-        return super().fit(X, y, sample_weight)
-
-    def score(self, X, y, sample_weight=None):
-        y = reformat_np_arr(y, self.model_Ys_type)
-        return super().score(X, y, sample_weight)
-
-
-class skRBF_SVM(_skSVC):
+class skRBF_SVM(BaseWrapperClf, _skSVC, metaclass=meta_BaseWrapperClf_with_ABC):
     def __init__(self, C=1.0, kernel='rbf', degree=3, gamma='auto', coef0=0.0, shrinking=True, probability=True,
                  tol=1e-3, cache_size=200, class_weight=None, verbose=False, max_iter=-1, decision_function_shape='ovr',
                  random_state=None):
-        super().__init__(C, kernel, degree, gamma, coef0, shrinking, probability, tol, cache_size, class_weight,
-                         verbose, max_iter, decision_function_shape, random_state)
+        _skSVC.__init__(self, C, kernel, degree, gamma, coef0, shrinking, probability, tol, cache_size, class_weight,
+                        verbose, max_iter, decision_function_shape, random_state)
+        BaseWrapperClf.__init__(self)
 
-    model_Ys_type = NP_ARRAY_TYPE_INDEX
     tuning_grid = {
         'C': [1 ** i for i in range(-5, 5)],
         'gamma': [1 ** i for i in range(-5, 5)],
@@ -583,36 +543,19 @@ class skRBF_SVM(_skSVC):
         'verbose': False
     }
 
-    def fit(self, X, y, sample_weight=None):
-        y = reformat_np_arr(y, self.model_Ys_type)
-        return super().fit(X, y, sample_weight)
 
-    def score(self, X, y, sample_weight=None):
-        y = reformat_np_arr(y, self.model_Ys_type)
-        return super().score(X, y, sample_weight)
-
-
-class skVoting(_skVotingClassifier):
-    model_Ys_type = NP_ARRAY_TYPE_INDEX
+class skVoting(BaseWrapperClf, _skVotingClassifier, metaclass=meta_BaseWrapperClf_with_ABC):
     tuning_grid = {
     }
     tuning_params = {
     }
 
     def __init__(self, estimators, voting='hard', weights=None, n_jobs=1, flatten_transform=None):
-        super().__init__(estimators, voting, weights, n_jobs, flatten_transform)
-
-    def fit(self, X, y, sample_weight=None):
-        y = reformat_np_arr(y, self.model_Ys_type)
-        return super().fit(X, y, sample_weight)
-
-    def score(self, X, y, sample_weight=None):
-        y = reformat_np_arr(y, self.model_Ys_type)
-        return super().score(X, y, sample_weight)
+        _skVotingClassifier.__init__(self, estimators, voting, weights, n_jobs, flatten_transform)
+        BaseWrapperClf.__init__(self)
 
 
-class skBagging(_BaggingClassifier):
-    model_Ys_type = NP_ARRAY_TYPE_INDEX
+class skBagging(BaseWrapperClf, _BaggingClassifier, metaclass=meta_BaseWrapperClf_with_ABC):
     tuning_grid = {
     }
     tuning_params = {
@@ -620,13 +563,7 @@ class skBagging(_BaggingClassifier):
 
     def __init__(self, base_estimator=None, n_estimators=10, max_samples=1.0, max_features=1.0, bootstrap=True,
                  bootstrap_features=False, oob_score=False, warm_start=False, n_jobs=1, random_state=None, verbose=0):
-        super().__init__(base_estimator, n_estimators, max_samples, max_features, bootstrap, bootstrap_features,
-                         oob_score, warm_start, n_jobs, random_state, verbose)
-
-    def fit(self, X, y, sample_weight=None):
-        y = reformat_np_arr(y, self.model_Ys_type)
-        return super().fit(X, y, sample_weight)
-
-    def score(self, X, y, sample_weight=None):
-        y = reformat_np_arr(y, self.model_Ys_type)
-        return super().score(X, y, sample_weight)
+        _BaggingClassifier.__init__(self, base_estimator, n_estimators, max_samples, max_features, bootstrap,
+                                    bootstrap_features,
+                                    oob_score, warm_start, n_jobs, random_state, verbose)
+        BaseWrapperClf.__init__(self)

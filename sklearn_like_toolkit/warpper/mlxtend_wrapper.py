@@ -1,7 +1,6 @@
 import warnings
-
+from sklearn_like_toolkit.base.BaseWrapperClf import BaseWrapperClf
 from sklearn_like_toolkit.warpper.sklearn_wrapper import skBernoulli_NB
-from util.MixIn import PickleMixIn
 from util.numpy_utils import NP_ARRAY_TYPE_INDEX, reformat_np_arr
 from mlxtend.classifier import Adaline as _Adaline
 from mlxtend.classifier import EnsembleVoteClassifier as _EnsembleVoteClassifier
@@ -11,10 +10,10 @@ from mlxtend.classifier import Perceptron as _Perceptron
 from mlxtend.classifier import SoftmaxRegression as _SoftmaxRegression
 from mlxtend.classifier import StackingCVClassifier as _StackingCVClassifier
 from mlxtend.classifier import StackingClassifier as _StackingClassifier
-from sklearn_like_toolkit.base.MixIn import Clf_metric_MixIn, Reformat_Ys_MixIn, DummyParamMixIN
+from sklearn_like_toolkit.base.MixIn import meta_BaseWrapperClf, meta_BaseWrapperClf_with_ABC
 
 
-class mlxAdalineClf(DummyParamMixIN, _Adaline):
+class mlxAdalineClf(_Adaline, BaseWrapperClf, metaclass=meta_BaseWrapperClf_with_ABC):
     model_Ys_type = NP_ARRAY_TYPE_INDEX
     tuning_grid = {
         'eta': [i / 10.0 for i in range(1, 10 + 1, 3)],
@@ -29,18 +28,11 @@ class mlxAdalineClf(DummyParamMixIN, _Adaline):
     def __init__(self, eta=0.01, epochs=50, minibatches=None, random_seed=None, print_progress=0):
         warnings.filterwarnings(module='mlxtend*', action='ignore', category=FutureWarning)
         minibatches = 1
-        super().__init__(eta, epochs, minibatches, random_seed, print_progress)
-
-    def fit(self, X, y, init_params=True):
-        y = reformat_np_arr(y, self.model_Ys_type)
-        return super().fit(X, y, init_params)
-
-    def score(self, X, y):
-        y = reformat_np_arr(y, self.model_Ys_type)
-        return super().score(X, y)
+        _Adaline.__init__(self, eta, epochs, minibatches, random_seed, print_progress)
+        BaseWrapperClf.__init__(self)
 
 
-class mlxLogisticRegressionClf(DummyParamMixIN, _LogisticRegression):
+class mlxLogisticRegressionClf(_LogisticRegression, BaseWrapperClf, metaclass=meta_BaseWrapperClf_with_ABC):
     model_Ys_type = NP_ARRAY_TYPE_INDEX
     tuning_grid = {
         'eta': [i / 10.0 for i in range(1, 10 + 1, 3)],
@@ -55,23 +47,15 @@ class mlxLogisticRegressionClf(DummyParamMixIN, _LogisticRegression):
 
     def __init__(self, eta=0.01, epochs=50, l2_lambda=0.0, minibatches=1, random_seed=None, print_progress=0):
         warnings.filterwarnings(module='mlxtend*', action='ignore', category=FutureWarning)
-        super().__init__(eta, epochs, l2_lambda, minibatches, random_seed, print_progress)
-
-    def fit(self, X, y, init_params=True):
-        y = reformat_np_arr(y, self.model_Ys_type)
-        return super().fit(X, y, init_params)
-
-    def score(self, X, y):
-        y = reformat_np_arr(y, self.model_Ys_type)
-        return super().score(X, y)
+        _LogisticRegression.__init__(self, eta, epochs, l2_lambda, minibatches, random_seed, print_progress)
+        BaseWrapperClf.__init__(self)
 
 
-class mlxMLPClf(DummyParamMixIN, _MultiLayerPerceptron):
-    # todo add param grid
-    model_Ys_type = NP_ARRAY_TYPE_INDEX
+class mlxMLPClf(_MultiLayerPerceptron, BaseWrapperClf, metaclass=meta_BaseWrapperClf_with_ABC):
     tuning_grid = {
         'eta': [i / 10.0 for i in range(1, 10 + 1, 3)],
         'epochs': [64, 128, 256],
+        'hidden_layers': [[32, ], [64, ], [128], [32, 32], [64, 64], [128, 128]]
     }
     tuning_params = {
     }
@@ -84,20 +68,12 @@ class mlxMLPClf(DummyParamMixIN, _MultiLayerPerceptron):
         warnings.filterwarnings(module='mlxtend*', action='ignore', category=RuntimeWarning)
         if hidden_layers is None:
             hidden_layers = [50]
-        super().__init__(eta, epochs, hidden_layers, n_classes, momentum, l1, l2, dropout, decrease_const, minibatches,
-                         random_seed, print_progress)
-
-    def fit(self, X, y, init_params=True):
-        y = reformat_np_arr(y, self.model_Ys_type)
-        return super().fit(X, y, init_params)
-
-    def score(self, X, y):
-        y = reformat_np_arr(y, self.model_Ys_type)
-        return super().score(X, y)
+        _MultiLayerPerceptron.__init__(self, eta, epochs, hidden_layers, n_classes, momentum, l1, l2, dropout,
+                                       decrease_const, minibatches, random_seed, print_progress)
+        BaseWrapperClf.__init__(self)
 
 
-class mlxPerceptronClf(DummyParamMixIN, _Perceptron):
-    model_Ys_type = NP_ARRAY_TYPE_INDEX
+class mlxPerceptronClf(_Perceptron, BaseWrapperClf, metaclass=meta_BaseWrapperClf_with_ABC):
     tuning_grid = {
         'eta': [i / 10.0 for i in range(1, 10 + 1, 3)],
         'epochs': [64, 128, 256],
@@ -109,20 +85,11 @@ class mlxPerceptronClf(DummyParamMixIN, _Perceptron):
 
     def __init__(self, eta=0.1, epochs=50, random_seed=None, print_progress=0):
         warnings.filterwarnings(module='mlxtend*', action='ignore', category=FutureWarning)
-        super().__init__(eta, epochs, random_seed, print_progress)
-
-    def fit(self, X, y, init_params=True):
-        y = reformat_np_arr(y, self.model_Ys_type)
-        return super().fit(X, y, init_params)
-
-    def score(self, X, y):
-        y = reformat_np_arr(y, self.model_Ys_type)
-        return super().score(X, y)
+        _Perceptron.__init__(self, eta, epochs, random_seed, print_progress)
+        BaseWrapperClf.__init__(self)
 
 
-class mlxSoftmaxRegressionClf(DummyParamMixIN, _SoftmaxRegression):
-    model_Ys_type = NP_ARRAY_TYPE_INDEX
-
+class mlxSoftmaxRegressionClf(_SoftmaxRegression, BaseWrapperClf, metaclass=meta_BaseWrapperClf_with_ABC):
     tuning_grid = {
         'eta': [i / 10.0 for i in range(1, 10 + 1, 3)],
         'epochs': [64, 128, 256],
@@ -136,64 +103,39 @@ class mlxSoftmaxRegressionClf(DummyParamMixIN, _SoftmaxRegression):
 
     def __init__(self, eta=0.01, epochs=50, l2=0.0, minibatches=1, n_classes=None, random_seed=None, print_progress=0):
         warnings.filterwarnings(module='mlxtend*', action='ignore', category=FutureWarning)
-        super().__init__(eta, epochs, l2, minibatches, n_classes, random_seed, print_progress)
-
-    def fit(self, X, y, init_params=True):
-        y = reformat_np_arr(y, self.model_Ys_type)
-        return super().fit(X, y, init_params)
-
-    def score(self, X, y):
-        y = reformat_np_arr(y, self.model_Ys_type)
-        return super().score(X, y)
+        _SoftmaxRegression.__init__(self, eta, epochs, l2, minibatches, n_classes, random_seed, print_progress)
+        BaseWrapperClf.__init__(self)
 
 
 class mlxVotingClf(_EnsembleVoteClassifier):
     # todo add param grid
-    model_Ys_type = NP_ARRAY_TYPE_INDEX
 
     def __init__(self, clfs, voting='hard', weights=None, verbose=0, refit=True):
         warnings.filterwarnings(module='mlxtend*', action='ignore', category=FutureWarning)
         super().__init__(clfs, voting, weights, verbose, refit)
 
-    def fit(self, X, y):
-        y = reformat_np_arr(y, self.model_Ys_type)
-        return super().fit(X, y)
 
-    def score(self, X, y, sample_weight=None):
-        y = reformat_np_arr(y, self.model_Ys_type)
-        return super().score(X, y, sample_weight)
-
-
-class mlxStackingClf(PickleMixIn, Clf_metric_MixIn, Reformat_Ys_MixIn, _StackingClassifier):
+class mlxStackingClf(BaseWrapperClf, _StackingClassifier, metaclass=meta_BaseWrapperClf):
     # todo add param grid
-    model_Ys_type = NP_ARRAY_TYPE_INDEX
 
     def __init__(self, classifiers, meta_classifier=None, use_probas=False, average_probas=False, verbose=0,
                  use_features_in_secondary=False, store_train_meta_features=False, use_clones=True):
         warnings.filterwarnings(module='mlxtend*', action='ignore', category=FutureWarning)
         if meta_classifier is None:
             meta_classifier = skBernoulli_NB()
+
+        BaseWrapperClf.__init__(self)
         _StackingClassifier.__init__(self, classifiers, meta_classifier, use_probas, average_probas, verbose,
                                      use_features_in_secondary,
                                      store_train_meta_features, use_clones)
-        Clf_metric_MixIn.__init__(self)
-
-    def fit(self, X, y):
-        y = reformat_np_arr(y, self.model_Ys_type)
-        return super().fit(X, y)
-
-    def score(self, X, y, metric='accuracy'):
-        y = reformat_np_arr(y, self.model_Ys_type)
-        return self._apply_metric(y, self.predict(X), metric)
 
     def score_pack(self, X, y):
-        y = reformat_np_arr(y, self.model_Ys_type)
+        y = self.np_arr_to_index(y)
         return self._apply_metric_pack(y, self.predict(X))
 
 
-class mlxStackingCVClf(PickleMixIn, Clf_metric_MixIn, Reformat_Ys_MixIn, _StackingCVClassifier):
+class mlxStackingCVClf(BaseWrapperClf, _StackingCVClassifier, metaclass=meta_BaseWrapperClf):
     # todo add param grid
-    model_Ys_type = NP_ARRAY_TYPE_INDEX
 
     def __init__(self, classifiers, meta_classifier=None, use_probas=False, cv=2, use_features_in_secondary=False,
                  stratify=True, shuffle=True, verbose=0, store_train_meta_features=False, use_clones=True):
@@ -201,18 +143,11 @@ class mlxStackingCVClf(PickleMixIn, Clf_metric_MixIn, Reformat_Ys_MixIn, _Stacki
 
         if meta_classifier is None:
             meta_classifier = skBernoulli_NB()
+
+        BaseWrapperClf.__init__(self)
         _StackingCVClassifier.__init__(self, classifiers, meta_classifier, use_probas, cv, use_features_in_secondary,
                                        stratify, shuffle,
                                        verbose, store_train_meta_features, use_clones)
-        Clf_metric_MixIn.__init__(self)
-
-    def fit(self, X, y, groups=None):
-        y = reformat_np_arr(y, self.model_Ys_type)
-        return super().fit(X, y, groups)
-
-    def score(self, X, y, metric='accuracy'):
-        y = reformat_np_arr(y, self.model_Ys_type)
-        return self._apply_metric(y, self.predict(X), metric)
 
     def score_pack(self, X, y):
         y = reformat_np_arr(y, self.model_Ys_type)

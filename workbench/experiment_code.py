@@ -1,26 +1,26 @@
 # -*- coding:utf-8 -*-
 
-
-########################################################################################################################
-# print(built-in function) is not good for logging
 import os
-
+import numpy as np
+import pandas as pd
+from tqdm import trange
 from data_handler.DummyDataset import DummyDataset
-from data_handler.titanic import df_to_np_onehot_embedding
+from data_handler.titanic import df_to_np_onehot_embedding, build_transform
 from sklearn_like_toolkit.ClassifierPack import ClassifierPack
-
 from data_handler.DatasetPackLoader import DatasetPackLoader
 from sklearn_like_toolkit.EnsembleClfPack import EnsembleClfPack
 from sklearn_like_toolkit.FoldingHardVote import FoldingHardVote
 from sklearn_like_toolkit.warpper.mlxtend_wrapper import mlxStackingCVClf, mlxStackingClf
+from sklearn.neural_network.multilayer_perceptron import MLPRegressor
+from lightgbm import LGBMRegressor
+from catboost import CatBoostRegressor
 from util.Logger import StdoutOnlyLogger, pprint_logger
-import numpy as np
-import pandas as pd
-from tqdm import trange
-
 from util.deco import deco_timeit, deco_save_log
 from util.misc_util import path_join
 from util.numpy_utils import np_stat_dict
+
+########################################################################################################################
+# print(built-in function) is not good for logging
 
 bprint = print
 logger = StdoutOnlyLogger()
@@ -226,7 +226,7 @@ def exp_model_confidence():
         clf_pack.param_search(train_Xs, train_Ys)
         clf_pack.dump(clf_pack_path)
 
-    clf_pack = ClassifierPack.load(clf_pack_path)
+    clf_pack = ClassifierPack().load(clf_pack_path)
     clf_pack.drop_clf('mlxAdaline')
     clf_pack.drop_clf('mlxLogisticRegression')
     clf_pack.drop_clf('skGaussian_NB')
@@ -282,7 +282,7 @@ def exp_titanic_data_difficulty():
         clf_pack.param_search(train_Xs, train_Ys)
         clf_pack.dump(clf_pack_path)
 
-    clf_pack = ClassifierPack.load(clf_pack_path)
+    clf_pack = ClassifierPack().load(clf_pack_path)
     clf_pack.drop_clf('mlxAdaline')
     clf_pack.drop_clf('mlxLogisticRegression')
     clf_pack.drop_clf('skGaussian_NB')
@@ -530,13 +530,11 @@ def exp_age_predict_regr():
     train_Xs, train_Ys = train.full_batch(['Xs', 'Ys'])
     test_Xs, test_Ys = test.full_batch(['Xs', 'Ys'])
 
-    from sklearn.neural_network.multilayer_perceptron import MLPRegressor
-    from lightgbm import LGBMRegressor
-    from catboost import CatBoostRegressor
+
     from xgboost import XGBRegressor
-    # reg = MLPRegressor(hidden_layer_sizes=(500,))
-    # reg = LGBMRegressor()
-    # reg = CatBoostRegressor()
+    reg = MLPRegressor(hidden_layer_sizes=(500,))
+    reg = LGBMRegressor()
+    reg = CatBoostRegressor()
     reg = XGBRegressor()
     reg.fit(train_Xs, train_Ys)
     pprint(reg.score(train_Xs, train_Ys))
@@ -552,7 +550,6 @@ def exp_age_predict_regr():
     stat = abs(reg.predict(test_Xs) - test_Ys)
     stat = np_stat_dict(stat)
     pprint(stat)
-
 
     # clf_pack = ClassifierPack(['skMLP'])
     # clf_pack.pack['skMLP'].n_classes_ = test_Ys.shape[1]
@@ -572,8 +569,59 @@ def exp_age_predict_regr():
     #         '60~81',
     #         '0~1'])
 
+
 def main():
     print(exp_titanic_statistic.__name__)
     # exp_stacking_metaclf()
     # exp_voting()
     pass
+
+
+def exp_titanic_corr_heatmap():
+    import matplotlib.pyplot as plt
+    import seaborn as sns
+
+    def plot_corr_matrix(data, attr, fig_no):
+        corr = data.corr()
+        # f, ax = plt.subplots(figsize=(11, 9))
+
+        # Generate a custom diverging colormap
+        cmap = sns.diverging_palette(220, 10, as_cmap=True)
+
+        # Draw the heatmap with the mask and correct aspect ratio
+        sns.heatmap(corr, cmap=cmap, vmax=1.0, vmin=-1.0, center=0,
+                    square=True, linewidths=.5, cbar_kws={"shrink": .5})
+        plt.show()
+
+    path = 'temp.csv'
+    if not os.path.exists(path):
+        df = build_transform(load_merge_set())
+        df.to_csv(path, index=False)
+        pprint(df.info())
+
+    df = pd.read_csv(path, index_col=False)
+    df = df.query('not Survived.isna()')
+    pprint(df.info())
+
+    df = df_onehot_embedding(df)
+    pprint(df.info())
+
+    corr = df.corr()
+    # pprint(corr)
+    pprint(list(corr['Survived_0.0'].items()))
+    pprint(list(corr['Survived_1.0'].items()))
+    # plot_corr_matrix(df, df.keys(), 3)
+
+
+def df_onehot_embedding(df):
+    ret = pd.DataFrame({'_idx': [i for i in range(len(df))]})
+    for df_key in df.keys():
+        # print(df_key)
+        np_arr = np.array(df[df_key])
+        for unique_key in sorted(df[df_key].unique()):
+            # print(unique_key)
+            ret[f'{df_key}_{unique_key}'] = np.array(np.where(np_arr == unique_key, 1, 0).reshape([-1, 1]))
+
+    # ret = np.concatenate([v for k, v in ret.items()], axis=1)
+    ret = ret.drop(columns=['_idx'])
+    return ret
