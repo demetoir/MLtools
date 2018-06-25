@@ -1,9 +1,13 @@
 from script.data_handler.BaseDataset import BaseDataset, DownloadInfo
 from script.data_handler.BaseDatasetPack import BaseDatasetPack
-from script.dict_keys.dataset_batch_keys import *
 import pickle
 import os
 import numpy as np
+
+BATCH_KEY_TRAIN_FINE_LABELS = "TRAIN_FINE_LABELS"
+BATCH_KEY_TRAIN_COARSE_LABELS = "TRAIN_COARSE_LABELS"
+BATCH_KEY_TEST_FINE_LABELS = "TEST_FINE_LABELS"
+BATCH_KEY_TEST_COARSE_LABELS = "TEST_COARSE_LABELS"
 
 
 def X_transform(x):
