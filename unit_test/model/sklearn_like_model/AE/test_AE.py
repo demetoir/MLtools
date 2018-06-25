@@ -45,7 +45,7 @@ class Test_AE:
 
     def test_titanic(self):
         dataset = DatasetPackLoader().load_dataset("titanic")
-        dataset = dataset.train_set
+        dataset = dataset['train']
 
         model = AutoEncoder(dataset.input_shapes)
         model.build()

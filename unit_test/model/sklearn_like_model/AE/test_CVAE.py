@@ -47,7 +47,7 @@ class Test_CVAE:
     def test_titanic(self):
         class_ = self.class_
         dataset = DatasetPackLoader().load_dataset("titanic")
-        dataset = dataset.train_set
+        dataset = dataset['train']
         Xs, Ys = dataset.full_batch(['Xs', 'Ys'])
         sample_X = Xs[:2]
         sample_Y = Ys[:2]
