@@ -17,7 +17,9 @@ class FoldingHardVote(BaseWrapperClf):
 
     def fit(self, Xs, Ys):
         self.class_size = self.np_arr_to_onehot(Ys).shape[1]
-        dset = DummyDataset({'Xs': Xs, 'Ys': Ys})
+        dset = DummyDataset()
+        dset.add_data('Xs', Xs)
+        dset.add_data('Ys', Ys)
 
         for clf in self.clfs:
             dset.shuffle()
