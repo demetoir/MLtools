@@ -1,5 +1,4 @@
 import numpy as np
-
 from script.data_handler.DatasetPackLoader import DatasetPackLoader
 from script.model.sklearn_like_model.AE.CVAE import CVAE
 
