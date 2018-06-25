@@ -3,17 +3,14 @@ from script.model.sklearn_like_model.AE.DVAE import DVAE
 import numpy as np
 
 
-class test_DVAE:
+class Test_DVAE:
     class_ = DVAE
 
-    def __init__(self):
-        self.test_mnist()
-        self.test_titanic()
 
     def test_mnist(self):
         class_ = self.class_
         dataset = DatasetPackLoader().load_dataset("MNIST")
-        dataset = dataset.train_set
+        dataset = dataset['train']
 
         model = class_(dataset.input_shapes)
         model.build()
@@ -52,7 +49,7 @@ class test_DVAE:
     def test_titanic(self):
         class_ = self.class_
         dataset = DatasetPackLoader().load_dataset("titanic")
-        dataset = dataset.train_set
+        dataset = dataset['train']
 
         model = class_(dataset.input_shapes)
         model.build()
