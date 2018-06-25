@@ -190,7 +190,7 @@ def reformat_np_arr(np_arr, to_np_arr_type, from_np_arr_type=None):
     return np_arr
 
 
-def np_stat_dict(a, mode='basic'):
+def np_stat_dict(a):
     a = np.array(a)
     return {
         'min': np.round(a.min(), decimals=4),

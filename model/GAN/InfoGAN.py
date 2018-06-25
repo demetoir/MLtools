@@ -44,7 +44,8 @@ class InfoGAN(AbstractGANModel):
         self.len_discrete_code = 10  # categorical distribution (i.e. label)
         self.len_continuous_code = 2  # gaussian distribution (e.g. rotation, thickness)
 
-    def Q_function(self, X_gen, reuse=False):
+    @staticmethod
+    def Q_function(X_gen, reuse=False):
         with tf.variable_scope('Q_function', reuse=reuse):
             layer = Stacker(X_gen)
             layer.linear_block(128, relu)

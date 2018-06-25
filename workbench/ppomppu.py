@@ -7,6 +7,7 @@ import tqdm
 from bs4 import BeautifulSoup
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
+# noinspection PyPep8Naming
 from selenium.webdriver.support import expected_conditions as EC
 from util.Crawler import Crawler
 from util.PbarPooling import PbarPooling
@@ -29,8 +30,6 @@ def url_query_parser(url):
 @deco_timeit
 @file_lines_job
 def ppompu_url_finder(lines):
-    lines = None
-
     path = "E:\\crawl_result\\crawl_result\\ppomppu_list"
     files = sorted(glob.glob(path + '\\*.html', recursive=True))
     print("{} files loaded".format(len(files)))
@@ -75,7 +74,7 @@ def get_max_comment_page(soup):
         res = soup.find('font', {'class': 'pagelist_han'})
         item = [int(item.text) for item in res.find_all('a') if item.text.isnumeric()]
         return max(item)
-    except BaseException as e:
+    except BaseException:
         return -1
 
 
@@ -88,7 +87,7 @@ def pomppu_singlepage_crawl(driver, crawler, url, job_id):
         try:
             if driver.find_element_by_class_name("pre"):
                 execute_js_show_comment_page(driver, query)
-        except BaseException as e:
+        except BaseException:
             pass
 
         str_soup = []

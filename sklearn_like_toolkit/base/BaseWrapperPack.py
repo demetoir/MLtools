@@ -4,7 +4,6 @@ from env_settting import SKLEARN_PARAMS_SAVE_PATH
 from sklearn_like_toolkit.ParamOptimizer import ParamOptimizer
 from sklearn_like_toolkit.base.MixIn import ClfWrapperMixIn, meta_BaseWrapperClf
 from util.misc_util import time_stamp, dump_pickle, load_pickle, path_join, log_error_trace
-import numpy as np
 
 
 class BaseWrapperPack(ClfWrapperMixIn, metaclass=meta_BaseWrapperClf):

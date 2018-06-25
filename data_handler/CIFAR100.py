@@ -97,7 +97,7 @@ class CIFAR100_test(BaseDataset):
 
 
 class CIFAR100(BaseDatasetPack):
-    def __init__(self, train_set=None, test_set=None, validation_set=None):
-        super().__init__(train_set, test_set, validation_set)
+    def __init__(self, caching=True, **kwargs):
+        super().__init__(caching, **kwargs)
         self.train_set = CIFAR100_train()
         self.test_set = CIFAR100_test()

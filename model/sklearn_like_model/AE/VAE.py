@@ -68,7 +68,7 @@ class VAE(BaseAutoEncoder):
         self.X_flatten_size = reduce(lambda x, y: x * y, self.X_shape)
 
         self.z_shape = [self.z_size]
-        self.zs_shape = [None] + self.z_shape
+        self.zs_shape = [None, self.z_size]
 
     def encoder(self, Xs, net_shapes, reuse=False, name='encoder'):
         with tf.variable_scope(name, reuse=reuse):

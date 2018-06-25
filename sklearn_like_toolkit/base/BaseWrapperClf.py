@@ -1,4 +1,4 @@
-from sklearn_like_toolkit.base.MixIn import meta_BaseWrapperClf, ClfWrapperMixIn
+from sklearn_like_toolkit.base.MixIn import ClfWrapperMixIn
 
 
 class BaseWrapperClf(ClfWrapperMixIn):

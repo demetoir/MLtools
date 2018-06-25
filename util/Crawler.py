@@ -34,7 +34,8 @@ class Crawler:
         self.save_html(html, path_tail=str(job_idx) + '.html')
         return job_idx
 
-    def get_html(self, url):
+    @staticmethod
+    def get_html(url):
         _html = ""
         resp = requests.get(url)
         if resp.status_code == 200:

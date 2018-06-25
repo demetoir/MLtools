@@ -1,6 +1,5 @@
 import codecs
 import time
-
 from util.Logger import Logger, pprint_logger
 from util.misc_util import log_error_trace
 

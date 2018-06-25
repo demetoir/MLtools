@@ -1,17 +1,22 @@
 # usage
 # after load instance to InstanceManager
+from util.numpy_utils import np_img_float32_to_uint8, np_img_to_tile, np_img_to_PIL_img
 from visualizer.VisualizerClassLoader import VisualizerClassLoader
+from visualizer.AbstractVisualizer import AbstractVisualizer
+import numpy as np
+import os
 
 visualizer = VisualizerClassLoader.load("visualizer_name")
-manager.load_visualizer(visualizer, execute_interval=10)
 
 
-## Implement step
-#1. define visualizer class and inherit AbstractVisualizer
-from visualizer.AbstractVisualizer import AbstractVisualizer
+# manager.load_visualizer(visualizer, execute_interval=10)
+
+# Implement step
+# 1. define visualizer class and inherit AbstractVisualizer
+
 
 class example_Visualizer(AbstractVisualizer):
-#2. implement **task()**
+    # 2. implement **task()**
     def task(self, sess=None, iter_num=None, model=None, dataset=None):
         # fetch data by sess.run()
         sample_imgs0 = sess.run(model.G, feed_dict={model.z: model.get_noise()})

@@ -23,8 +23,7 @@ class meta_BaseWrapperClf(type):
         func_names = ['score', 'score_pack', 'fit']
         for func_name in func_names:
             if hasattr(cls, func_name):
-                func = getattr(cls, func_name)
-                setattr(cls, func_name, deco_reformat_y(func))
+                setattr(cls, func_name, deco_reformat_y(getattr(cls, func_name)))
 
 
 class meta_BaseWrapperClf_with_ABC(meta_BaseWrapperClf, ABCMeta):
@@ -77,7 +76,6 @@ class ClfConfidenceMixIn:
     @staticmethod
     def _apply_confidence(proba):
         shape = proba.shape
-        batch_size = shape[0]
         n_class = shape[1]
 
         np_arr = np.abs(1.0 / n_class - proba)

@@ -25,9 +25,9 @@ class mlxAdalineClf(_Adaline, BaseWrapperClf, metaclass=meta_BaseWrapperClf_with
     remain_param = {
     }
 
-    def __init__(self, eta=0.01, epochs=50, minibatches=None, random_seed=None, print_progress=0):
+    def __init__(self, eta=0.01, epochs=50, minibatches=1, random_seed=None, print_progress=0):
         warnings.filterwarnings(module='mlxtend*', action='ignore', category=FutureWarning)
-        minibatches = 1
+        # minibatches = 1
         _Adaline.__init__(self, eta, epochs, minibatches, random_seed, print_progress)
         BaseWrapperClf.__init__(self)
 
@@ -150,5 +150,4 @@ class mlxStackingCVClf(BaseWrapperClf, _StackingCVClassifier, metaclass=meta_Bas
                                        verbose, store_train_meta_features, use_clones)
 
     def score_pack(self, X, y):
-        y = reformat_np_arr(y, self.model_Ys_type)
         return self._apply_metric_pack(y, self.predict(X))
