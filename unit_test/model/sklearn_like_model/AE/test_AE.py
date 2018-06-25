@@ -3,14 +3,11 @@ from script.data_handler.DatasetPackLoader import DatasetPackLoader
 from script.model.sklearn_like_model.AE.AutoEncoder import AutoEncoder
 
 
-class test_AE:
-    def __init__(self):
-        self.test_mnist()
-        self.test_titanic()
+class Test_AE:
 
     def test_mnist(self):
-        dataset = DatasetPackLoader().load_dataset("MNIST")
-        dataset = dataset.train_set
+        data_pack = DatasetPackLoader().load_dataset("MNIST")
+        dataset = data_pack['train']
 
         model = AutoEncoder(dataset.input_shapes)
         model.build()
