@@ -49,13 +49,7 @@ INSTANCE_FOLDER = 'instance'
 
 
 class input_shapesMixIN:
-    _input_shape_keys = [
-        'X_shape',
-        'Xs_shape',
-        'X_flatten_size',
-        'z_shape',
-        'zs_shape',
-    ]
+    _input_shape_keys = []
 
     def __init__(self):
         for key in self._input_shape_keys:
