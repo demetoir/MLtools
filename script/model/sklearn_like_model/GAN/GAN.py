@@ -174,3 +174,8 @@ class GAN(BaseModel):
     def generate(self, size):
         zs = self.get_z_noise([size, self.n_noise])
         return self.sess.run(self._gen_ops, feed_dict={self.zs: zs})
+
+    def metric(self, Xs):
+        zs = self.get_z_noise([Xs.shape[0], self.n_noise])
+        D_loss, G_loss = self.sess.run(self._metric_ops, feed_dict={self._Xs: Xs, self._zs: zs})
+        return {'D_loss': D_loss, 'G_loss': G_loss}
