@@ -1,7 +1,6 @@
 from script.model.sklearn_like_model.BaseModel import BaseModel
 from script.util.Stacker import Stacker
 from script.util.tensor_ops import *
-from functools import reduce
 from tqdm import trange
 import numpy as np
 
@@ -50,10 +49,6 @@ class basicGANPropertyMixIN:
     @property
     def _gen_ops(self):
         return getattr(self, 'Xs_gen', None)
-
-
-def flatten_shape(x):
-    return reduce(lambda a, b: a * b, x)
 
 
 class basicGeneratorMixIn:
@@ -129,7 +124,7 @@ class GAN(BaseModel, basicGANPropertyMixIN, basicGeneratorMixIn, basicDiscrimina
         X_shape = shapes['Xs']
         Xs_shape = [None] + list(X_shape)
 
-        X_flatten_size = flatten_shape(X_shape)
+        X_flatten_size = self.flatten_shape(X_shape)
 
         z_shape = [self.n_noise]
         zs_shape = [None, self.n_noise]
