@@ -5,6 +5,7 @@ from script.util.misc_util import setup_directory
 from env_settting import *
 import tensorflow as tf
 import os
+import numpy as np
 
 
 class ModelBuildFailError(BaseException):
@@ -332,3 +333,14 @@ class BaseModel(LoggerMixIn, input_shapesMixIN, metadataMixIN, paramsMixIn):
         for key, item in kwargs.items():
             dataset.add_data(key, item)
         return dataset
+
+    @staticmethod
+    def shape_extract(**kwargs):
+        ret = {}
+        for key, item in kwargs.items():
+            shape = np.array(item).shape
+            if len(shape) == 1:
+                ret[key] = shape
+            else:
+                ret[key] = shape[1:]
+        return ret
