@@ -1,6 +1,9 @@
 # -*- coding:utf-8 -*-
 from script.data_handler.DatasetPackLoader import DatasetPackLoader
-from script.sklearn_like_toolkit.ClassifierPack import ClassifierPack
+from script.model.sklearn_like_model.AE.AutoEncoder import AutoEncoder
+# from script.sklearn_like_toolkit.ClassifierPack import ClassifierPack
+from script.model.sklearn_like_model.GAN.GAN import GAN
+
 from script.util.Logger import pprint_logger, Logger
 import numpy as np
 from script.util.deco import deco_timeit
@@ -33,31 +36,41 @@ def finger_print(size, head='_'):
 
 @deco_timeit
 def main():
+    class_ = GAN
     data_pack = DatasetPackLoader().load_dataset("titanic")
-    train_dataset = data_pack.set['train']
-    train_dataset.shuffle()
-    train_set, valid_set = train_dataset.split((7, 3))
-    train_Xs, train_Ys = train_set.full_batch(['Xs', 'Ys'])
-    valid_Xs, valid_Ys = valid_set.full_batch(['Xs', 'Ys'])
+    dataset = data_pack['train']
+    Xs, Ys = dataset.full_batch(['Xs', 'Ys'])
+    sample_X = Xs[:2]
+    sample_Y = Ys[:2]
 
-    path = './test_wrapper_pack_grid_search.pkl'
-    clf_pack = ClassifierPack()
-    clf_pack.fit(train_Xs, train_Ys)
-    clf_pack.gridSearchCV(train_Xs, train_Ys)
-    score = clf_pack.score_pack(train_Xs, train_Ys)
-    pprint(score)
-    clf_pack.dump(path)
+    # model = class_(dataset.input_shapes)
+    # model.build()
+    #
+    # model.train(Xs, epoch=1)
+    #
+    # metric = model.metric(sample_X)
+    # print(metric)
+    #
+    # gen = model.generate(size=2)
+    # print(gen)
+    #
+    # path = model.save()
+    # path = """C:\\Users\\demetoir_desktop\\PycharmProjects\\MLtools\\instance\\demetoir_GAN_2018-06-26_06-52-36"""
+    path = None
+    model = class_()
+    model.load(path)
+    print('model reloaded')
 
-    clf_pack = ClassifierPack().load(path)
-    score = clf_pack.score_pack(train_Xs, train_Ys)
-    pprint(score)
-    score = clf_pack.score_pack(valid_Xs, valid_Ys)
-    pprint(score)
+    for i in range(100):
+        model.train(Xs, epoch=1)
 
-    score = clf_pack.score(valid_Xs, valid_Ys)
-    pprint(score)
-    result = clf_pack.optimize_result
-    pprint(result)
+    gen = model.generate(size=1)
 
+    gen[gen < 0.5] = 0
+    gen[gen > 0.5] = 1
+    print(gen)
 
-    pass
+    metric = model.metric(sample_X)
+    print(metric)
+
+    model.save()
