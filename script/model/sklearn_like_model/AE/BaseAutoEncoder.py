@@ -48,6 +48,9 @@ class BaseAutoEncoder(BaseModel):
         raise NotImplementedError
 
     def train(self, Xs, epoch=100, save_interval=None, batch_size=None):
+        input_shapes = {'Xs': Xs.shape[1:]}
+        self.build_input_shapes(input_shapes)
+
         self.if_not_ready_to_train()
 
         dataset = DummyDataset()
