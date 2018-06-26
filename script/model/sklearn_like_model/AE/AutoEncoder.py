@@ -54,7 +54,8 @@ class AutoEncoder(BaseAutoEncoder, basicAEEncoderMixIn, basicAEDecoderMixIn):
     ]
 
     def __init__(self, verbose=10):
-        BaseAutoEncoder.__init__(self, verbose)
+        super(AutoEncoder, self).__init__(verbose)
+
         self.batch_size = 100
         self.learning_rate = 0.01
         self.beta1 = 0.5

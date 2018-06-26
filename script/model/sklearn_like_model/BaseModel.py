@@ -148,6 +148,7 @@ class BaseModel(LoggerMixIn, input_shapesMixIN, metadataMixIN, paramsMixIn):
     AUTHOR = 'demetoir'
 
     def __init__(self, verbose=10, **kwargs):
+        super(BaseModel, self).__init__()
         """create instance of AbstractModel
 
         :param verbose:

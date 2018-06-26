@@ -40,7 +40,7 @@ class basicClfProperty:
 class BaseClassifierModel(BaseModel, basicClfProperty):
 
     def __init__(self, verbose=10, **kwargs):
-        super(BaseClassifierModel, self).__init__()
+        super(BaseClassifierModel, self).__init__(verbose, **kwargs)
         self.batch_size = None
 
     def build_input_shapes(self, input_shapes):

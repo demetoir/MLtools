@@ -110,7 +110,7 @@ class GAN(BaseModel, basicGANPropertyMixIN, basicGeneratorMixIn, basicDiscrimina
     ]
 
     def __init__(self, verbose=10, **kwargs):
-        BaseModel.__init__(self, verbose, **kwargs)
+        super(GAN, self).__init__(verbose, **kwargs)
         self.n_noise = 256
         self.batch_size = 64
         self.learning_rate = 0.0002
