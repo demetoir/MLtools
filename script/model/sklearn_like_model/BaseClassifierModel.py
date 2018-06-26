@@ -87,7 +87,7 @@ class BaseClassifierModel(BaseModel, basicClfProperty):
     def score(self, Xs, Ys):
         return self.sess.run(self._score_ops, feed_dict={self._Xs: Xs, self._Ys: Ys})
 
-    def proba(self, Xs):
+    def predict_proba(self, Xs):
         return self.sess.run(self._proba_ops, feed_dict={self._Xs: Xs})
 
     def metric(self, Xs, Ys):
