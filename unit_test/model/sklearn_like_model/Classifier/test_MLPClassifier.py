@@ -3,49 +3,45 @@ from script.model.sklearn_like_model.MLPClassifier import MLPClassifier
 
 
 class Test_MLPClassifier:
-
-    def test(self):
+    def test_CLf(self):
+        class_ = MLPClassifier
         data_pack = DatasetPackLoader().load_dataset("titanic")
-        train_set = data_pack['train']
-        input_shapes = train_set.input_shapes
+        dataset = data_pack['train']
+        Xs, Ys = dataset.full_batch(['Xs', 'Ys'])
+        sample_X = Xs[:2]
+        sample_Y = Ys[:2]
 
-        Xs, Ys = train_set.full_batch(
-            batch_keys=["Xs", "Ys"],
-        )
+        model = class_()
+        model.train(Xs, Ys)
 
-        model = MLPClassifier(input_shapes)
-        model._build()
-        model.train(Xs, Ys, epoch=1)
-
-        Xs, Ys = train_set.next_batch(
-            5,
-            batch_keys=["Xs", "Ys"],
-        )
-
-        predict = model.predict(Xs)
-        print("predict {}".format(predict))
-
-        loss = model.metric(Xs, Ys)
-        print("loss {}".format(loss))
-
-        proba = model.proba(Xs)
-        print('prob {}'.format(proba))
+        predict = model.predict(sample_X)
+        print(predict)
 
         score = model.score(Xs, Ys)
-        print('score {}'.format(score))
+        print(score)
+
+        proba = model.predict_proba(sample_X)
+        print(proba)
+
+        metric = model.metric(sample_X, sample_Y)
+        print(metric)
 
         path = model.save()
-        model = MLPClassifier()
+
+        model = class_()
         model.load(path)
+        model.train(Xs, Ys)
 
-        predict = model.predict(Xs)
-        print("predict {}".format(predict))
-
-        loss = model.metric(Xs, Ys)
-        print("loss {}".format(loss))
-
-        proba = model.proba(Xs)
-        print('prob {}'.format(proba))
+        predict = model.predict(sample_X)
+        print(predict)
 
         score = model.score(Xs, Ys)
-        print('score {}'.format(score))
+        print(score)
+
+        proba = model.predict_proba(sample_X)
+        print(proba)
+
+        metric = model.metric(sample_X, sample_Y)
+        print(metric)
+
+        model.save()
