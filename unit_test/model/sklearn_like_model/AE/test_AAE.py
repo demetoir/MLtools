@@ -14,7 +14,7 @@ class Test_AAE:
         sample_Y = Ys[:2]
 
         model = class_(dataset.input_shapes)
-        model.build()
+        model._build()
 
         model.train(Xs, Ys, epoch=1)
 
@@ -73,7 +73,7 @@ class Test_AAE:
         sample_Y = Ys[:2]
 
         model = class_(dataset.input_shapes)
-        model.build()
+        model._build()
 
         model.train(Xs, Ys, epoch=1)
 

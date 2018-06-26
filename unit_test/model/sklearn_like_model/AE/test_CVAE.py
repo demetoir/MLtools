@@ -15,7 +15,7 @@ class Test_CVAE:
         sample_Y = Ys[:2]
 
         model = class_(dataset.input_shapes)
-        model.build()
+        model._build()
         model.train(Xs, Ys, epoch=1)
 
         code = model.code(sample_X, sample_Y)
@@ -53,7 +53,7 @@ class Test_CVAE:
         sample_Y = Ys[:2]
 
         model = class_(dataset.input_shapes)
-        model.build()
+        model._build()
         model.train(Xs, Ys, epoch=1)
 
         code = model.code(sample_X, sample_Y)

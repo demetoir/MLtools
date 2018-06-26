@@ -9,8 +9,8 @@ class Test_AE:
         data_pack = DatasetPackLoader().load_dataset("MNIST")
         dataset = data_pack['train']
 
-        model = AutoEncoder(dataset.input_shapes)
-        model.build()
+        model = AutoEncoder()
+        model._build()
 
         Xs = dataset.full_batch(['Xs'])
         model.train(Xs, epoch=1)
@@ -47,8 +47,8 @@ class Test_AE:
         dataset = DatasetPackLoader().load_dataset("titanic")
         dataset = dataset['train']
 
-        model = AutoEncoder(dataset.input_shapes)
-        model.build()
+        model = AutoEncoder()
+        model._build()
 
         Xs = dataset.full_batch(['Xs'])
         model.train(Xs, epoch=1)

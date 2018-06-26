@@ -14,7 +14,7 @@ class Test_MLPClassifier:
         )
 
         model = MLPClassifier(input_shapes)
-        model.build()
+        model._build()
         model.train(Xs, Ys, epoch=1)
 
         Xs, Ys = train_set.next_batch(

@@ -11,7 +11,7 @@ class Test_DAE:
         dataset = dataset['train']
 
         model = class_(dataset.input_shapes)
-        model.build()
+        model._build()
 
         Xs = dataset.full_batch(['Xs'])
         model.train(Xs, epoch=1)
@@ -51,7 +51,7 @@ class Test_DAE:
         dataset = dataset['train']
 
         model = class_(dataset.input_shapes)
-        model.build()
+        model._build()
 
         Xs = dataset.full_batch(['Xs'])
         model.train(Xs, epoch=1)

@@ -14,7 +14,7 @@ class Test_GAN:
         sample_Y = Ys[:2]
 
         model = class_(dataset.input_shapes)
-        model.build()
+        model._build()
 
         model.train(Xs, epoch=1)
 
@@ -45,7 +45,7 @@ class Test_GAN:
         sample_Y = Ys[:2]
 
         model = class_(dataset.input_shapes)
-        model.build()
+        model._build()
 
         model.train(Xs, epoch=1)
 

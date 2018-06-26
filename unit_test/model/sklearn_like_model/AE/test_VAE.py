@@ -9,7 +9,7 @@ class Test_VAE:
         dataset = dataset['train']
 
         model = VAE(dataset.input_shapes)
-        model.build()
+        model._build()
 
         Xs = dataset.full_batch(['Xs'])
         model.train(Xs, epoch=1)
@@ -47,7 +47,7 @@ class Test_VAE:
         dataset = dataset['train']
 
         model = VAE(dataset.input_shapes)
-        model.build()
+        model._build()
 
         Xs = dataset.full_batch(['Xs'])
         model.train(Xs, epoch=1)
