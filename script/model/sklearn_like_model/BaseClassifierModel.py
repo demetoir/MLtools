@@ -1,73 +1,73 @@
-from script.data_handler.BaseDataset import BaseDataset
+from tqdm import trange
+
 from script.model.sklearn_like_model.BaseModel import BaseModel
+import numpy as np
 
 
-class Dataset(BaseDataset):
-    def load(self, path, limit=None):
-        pass
+class basicClfProperty:
+    @property
+    def _Xs(self):
+        return getattr(self, 'Xs')
 
-    def save(self):
-        pass
+    @property
+    def _Ys(self):
+        return getattr(self, 'Ys')
 
-    def transform(self):
-        pass
+    @property
+    def _predict_ops(self):
+        return getattr(self, 'predict_index')
+
+    @property
+    def _score_ops(self):
+        return getattr(self, 'acc_mean')
+
+    @property
+    def _proba_ops(self):
+        return getattr(self, 'h')
+
+    @property
+    def _metric_ops(self):
+        return getattr(self, 'loss')
+
+    @property
+    def _train_ops(self):
+        return [
+            getattr(self, 'train_op'),
+            getattr(self, 'op_inc_global_step')
+        ]
 
 
-class BaseClassifierModel(BaseModel):
+class BaseClassifierModel(BaseModel, basicClfProperty):
+
+    def __init__(self, verbose=10, **kwargs):
+        super(BaseClassifierModel, self).__init__()
+        self.batch_size = None
 
     def build_input_shapes(self, input_shapes):
         raise NotImplementedError
 
-    def build_main_graph(self):
+    def _build_main_graph(self):
         raise NotImplementedError
 
-    def build_loss_function(self):
+    def _build_loss_function(self):
         raise NotImplementedError
 
-    def build_train_ops(self):
+    def _build_train_ops(self):
         raise NotImplementedError
 
-    @property
-    def _Xs(self):
-        raise NotImplementedError
+    def train(self, Xs, Ys, epoch=1, save_interval=None, batch_size=None):
+        shapes = self.shape_extract(Xs=Xs, Ys=Ys)
+        self._apply_input_shapes(self.build_input_shapes(shapes))
+        self.is_built()
 
-    @property
-    def _Ys(self):
-        raise NotImplementedError
-
-    @property
-    def _train_ops(self):
-        raise NotImplementedError
-
-    @property
-    def _predict_ops(self):
-        raise NotImplementedError
-
-    @property
-    def _score_ops(self):
-        raise NotImplementedError
-
-    @property
-    def _proba_ops(self):
-        raise NotImplementedError
-
-    @property
-    def _metric_ops(self):
-        raise NotImplementedError
-
-    def train(self, Xs, Ys, epoch=100, save_interval=None, batch_size=None):
-        self.if_not_ready_to_train()
-
-        dataset = Dataset()
-        dataset.add_data('Xs', Xs)
-        dataset.add_data('Ys', Ys)
+        dataset = self.to_dummyDataset(Xs=Xs, Ys=Ys)
 
         if batch_size is None:
             batch_size = self.batch_size
 
         iter_num = 0
         iter_per_epoch = dataset.size
-        for e in range(epoch):
+        for e in trange(epoch):
             for i in range(iter_per_epoch):
                 iter_num += 1
 
