@@ -153,7 +153,7 @@ class AAE(BaseModel):
 
         return layer.last_layer
 
-    def build_main_graph(self):
+    def _build_main_graph(self):
         self.Xs = placeholder(tf.float32, self.Xs_shape, name='Xs')
         self.Ys = placeholder(tf.float32, self.Ys_shape, name='Ys')
         self.zs = placeholder(tf.float32, self.zs_shape, name='zs')
@@ -182,7 +182,7 @@ class AAE(BaseModel):
         self.acc = tf.cast(tf.equal(self.predict_index, self.label_index), tf.float64, name="acc")
         self.acc_mean = tf.reduce_mean(self.acc, name="acc_mean")
 
-    def build_loss_function(self):
+    def _build_loss_function(self):
         # AE loss
         self.loss_AE = tf.squared_difference(self.Xs, self.Xs_recon, name="loss_AE")
         self.loss_AE_mean = tf.reduce_sum(self.loss_AE, name="loss_AE_mean")
@@ -226,7 +226,7 @@ class AAE(BaseModel):
                                                                    name='loss_clf')
         self.loss_clf_mean = tf.reduce_mean(self.loss_clf, name='loss_clf_mean')
 
-    def build_train_ops(self):
+    def _build_train_ops(self):
         # reconstruction phase
         self.train_AE = tf.train.AdamOptimizer(
             self.learning_rate,
@@ -286,7 +286,7 @@ class AAE(BaseModel):
         return np.random.uniform(-1, 1, size=shape)
 
     def train(self, Xs, Ys, epoch=100, save_interval=None, batch_size=None):
-        self.if_not_ready_to_train()
+        self.is_built()
 
         dataset = DummyDataset()
         dataset.add_data('Xs', Xs)

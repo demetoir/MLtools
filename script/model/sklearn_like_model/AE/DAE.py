@@ -103,7 +103,7 @@ class DAE(BaseAutoEncoder):
 
         return stack.last_layer
 
-    def build_main_graph(self):
+    def _build_main_graph(self):
         self.Xs = placeholder(tf.float32, self.Xs_shape, name='Xs')
         self.zs = placeholder(tf.float32, self.zs_shape, name='zs')
         self.noise = placeholder(tf.float32, self.noise_shape, name='noise')
@@ -118,11 +118,11 @@ class DAE(BaseAutoEncoder):
         self.vars = collect_vars(join_scope(head, 'encoder'))
         self.vars += collect_vars(join_scope(head, 'decoder'))
 
-    def build_loss_function(self):
+    def _build_loss_function(self):
         self.loss = tf.squared_difference(self.Xs, self.Xs_recon, name='loss')
         self.loss_mean = tf.reduce_mean(self.loss, name='loss_mean')
 
-    def build_train_ops(self):
+    def _build_train_ops(self):
         self.train_op = tf.train.AdamOptimizer(self.learning_rate, self.beta1).minimize(loss=self.loss,
                                                                                         var_list=self.vars)
 
@@ -135,7 +135,7 @@ class DAE(BaseAutoEncoder):
         return np.random.normal(-1 * self.noise_intensity, 1 * self.noise_intensity, size=shape)
 
     def train(self, Xs, epoch=100, save_interval=None, batch_size=None):
-        self.if_not_ready_to_train()
+        self.is_built()
 
         dataset = DummyDataset()
         dataset.add_data('Xs', Xs)
