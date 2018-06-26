@@ -5,7 +5,7 @@ from script.util.summary_func import *
 from functools import reduce
 
 
-class basicAEEncoderMixIn:
+class basicAE_EncoderMixIn:
     @staticmethod
     def encoder(Xs, net_shapes, latent_code_size, reuse=False, name='encoder'):
         with tf.variable_scope(name, reuse=reuse):
@@ -19,7 +19,7 @@ class basicAEEncoderMixIn:
         return stack.last_layer
 
 
-class basicAEDecoderMixIn:
+class basicAE_DecoderMixIn:
     @staticmethod
     def decoder(zs, net_shapes, flatten_size, output_shape, reuse=False, name='decoder'):
         with tf.variable_scope(name, reuse=reuse):
@@ -33,7 +33,7 @@ class basicAEDecoderMixIn:
         return stack.last_layer
 
 
-class AutoEncoder(BaseAutoEncoder, basicAEEncoderMixIn, basicAEDecoderMixIn):
+class AutoEncoder(BaseAutoEncoder, basicAE_EncoderMixIn, basicAE_DecoderMixIn):
     _input_shape_keys = [
         'X_shape',
         'Xs_shape',
