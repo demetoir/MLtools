@@ -1,7 +1,5 @@
 from tqdm import trange
-
 from script.model.sklearn_like_model.BaseModel import BaseModel
-import numpy as np
 
 
 class basicClfProperty:
