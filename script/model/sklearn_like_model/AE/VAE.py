@@ -1,55 +1,47 @@
+from script.model.sklearn_like_model.AE.AutoEncoder import basicAE_DecoderMixIn
 from script.model.sklearn_like_model.AE.BaseAutoEncoder import BaseAutoEncoder
 from script.util.Stacker import Stacker
 from script.util.tensor_ops import *
 from script.util.summary_func import *
-from functools import reduce
 
 
-class VAE(BaseAutoEncoder):
+class basicVAE_EncoderMixIn:
+    @staticmethod
+    def encoder(Xs, net_shapes, latent_code_size, reuse=False, name='encoder'):
+        with tf.variable_scope(name, reuse=reuse):
+            stack = Stacker(Xs)
+            stack.flatten()
+            for shape in net_shapes:
+                stack.linear_block(shape, relu)
 
-    @property
-    def hyper_param_key(self):
-        return [
-            'batch_size',
-            'learning_rate',
-            'beta1',
-            'L1_norm_lambda',
-            'K_average_top_k_loss',
-            'code_size',
-            'z_size',
-            'encoder_net_shapes',
-            'decoder_net_shapes',
-        ]
+            stack.linear_block(latent_code_size * 2, relu)
 
-    @property
-    def _Xs(self):
-        return self.Xs
+        return stack.last_layer
 
-    @property
-    def _zs(self):
-        return self.zs
 
-    @property
-    def _train_ops(self):
-        return [self.train_op]
+class VAE(BaseAutoEncoder, basicAE_DecoderMixIn, basicVAE_EncoderMixIn):
+    _params_keys = [
+        'batch_size',
+        'learning_rate',
+        'beta1',
+        'L1_norm_lambda',
+        'K_average_top_k_loss',
+        'code_size',
+        'z_size',
+        'encoder_net_shapes',
+        'decoder_net_shapes',
+    ]
+    _input_shape_keys = [
+        'X_shape',
+        'Xs_shape',
+        'X_flatten_size',
+        'z_shape',
+        'zs_shape'
+    ]
 
-    @property
-    def _code_ops(self):
-        return self.latent_code
+    def __init__(self, verbose=10, **kwargs):
+        super(VAE, self).__init__(verbose, **kwargs)
 
-    @property
-    def _recon_ops(self):
-        return self.Xs_recon
-
-    @property
-    def _generate_ops(self):
-        return self.Xs_gen
-
-    @property
-    def _metric_ops(self):
-        return self.loss
-
-    def hyper_parameter(self):
         self.batch_size = 100
         self.learning_rate = 0.01
         self.beta1 = 0.5
@@ -60,51 +52,42 @@ class VAE(BaseAutoEncoder):
         self.encoder_net_shapes = [512, 256, 128]
         self.decoder_net_shapes = [128, 256, 512]
 
-    def build_input_shapes(self, input_shapes):
-        self.X_batch_key = 'Xs'
-        self.X_shape = input_shapes[self.X_batch_key]
-        self.Xs_shape = [None] + self.X_shape
+        self.X_shape = None
+        self.Xs_shape = None
+        self.X_flatten_size = None
+        self.z_shape = None
+        self.zs_shape = None
 
-        self.X_flatten_size = reduce(lambda x, y: x * y, self.X_shape)
+    def build_input_shapes(self, shapes):
+        X_shape = shapes['Xs']
+        Xs_shape = [None] + list(X_shape)
+        X_flatten_size = self.flatten_shape(X_shape)
 
-        self.z_shape = [self.z_size]
-        self.zs_shape = [None, self.z_size]
+        z_shape = [self.z_size]
+        zs_shape = [None, self.z_size]
 
-    def encoder(self, Xs, net_shapes, reuse=False, name='encoder'):
-        with tf.variable_scope(name, reuse=reuse):
-            stack = Stacker(Xs)
-            stack.flatten()
-            for shape in net_shapes:
-                stack.linear_block(shape, relu)
-
-            stack.linear_block(self.latent_code_size * 2, relu)
-
-        return stack.last_layer
-
-    def decoder(self, zs, net_shapes, reuse=False, name='decoder'):
-        with tf.variable_scope(name, reuse=reuse):
-            stack = Stacker(zs)
-            for shape in net_shapes:
-                stack.linear_block(shape, relu)
-
-            stack.linear_block(self.X_flatten_size, sigmoid)
-            stack.reshape(self.Xs_shape)
-
-        return stack.last_layer
+        ret = {
+            'X_shape': X_shape,
+            'Xs_shape': Xs_shape,
+            'X_flatten_size': X_flatten_size,
+            'z_shape': z_shape,
+            'zs_shape': zs_shape
+        }
+        return ret
 
     def _build_main_graph(self):
         self.Xs = placeholder(tf.float32, self.Xs_shape, name='Xs')
         self.zs = placeholder(tf.float32, self.zs_shape, name='zs')
 
-        self.h = self.encoder(self.Xs, self.encoder_net_shapes)
+        self.h = self.encoder(self.Xs, self.encoder_net_shapes, self.latent_code_size)
         self.h = tf.identity(self.h, 'h')
 
         self.mean = tf.identity(self.h[:, :self.z_size], 'mean')
         self.std = tf.identity(tf.nn.softplus(self.h[:, self.z_size:]), 'std')
         self.latent_code = self.mean + self.std * tf.random_normal(tf.shape(self.mean), 0, 1, dtype=tf.float32)
 
-        self.Xs_recon = self.decoder(self.latent_code, self.decoder_net_shapes)
-        self.Xs_gen = self.decoder(self.zs, self.decoder_net_shapes, reuse=True)
+        self.Xs_recon = self.decoder(self.latent_code, self.decoder_net_shapes, self.X_flatten_size, self.Xs_shape)
+        self.Xs_gen = self.decoder(self.zs, self.decoder_net_shapes, self.X_flatten_size, self.Xs_shape, reuse=True)
 
         head = get_scope()
         self.vars = collect_vars(join_scope(head, 'encoder'))
