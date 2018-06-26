@@ -3,6 +3,7 @@ from script.util.MixIn import LoggerMixIn
 from script.util.misc_util import dump_json, load_json, time_stamp, path_join, log_error_trace
 from script.util.misc_util import setup_directory
 from env_settting import *
+from functools import reduce
 import tensorflow as tf
 import os
 import numpy as np
@@ -345,3 +346,7 @@ class BaseModel(LoggerMixIn, input_shapesMixIN, metadataMixIN, paramsMixIn):
             else:
                 ret[key] = shape[1:]
         return ret
+
+    @staticmethod
+    def flatten_shape(x):
+        return reduce(lambda a, b: a * b, x)
