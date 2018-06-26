@@ -1,3 +1,6 @@
+from pprint import pprint
+
+
 def test_metaclass_mixIn():
     class meta_B(type):
 
@@ -50,3 +53,35 @@ def test_getitem():
     for i in range(10):
         print(c[i])
     print(c[3:5])
+
+
+def test_multi_inherite_super_init_arg():
+    class A:
+        def __init__(self, arg1, arg2, **kwargs):
+            print('A.__init')
+            self.arg1 = arg1
+            self.arg2 = arg2
+            self.kwarg1 = None
+
+    class B:
+        def __init__(self, arg3, arg4, **kwargs):
+            print('B.__init')
+            self.arg3 = arg3
+            self.arg4 = arg4
+            self.kwarg2 = None
+
+    class C(A, B):
+        def __init__(self, arg1, arg2, arg3, arg4, arg5, **kwargs):
+            print('C.__init')
+            A.__init__(self, arg1, arg2)
+            B.__init__(self, arg3, arg4)
+            self.arg5 = arg5
+            self.kwarg3 = kwargs
+
+    a = A(1, 2)
+    b = B(3, 4)
+    c = C(1, 2, 3, 4, 5)
+
+    pprint(a.__dict__)
+    pprint(b.__dict__)
+    pprint(c.__dict__)
