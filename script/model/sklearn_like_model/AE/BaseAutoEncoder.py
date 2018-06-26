@@ -1,60 +1,69 @@
 from script.model.sklearn_like_model.BaseModel import BaseModel
 import numpy as np
-from script.model.sklearn_like_model.DummyDataset import DummyDataset
 from tqdm import trange
 
 
-class BaseAutoEncoder(BaseModel):
-    VERSION = 1.0
+class basicAEPropertyMixIn:
+
+    @property
+    def _Xs(self):
+        return getattr(self, 'Xs')
+
+    @property
+    def _zs(self):
+        return getattr(self, 'zs')
+
+    @property
+    def _train_ops(self):
+        return [
+            getattr(self, 'train_op'),
+            getattr(self, 'op_inc_global_step')
+        ]
+
+    @property
+    def _code_ops(self):
+        return getattr(self, 'latent_code')
+
+    @property
+    def _recon_ops(self):
+        return getattr(self, 'Xs_recon')
+
+    @property
+    def _generate_ops(self):
+        return getattr(self, 'Xs_gen')
+
+    @property
+    def _metric_ops(self):
+        return getattr(self, 'loss')
+
+
+class basicAEOpsMIxIn:
+    pass
+
+
+class BaseAutoEncoder(BaseModel, basicAEPropertyMixIn):
+    def __init__(self, verbose=10, **kwargs):
+        super().__init__(verbose, **kwargs)
+        self.batch_size = None
 
     def build_input_shapes(self, input_shapes):
         raise NotImplementedError
 
-    def build_main_graph(self):
+    def _build_main_graph(self):
         raise NotImplementedError
 
-    def build_loss_function(self):
+    def _build_loss_function(self):
         raise NotImplementedError
 
-    def build_train_ops(self):
-        raise NotImplementedError
-
-    @property
-    def _Xs(self):
-        raise NotImplementedError
-
-    @property
-    def _zs(self):
-        raise NotImplementedError
-
-    @property
-    def _train_ops(self):
-        raise NotImplementedError
-
-    @property
-    def _code_ops(self):
-        raise NotImplementedError
-
-    @property
-    def _recon_ops(self):
-        raise NotImplementedError
-
-    @property
-    def _generate_ops(self):
-        raise NotImplementedError
-
-    @property
-    def _metric_ops(self):
+    def _build_train_ops(self):
         raise NotImplementedError
 
     def train(self, Xs, epoch=100, save_interval=None, batch_size=None):
-        input_shapes = {'Xs': Xs.shape[1:]}
-        self.build_input_shapes(input_shapes)
+        shapes = {'Xs': Xs.shape[1:]}
+        self._apply_input_shapes(self.build_input_shapes(shapes))
+        self.is_built()
 
-        self.if_not_ready_to_train()
-
-        dataset = DummyDataset()
-        dataset.add_data('Xs', Xs)
+        dataset = self.to_dummyDataset(Xs=Xs)
 
         if batch_size is None:
             batch_size = self.batch_size
@@ -62,7 +71,6 @@ class BaseAutoEncoder(BaseModel):
         iter_num = 0
         iter_per_epoch = dataset.size // batch_size
         self.log.info("train epoch {}, iter/epoch {}".format(epoch, iter_per_epoch))
-
         for e in trange(epoch):
             dataset.shuffle()
             for i in range(iter_per_epoch):
@@ -80,16 +88,16 @@ class BaseAutoEncoder(BaseModel):
                 self.save()
 
     def code(self, Xs):
-        return self.sess.run(self._code_ops, feed_dict={self._Xs: Xs})
+        return self.get_tf_values(self._code_ops, {self._Xs: Xs})
 
     def recon(self, Xs):
-        return self.sess.run(self._recon_ops, feed_dict={self._Xs: Xs})
+        return self.get_tf_values(self._recon_ops, {self._Xs: Xs})
+
+    def metric(self, Xs):
+        return self.get_tf_values(self._metric_ops, {self._Xs: Xs})
 
     def generate(self, zs):
-        return self.sess.run(self._recon_ops, feed_dict={self._zs: zs})
+        return self.get_tf_values(self._recon_ops, {self._zs: zs})
 
     def random_z(self):
         raise NotImplementedError
-
-    def metric(self, Xs):
-        return self.sess.run(self._metric_ops, feed_dict={self._Xs: Xs})
