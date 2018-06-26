@@ -7,6 +7,18 @@ from functools import reduce
 
 class AutoEncoder(BaseAutoEncoder):
 
+    def __init__(self, input_shapes=None, params=None, **kwargs):
+        self.batch_size = 100
+        self.learning_rate = 0.01
+        self.beta1 = 0.5
+        self.L1_norm_lambda = 0.001
+        self.K_average_top_k_loss = 10
+        self.latent_code_size = 32
+        self.z_size = 32
+        self.encoder_net_shapes = [512, 256, 128]
+        self.decoder_net_shapes = [128, 256, 512]
+        BaseAutoEncoder.__init__(self, input_shapes, params, **kwargs)
+
     @property
     def hyper_param_key(self):
         return [
@@ -50,20 +62,14 @@ class AutoEncoder(BaseAutoEncoder):
         return self.loss
 
     def hyper_parameter(self):
-        self.batch_size = 100
-        self.learning_rate = 0.01
-        self.beta1 = 0.5
-        self.L1_norm_lambda = 0.001
-        self.K_average_top_k_loss = 10
-        self.latent_code_size = 32
-        self.z_size = 32
-        self.encoder_net_shapes = [512, 256, 128]
-        self.decoder_net_shapes = [128, 256, 512]
+        pass
 
     def build_input_shapes(self, input_shapes):
+        self.input_shapes = input_shapes
+
         self.X_batch_key = 'Xs'
         self.X_shape = input_shapes[self.X_batch_key]
-        self.Xs_shape = [None] + self.X_shape
+        self.Xs_shape = [None] + list(self.X_shape)
 
         self.X_flatten_size = reduce(lambda x, y: x * y, self.X_shape)
 

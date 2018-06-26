@@ -1,6 +1,7 @@
 from script.model.sklearn_like_model.BaseModel import BaseModel
 import numpy as np
 from script.model.sklearn_like_model.DummyDataset import DummyDataset
+from tqdm import trange
 
 
 class BaseAutoEncoder(BaseModel):
@@ -59,7 +60,7 @@ class BaseAutoEncoder(BaseModel):
         iter_per_epoch = dataset.size // batch_size
         self.log.info("train epoch {}, iter/epoch {}".format(epoch, iter_per_epoch))
 
-        for e in range(epoch):
+        for e in trange(epoch):
             dataset.shuffle()
             for i in range(iter_per_epoch):
                 iter_num += 1
