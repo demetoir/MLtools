@@ -4,33 +4,45 @@ import os
 from script.util.misc_util import time_stamp, check_path
 from logging.handlers import RotatingFileHandler
 
-CRITICAL = 50
-FATAL = CRITICAL
-ERROR = 40
+NOTSET = 0
+DEBUG = 10
+INFO = 20
 WARNING = 30
 WARN = WARNING
-INFO = 20
-DEBUG = 10
-NOTSET = 0
+ERROR = 40
+CRITICAL = 50
+FATAL = CRITICAL
 
 _levelToName = {
-    CRITICAL: 'CRITICAL',
-    ERROR: 'ERROR',
-    WARNING: 'WARNING',
-    INFO: 'INFO',
-    DEBUG: 'DEBUG',
     NOTSET: 'NOTSET',
+    DEBUG: 'DEBUG',
+    INFO: 'INFO',
+    WARNING: 'WARNING',
+    ERROR: 'ERROR',
+    CRITICAL: 'CRITICAL',
 }
 _nameToLevel = {
-    'CRITICAL': CRITICAL,
-    'FATAL': FATAL,
-    'ERROR': ERROR,
-    'WARN': WARNING,
-    'WARNING': WARNING,
-    'INFO': INFO,
-    'DEBUG': DEBUG,
     'NOTSET': NOTSET,
+    'DEBUG': DEBUG,
+    'INFO': INFO,
+    'WARNING': WARNING,
+    'WARN': WARNING,
+    'ERROR': ERROR,
+    'FATAL': FATAL,
+    'CRITICAL': CRITICAL,
 }
+
+_levelToVerbose = _nameToLevel
+_verbose_list = [
+    (NOTSET, 0),
+    (DEBUG, 10),
+    (INFO, 20),
+    (WARNING, 30),
+    (WARN, WARNING),
+    (ERROR, 40),
+    (CRITICAL, 50),
+    (FATAL, CRITICAL),
+]
 
 
 # catch *args and make to str
@@ -54,6 +66,19 @@ class Logger:
     FILE_LOGGER_FORMAT = '%(asctime)s [%(levelname)s]> %(message)s'
     STDOUT_LOGGER_FORMAT = '%(asctime)s> %(message)s'
     EMPTY_FORMAT = ""
+
+    @staticmethod
+    def level_to_verbose(level):
+
+        return _levelToVerbose[level]
+
+    @staticmethod
+    def verbose_to_level(verbose):
+        ret = None
+        for level in [0, 10, 20, 30, 40, 50]:
+            if verbose <= level:
+                ret = level
+        return ret
 
     def __init__(self, name, path=None, file_name=None, level='INFO', with_file=True, empty_stdout_format=True,
                  rotating_file=True):
