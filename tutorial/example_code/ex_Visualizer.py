@@ -19,8 +19,8 @@ class example_Visualizer(AbstractVisualizer):
     # 2. implement **task()**
     def task(self, sess=None, iter_num=None, model=None, dataset=None):
         # fetch data by sess.run()
-        sample_imgs0 = sess.run(model.G, feed_dict={model.z: model.get_noise()})
-        sample_imgs1 = sess.run(model.G, feed_dict={model.z: model.get_noise()})
+        sample_imgs0 = sess.run(model.G, feed_dict={model.z: model.get_noises()})
+        sample_imgs1 = sess.run(model.G, feed_dict={model.z: model.get_noises()})
         sample_imgs = np.concatenate((sample_imgs0, sample_imgs1))
         sample_imgs = np_img_float32_to_uint8(sample_imgs)
 

@@ -17,8 +17,8 @@ def extract_edge(imgs, threshold1=100, threshold2=200):
 
 class image_edge_tile(AbstractVisualizer):
     def task(self, sess=None, iter_num=None, model=None, dataset=None):
-        sample_imgs0 = sess.run(model.G, feed_dict={model.z: model.get_noise()})
-        sample_imgs1 = sess.run(model.G, feed_dict={model.z: model.get_noise()})
+        sample_imgs0 = sess.run(model.G, feed_dict={model.z: model.get_noises()})
+        sample_imgs1 = sess.run(model.G, feed_dict={model.z: model.get_noises()})
         sample_imgs = np.concatenate((sample_imgs0, sample_imgs1))
         sample_imgs = np_img_float32_to_uint8(sample_imgs)
 

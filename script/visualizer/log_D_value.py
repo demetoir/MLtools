@@ -6,7 +6,7 @@ class log_D_value(AbstractVisualizer):
     """visualize log for GAN's Discriminator value"""
 
     def task(self, sess=None, iter_num=None, model=None, dataset=None):
-        noise = model.get_noise()
+        noise = model.get_noises()
         batch_xs = dataset.next_batch(model.batch_size, batch_keys=[BATCH_KEY_TRAIN_X], lookup=True)
 
         D_real, D_gen = sess.run([model.D_real, model.D_gen],
