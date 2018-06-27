@@ -17,15 +17,6 @@ def basicVAE_Encoder(Xs, net_shapes, latent_code_size, reuse=False, name='encode
 
 
 class VAE(AE):
-    _input_shape_keys = [
-        'X_shape',
-        'Xs_shape',
-        'X_flatten_size',
-        'z_shape',
-        'zs_shape',
-        'noise_shape'
-
-    ]
     _params_keys = [
         'batch_size',
         'learning_rate',
@@ -43,35 +34,15 @@ class VAE(AE):
     def __init__(self, batch_size=100, learning_rate=0.01, beta1=0.5, L1_norm_lambda=0.001, latent_code_size=32,
                  z_size=32, encoder_net_shapes=None, decoder_net_shapes=None, with_noise=False, noise_intensity=1.,
                  verbose=10):
-        super().__init__(batch_size, learning_rate, beta1, L1_norm_lambda, latent_code_size, z_size, encoder_net_shapes,
-                         decoder_net_shapes, with_noise, noise_intensity, verbose)
-
-    def _build_input_shapes(self, shapes):
-        X_shape = shapes['Xs']
-        Xs_shape = [None] + list(X_shape)
-        X_flatten_size = self.flatten_shape(X_shape)
-
-        z_shape = [self.z_size]
-        zs_shape = [None, self.z_size]
-
-        noise_shape = [None] + list(X_shape)
-
-        ret = {
-            'X_shape': X_shape,
-            'Xs_shape': Xs_shape,
-            'X_flatten_size': X_flatten_size,
-            'z_shape': z_shape,
-            'zs_shape': zs_shape,
-            'noise_shape': noise_shape
-        }
-        return ret
+        super(VAE, self).__init__(batch_size, learning_rate, beta1, L1_norm_lambda, latent_code_size, z_size,
+                                  encoder_net_shapes, decoder_net_shapes, with_noise, noise_intensity, verbose)
 
     def _build_main_graph(self):
         self.Xs = placeholder(tf.float32, self.Xs_shape, name='Xs')
         self.zs = placeholder(tf.float32, self.zs_shape, name='zs')
-        self.noise = placeholder(tf.float32, self.noise_shape, name='noise')
+        self.noises = placeholder(tf.float32, self.noises_shape, name='noises')
 
-        self.Xs_noised = tf.add(self.Xs, self.noise, name='Xs_noised')
+        self.Xs_noised = tf.add(self.Xs, self.noises, name='Xs_noised')
         if self.with_noise:
             Xs = self.Xs_noised
         else:
