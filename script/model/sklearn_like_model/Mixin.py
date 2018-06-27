@@ -113,6 +113,81 @@ class zs_MixIn:
         return np.random.uniform(-1.0, 1.0, size=shape)
 
 
+class noise_MixIn:
+    _noise_shapes_key = 'noise'
+    _noise_input_shape_keys = [
+        'noise_shape',
+        'noises_shape',
+    ]
+
+    def __init__(self):
+        if not hasattr(self, '_input_shape_keys'):
+            self._input_shape_keys = []
+
+        self._input_shape_keys += self._noise_input_shape_keys
+
+        self.noise_shape = None
+        self.noises_shape = None
+
+    def _build_noise_input_shape(self, shapes):
+        shape = shapes['noise']
+        noise_shape = shape[1:]
+        noises_shape = [None] + list(noise_shape)
+
+        return {
+            'noise_shape': noise_shape,
+            'noises_shape': noises_shape
+        }
+
+    @property
+    def _noises(self):
+        return getattr(self, 'noises')
+
+    def get_noises(self, shape=None, intensity=1.0):
+        if shape is None:
+            shape = self.noise_shape
+        return np.random.normal(-1 * intensity, 1 * intensity, size=shape)
+
+
+class Ys_MixIn:
+    _Xs_shapes_key = 'Ys'
+    _Xs_input_shapes_keys = [
+        'Y_shape',
+        'Ys_shape',
+        'Y_flatten_size',
+    ]
+
+    def __init__(self):
+        if not hasattr(self, '_input_shape_keys'):
+            self._input_shape_keys = []
+
+        self._input_shape_keys += self._Xs_input_shapes_keys
+
+        self.Y_shape = None
+        self.Ys_shape = None
+        self.Y_flatten_size = None
+
+    @property
+    def _Xs(self):
+        return getattr(self, 'Ys', None)
+
+    def _build_Xs_input_shape(self, shapes):
+        shape = shapes['Ys'].shape
+        X_shape = shape[1:]
+        Xs_shape = [None] + list(X_shape)
+        X_flatten_size = self._flatten_shape(X_shape)
+
+        return {
+            'Y_shape': X_shape,
+            'Ys_shape': Xs_shape,
+            'Y_flatten_size': X_flatten_size,
+        }
+
+    @staticmethod
+    def _flatten_shape(x):
+        return reduce(lambda a, b: a * b, x)
+
+
 class metadataMixIN:
     _metadata_keys = [
         'id',
