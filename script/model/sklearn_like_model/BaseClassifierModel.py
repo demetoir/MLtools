@@ -54,10 +54,7 @@ class BaseClassifierModel(BaseModel, basicClfProperty):
         raise NotImplementedError
 
     def train(self, Xs, Ys, epoch=1, save_interval=None, batch_size=None):
-        shapes = self.shape_extract(Xs=Xs, Ys=Ys)
-        self._apply_input_shapes(self._build_input_shapes(shapes))
-        self.is_built()
-
+        self._prepare_train(Xs=Xs, Ys=Ys)
         dataset = self.to_dummyDataset(Xs=Xs, Ys=Ys)
 
         if batch_size is None:

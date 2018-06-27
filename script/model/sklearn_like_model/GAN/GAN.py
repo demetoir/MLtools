@@ -167,10 +167,7 @@ class GAN(BaseModel, basicGANPropertyMixIN, basicGeneratorMixIn, basicDiscrimina
             .minimize(self.G_loss, var_list=self.G_vals)
 
     def train(self, Xs, epoch=1, save_interval=None, batch_size=None, shuffle=True):
-        shapes = {'Xs': Xs.shape[1:]}
-        self._apply_input_shapes(self._build_input_shapes(shapes))
-        self.is_built()
-
+        self._prepare_train(Xs=Xs)
         dataset = self.to_dummyDataset(Xs=Xs)
 
         if batch_size is None:
