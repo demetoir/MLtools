@@ -171,7 +171,7 @@ class Ys_MixIn:
     def _Ys(self):
         return getattr(self, 'Ys', None)
 
-    def _build_Xs_input_shape(self, shapes):
+    def _build_Ys_input_shape(self, shapes):
         shape = shapes['Ys'].shape
         X_shape = shape[1:]
         Xs_shape = [None] + list(X_shape)
