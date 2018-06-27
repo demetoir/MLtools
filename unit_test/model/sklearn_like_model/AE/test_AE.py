@@ -1,12 +1,11 @@
-import numpy as np
 from script.data_handler.DatasetPackLoader import DatasetPackLoader
-from script.model.sklearn_like_model.AE.AutoEncoder import AutoEncoder
+from script.model.sklearn_like_model.AE.AE import AE
 
 
 class Test_AE:
 
     def test_AE(self):
-        class_ = AutoEncoder
+        class_ = AE
         data_pack = DatasetPackLoader().load_dataset("MNIST")
         dataset = data_pack['train']
         Xs, Ys = dataset.full_batch(['Xs', 'Ys'])

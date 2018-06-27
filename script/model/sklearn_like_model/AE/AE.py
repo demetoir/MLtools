@@ -33,7 +33,7 @@ class basicAE_DecoderMixIn:
         return stack.last_layer
 
 
-class AutoEncoder(BaseAutoEncoder, basicAE_EncoderMixIn, basicAE_DecoderMixIn):
+class AE(BaseAutoEncoder, basicAE_EncoderMixIn, basicAE_DecoderMixIn):
     _input_shape_keys = [
         'X_shape',
         'Xs_shape',
@@ -54,7 +54,7 @@ class AutoEncoder(BaseAutoEncoder, basicAE_EncoderMixIn, basicAE_DecoderMixIn):
     ]
 
     def __init__(self, verbose=10):
-        super(AutoEncoder, self).__init__(verbose)
+        super(AE, self).__init__(verbose)
 
         self.batch_size = 100
         self.learning_rate = 0.01
