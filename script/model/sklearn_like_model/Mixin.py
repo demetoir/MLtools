@@ -168,7 +168,7 @@ class Ys_MixIn:
         self.Y_flatten_size = None
 
     @property
-    def _Xs(self):
+    def _Ys(self):
         return getattr(self, 'Ys', None)
 
     def _build_Xs_input_shape(self, shapes):
