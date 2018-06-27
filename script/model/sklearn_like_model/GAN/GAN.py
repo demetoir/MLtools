@@ -1,3 +1,4 @@
+from script.model.sklearn_like_model.Mixin import Xs_MixIn, zs_MixIn
 from script.model.sklearn_like_model.BaseModel import BaseModel
 from script.util.Stacker import Stacker
 from script.util.tensor_ops import *
@@ -13,15 +14,10 @@ class InputShapeError(BaseException):
     pass
 
 
-class basicGANPropertyMixIN:
-
-    @property
-    def _Xs(self):
-        return getattr(self, 'Xs', None)
-
-    @property
-    def _zs(self):
-        return getattr(self, 'zs', None)
+class basicGANPropertyMixIN(Xs_MixIn, zs_MixIn):
+    def __init__(self):
+        Xs_MixIn.__init__(self)
+        zs_MixIn.__init__(self)
 
     @property
     def _train_ops(self):
@@ -51,51 +47,34 @@ class basicGANPropertyMixIN:
         return getattr(self, 'Xs_gen', None)
 
 
-class basicGeneratorMixIn:
-    @staticmethod
-    def generator(z, net_shapes, flatten_size, output_shape, reuse=False, name='generator'):
-        with tf.variable_scope(name, reuse=reuse):
-            layer = Stacker(z)
+def basicGenerator(z, net_shapes, flatten_size, output_shape, reuse=False, name='generator'):
+    with tf.variable_scope(name, reuse=reuse):
+        layer = Stacker(z)
 
-            for shape in net_shapes:
-                layer.linear(shape)
+        for shape in net_shapes:
+            layer.linear(shape)
 
-            layer.linear(flatten_size)
-            layer.sigmoid()
-            layer.reshape(output_shape)
+        layer.linear(flatten_size)
+        layer.sigmoid()
+        layer.reshape(output_shape)
 
-        return layer.last_layer
+    return layer.last_layer
 
 
-class basicDiscriminatorMixIn:
-    @staticmethod
-    def discriminator(X, net_shapes, reuse=False, name='discriminator'):
-        with tf.variable_scope(name, reuse=reuse):
-            layer = Stacker(flatten(X))
+def basicDiscriminator(X, net_shapes, reuse=False, name='discriminator'):
+    with tf.variable_scope(name, reuse=reuse):
+        layer = Stacker(flatten(X))
 
-            for shape in net_shapes:
-                layer.linear(shape)
+        for shape in net_shapes:
+            layer.linear(shape)
 
-            layer.linear(1)
-            layer.sigmoid()
+        layer.linear(1)
+        layer.sigmoid()
 
-        return layer.last_layer
+    return layer.last_layer
 
 
-class GAN_z_noiseMixIn:
-    @staticmethod
-    def get_z_noise(shape):
-        return np.random.uniform(-1.0, 1.0, size=shape)
-
-
-class GAN(BaseModel, basicGANPropertyMixIN, basicGeneratorMixIn, basicDiscriminatorMixIn, GAN_z_noiseMixIn):
-    _input_shape_keys = [
-        'X_shape',
-        'Xs_shape',
-        'X_flatten_size',
-        'z_shape',
-        'zs_shape',
-    ]
+class GAN(BaseModel, basicGANPropertyMixIN):
     _params_keys = [
         'n_noise',
         'batch_size',
@@ -105,7 +84,9 @@ class GAN(BaseModel, basicGANPropertyMixIN, basicGeneratorMixIn, basicDiscrimina
     ]
 
     def __init__(self, verbose=10, **kwargs):
-        super(GAN, self).__init__(verbose, **kwargs)
+        BaseModel.__init__(self, verbose, **kwargs)
+        basicGANPropertyMixIN.__init__(self)
+
         self.n_noise = 256
         self.batch_size = 64
         self.learning_rate = 0.0002
@@ -114,38 +95,23 @@ class GAN(BaseModel, basicGANPropertyMixIN, basicGeneratorMixIn, basicDiscrimina
         self.D_learning_rate = 0.0001
         self.G_learning_rate = 0.0001
 
-        self.X_shape = None
-        self.Xs_shape = None
-        self.X_flatten_size = None
-        self.z_shape = None
-        self.zs_shape = None
-
     def _build_input_shapes(self, shapes):
-        X_shape = shapes['Xs']
-        Xs_shape = [None] + list(X_shape)
+        ret = {}
+        ret.update(self._build_Xs_input_shape(shapes))
 
-        X_flatten_size = self.flatten_shape(X_shape)
+        shapes['zs'] = [None, self.n_noise]
+        ret.update(self._build_zs_input_shape(shapes))
 
-        z_shape = [self.n_noise]
-        zs_shape = [None, self.n_noise]
-
-        ret = {
-            'X_shape': X_shape,
-            'Xs_shape': Xs_shape,
-            'X_flatten_size': X_flatten_size,
-            'z_shape': z_shape,
-            'zs_shape': zs_shape
-        }
         return ret
 
     def _build_main_graph(self):
         self.Xs = placeholder(tf.float32, self.Xs_shape, "Xs")
         self.zs = placeholder(tf.float32, self.zs_shape, "zs")
 
-        self.G = self.generator(self.zs, self.G_net_shape, self.X_flatten_size, self.Xs_shape)
+        self.G = basicGenerator(self.zs, self.G_net_shape, self.X_flatten_size, self.Xs_shape)
         self.Xs_gen = identity(self.G, 'Xs_gen')
-        self.D_real = self.discriminator(self.Xs, self.D_net_shape)
-        self.D_gen = self.discriminator(self.Xs_gen, self.D_net_shape, reuse=True)
+        self.D_real = basicDiscriminator(self.Xs, self.D_net_shape)
+        self.D_gen = basicDiscriminator(self.Xs_gen, self.D_net_shape, reuse=True)
 
         self.G_vals = collect_vars(join_scope(get_scope(), 'generator'))
         self.D_vals = collect_vars(join_scope(get_scope(), 'discriminator'))
@@ -186,7 +152,7 @@ class GAN(BaseModel, basicGANPropertyMixIN, basicGeneratorMixIn, basicDiscrimina
                 iter_num += 1
 
                 Xs = dataset.next_batch(batch_size)
-                zs = self.get_z_noise([batch_size, self.n_noise])
+                zs = self.get_z_rand([batch_size, self.n_noise])
                 self.sess.run(self._train_ops, feed_dict={self._Xs: Xs, self._zs: zs})
 
                 loss_D, loss_G = self.sess.run([self.D_loss_mean, self.G_loss_mean],
@@ -206,10 +172,10 @@ class GAN(BaseModel, basicGANPropertyMixIN, basicGeneratorMixIn, basicDiscrimina
                 self.save()
 
     def generate(self, size):
-        zs = self.get_z_noise([size, self.n_noise])
+        zs = self.get_z_rand([size, self.n_noise])
         return self.get_tf_values(self._gen_ops, {self.zs: zs})
 
     def metric(self, Xs):
-        zs = self.get_z_noise([Xs.shape[0], self.n_noise])
+        zs = self.get_z_rand([Xs.shape[0], self.n_noise])
         D_loss, G_loss = self.get_tf_values(self._metric_ops, {self._Xs: Xs, self._zs: zs})
         return {'D_loss': D_loss, 'G_loss': G_loss}
