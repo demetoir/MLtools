@@ -47,11 +47,7 @@ class Xs_MixIn:
         if not hasattr(self, '_input_shape_keys'):
             self._input_shape_keys = []
 
-        self._input_shape_keys += [
-            'X_shape',
-            'Xs_shape',
-            'X_flatten_size',
-        ]
+        self._input_shape_keys += self._Xs_input_shapes_keys
 
         self.X_shape = None
         self.Xs_shape = None
@@ -89,10 +85,7 @@ class zs_MixIn:
         if not hasattr(self, '_input_shape_keys'):
             self._input_shape_keys = []
 
-        self._input_shape_keys += [
-            'z_shape',
-            'zs_shape',
-        ]
+        self._input_shape_keys += self._zs_input_shape_keys
 
         self.z_shape = None
         self.zs_shape = None
