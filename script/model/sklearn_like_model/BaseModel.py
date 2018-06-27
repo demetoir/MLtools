@@ -1,6 +1,7 @@
+from script.model.sklearn_like_model.Mixin import input_shapesMixIN, metadataMixIN, paramsMixIn
 from script.data_handler.DummyDataset import DummyDataset
 from script.util.MixIn import LoggerMixIn
-from script.util.misc_util import dump_json, load_json, time_stamp, path_join, log_error_trace
+from script.util.misc_util import time_stamp, path_join, log_error_trace
 from script.util.misc_util import setup_directory
 from env_settting import *
 from functools import reduce
@@ -13,135 +14,11 @@ class ModelBuildFailError(BaseException):
     pass
 
 
-class MetaBaseModel(type):
-
-    def __init__(cls, name, bases, cls_dict):
-        type.__init__(cls, name, bases, cls_dict)
-
-        for key in cls_dict:
-            if "build_" in key:
-                func = cls_dict[key]
-                print(key, func)
-
-                def wrapper(self, *args, **kwargs):
-                    self.log(key)
-                    return func(self, *args, **kwargs)
-
-                setattr(cls, key, wrapper)
-            # new_load = None
-            # if 'load' in cls_dict:
-            #     def new_load(self, path, limit):
-            #         try:
-            #             self.if_need_download(path)
-            #             cls_dict['load'](self, path, limit)
-            #             self.after_load(limit)
-            #         except Exception:
-            #             exc_type, exc_value, exc_traceback = sys.exc_info()
-            #             err_msg = traceback.format_exception(exc_type, exc_value, exc_traceback)
-            #             self.log(*err_msg)
-            # setattr(cls, 'load', new_load)
-        return
-
-
 META_DATA_FILE_NAME = 'instance.meta'
 meta_json = 'meta.json'
 params_json = 'params.json'
 input_shapes_json = 'input_shapes.json'
 INSTANCE_FOLDER = 'instance'
-
-
-class input_shapesMixIN:
-    _input_shape_keys = []
-
-    def __init__(self):
-        for key in self._input_shape_keys:
-            setattr(self, key, None)
-
-    @property
-    def input_shapes(self):
-        return self._collect_input_shapes()
-
-    def _apply_input_shapes(self, input_shapes):
-        for key in self._input_shape_keys:
-            setattr(self, key, input_shapes[key])
-
-    def _collect_input_shapes(self):
-        input_shapes = {}
-        for key in self._input_shape_keys:
-            input_shapes[key] = getattr(self, key, None)
-        return input_shapes
-
-    @staticmethod
-    def _check_input_shapes(a, b):
-        return True if dict(a) == dict(b) else False
-
-    def _load_input_shapes(self, path):
-        self._apply_input_shapes(load_json(path))
-
-    def _save_input_shapes(self, path):
-        dump_json(self.input_shapes, path)
-
-
-class metadataMixIN:
-    _metadata_keys = [
-        'id',
-        'instance_path',
-        'metadata_path',
-        'check_point_path',
-        'save_folder_path',
-    ]
-
-    def __init__(self):
-        for key in self._metadata_keys:
-            setattr(self, key, None)
-
-    @property
-    def metadata(self):
-        return self._collect_metadata()
-
-    def _collect_metadata(self):
-        metadata = {}
-        for key in self._metadata_keys:
-            metadata[key] = getattr(self, key, None)
-        return metadata
-
-    def _apply_metadata(self, metadata):
-        for key in self._metadata_keys:
-            setattr(self, key, metadata[key])
-
-    def _load_metadata(self, path):
-        self._apply_metadata(load_json(path))
-
-    def _save_metadata(self, path):
-        dump_json(self.metadata, path)
-
-
-class paramsMixIn:
-    _params_keys = []
-
-    def __init__(self):
-        for key in self._params_keys:
-            setattr(self, key, None)
-
-    @property
-    def params(self):
-        return self._collect_params()
-
-    def _collect_params(self):
-        params = {}
-        for key in self._params_keys:
-            params[key] = getattr(self, key, None)
-        return params
-
-    def _apply_params(self, params):
-        for key in self._params_keys:
-            setattr(self, key, params[key])
-
-    def _load_params(self, path):
-        self._apply_params(load_json(path))
-
-    def _save_params(self, path):
-        dump_json(self.params, path)
 
 
 class BaseModel(LoggerMixIn, input_shapesMixIN, metadataMixIN, paramsMixIn):
@@ -279,7 +156,7 @@ class BaseModel(LoggerMixIn, input_shapesMixIN, metadataMixIN, paramsMixIn):
     def _prepare_train(self, **kwargs):
         shapes = {}
         for key in kwargs:
-            shapes[key] = kwargs[key].shape[1:]
+            shapes[key] = kwargs[key]
         input_shapes = self._build_input_shapes(shapes)
         self._apply_input_shapes(input_shapes)
         self._check_build()
