@@ -156,7 +156,7 @@ class AE(BaseModel, basicAEPropertyMixIn):
                 iter_num += 1
 
                 Xs = dataset.next_batch(batch_size, batch_keys=['Xs'])
-                noise = self.get_noises(Xs.shape)
+                noise = self.get_noises(Xs.shape, self.noise_intensity)
                 self.sess.run(self._train_ops, feed_dict={self._Xs: Xs, self._noises: noise})
 
             Xs = dataset.next_batch(batch_size, batch_keys=['Xs'], look_up=False)
