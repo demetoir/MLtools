@@ -164,7 +164,7 @@ class BaseModel(LoggerMixIn, input_shapesMixIN, metadataMixIN, paramsMixIn):
         self.verbose = verbose
         self.sess = None
         self.saver = None
-        self._is_built = False
+        self.__is_built = False
 
         # gen instance id
         self.id = "_".join([self.__str__(), time_stamp()])
@@ -226,7 +226,7 @@ class BaseModel(LoggerMixIn, input_shapesMixIN, metadataMixIN, paramsMixIn):
             log_error_trace(print, e)
             raise ModelBuildFailError("ModelBuildFailError")
         else:
-            self._is_built = True
+            self.__is_built = True
             self.log.info("build success")
 
     def _build_input_shapes(self, input_shapes):
@@ -282,7 +282,7 @@ class BaseModel(LoggerMixIn, input_shapesMixIN, metadataMixIN, paramsMixIn):
             shapes[key] = kwargs[key].shape[1:]
         input_shapes = self._build_input_shapes(shapes)
         self._apply_input_shapes(input_shapes)
-        self.is_built()
+        self._check_build()
 
     def save(self, path=None):
         if path is None:
@@ -326,12 +326,12 @@ class BaseModel(LoggerMixIn, input_shapesMixIN, metadataMixIN, paramsMixIn):
         self.saver.restore(self.sess, self.check_point_path)
 
     def get_tf_values(self, fetches, feet_dict):
-        self.is_built()
+        self._check_build()
 
         return self.sess.run(fetches, feet_dict)
 
-    def is_built(self):
-        if not self._is_built:
+    def _check_build(self):
+        if not self.__is_built:
             self._build()
 
         if self.sess is None:
