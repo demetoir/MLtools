@@ -1,3 +1,4 @@
+from script.model.sklearn_like_model.Mixin import Ys_MixIn, Xs_MixIn, zs_MixIn, noise_MixIn
 from script.model.sklearn_like_model.BaseModel import BaseModel
 from script.util.Stacker import Stacker
 from script.util.tensor_ops import *
@@ -5,22 +6,12 @@ from script.util.summary_func import *
 import numpy as np
 
 
-class basicAAEPropertyMixIn:
-    @property
-    def _Xs(self):
-        return getattr(self, 'Xs')
-
-    @property
-    def _zs(self):
-        return getattr(self, 'zs')
-
-    @property
-    def _noise(self):
-        return getattr(self, 'noise')
-
-    @property
-    def _Ys(self):
-        return getattr(self, 'Ys', None)
+class basicAAEPropertyMixIn(Xs_MixIn, Ys_MixIn, zs_MixIn, noise_MixIn):
+    def __init__(self):
+        Xs_MixIn.__init__(self)
+        Ys_MixIn.__init__(self)
+        zs_MixIn.__init__(self)
+        noise_MixIn.__init__(self)
 
     @property
     def _code_ops(self):
@@ -71,17 +62,6 @@ class basicAAEPropertyMixIn:
 
 
 class AAE(BaseModel, basicAAEPropertyMixIn):
-    _input_shape_keys = [
-        'X_shape',
-        'Xs_shape',
-        'X_flatten_size',
-        'z_shape',
-        'zs_shape',
-        'Y_shape',
-        'Ys_shape',
-        'Y_flatten_size',
-        'noise_shape'
-    ]
     _params_keys = [
         'batch_size',
         'learning_rate',
@@ -101,7 +81,8 @@ class AAE(BaseModel, basicAAEPropertyMixIn):
                  z_size=32, encoder_net_shapes=None, decoder_net_shapes=None, D_gauss_net_shapes=None,
                  D_cate_net_shapes=None, with_noise=False, noise_intensity=1.,
                  verbose=10):
-        super().__init__(verbose)
+        BaseModel.__init__(self, verbose)
+        basicAAEPropertyMixIn.__init__(self)
 
         self.batch_size = batch_size
         self.learning_rate = learning_rate
@@ -130,43 +111,19 @@ class AAE(BaseModel, basicAAEPropertyMixIn):
         self.with_noise = with_noise
         self.noise_intensity = noise_intensity
 
-        self.X_shape = None
-        self.Xs_shape = None
-        self.X_flatten_size = None
-
-        self.Y_shape = None
-        self.Ys_shape = None
-        self.Y_flatten_size = None
-
-        self.z_shape = None
-        self.zs_shape = None
-        self.noise_shape = None
-
     def _build_input_shapes(self, shapes):
-        X_shape = shapes['Xs']
-        Xs_shape = [None] + list(X_shape)
-        X_flatten_size = self.flatten_shape(X_shape)
+        ret = {}
+        ret.update(self._build_Xs_input_shape(shapes))
 
-        Y_shape = shapes['Ys']
-        Ys_shape = [None] + list(Y_shape)
-        Y_flatten_size = self.flatten_shape(Y_shape)
+        ret.update(self._build_Ys_input_shape(shapes))
 
-        z_shape = [self.z_size]
-        zs_shape = [None, self.z_size]
+        shapes['zs'] = [None, self.z_size]
+        ret.update(self._build_zs_input_shape(shapes))
 
-        noise_shape = [None] + list(X_shape)
+        shapes['noise'] = [None] + list(ret['X_shape'])
+        ret.update(self._build_noise_input_shape(shapes))
 
-        return {
-            'X_shape': X_shape,
-            'Xs_shape': Xs_shape,
-            'X_flatten_size': X_flatten_size,
-            'z_shape': z_shape,
-            'zs_shape': zs_shape,
-            'Y_shape': Y_shape,
-            'Ys_shape': Ys_shape,
-            'Y_flatten_size': Y_flatten_size,
-            'noise_shape': noise_shape
-        }
+        return ret
 
     def encoder(self, Xs, net_shapes, reuse=False, name='encoder'):
         with tf.variable_scope(name, reuse=reuse):
@@ -223,9 +180,9 @@ class AAE(BaseModel, basicAAEPropertyMixIn):
         self.Xs = placeholder(tf.float32, self.Xs_shape, name='Xs')
         self.Ys = placeholder(tf.float32, self.Ys_shape, name='Ys')
         self.zs = placeholder(tf.float32, self.zs_shape, name='zs')
-        self.noise = placeholder(tf.float32, self.noise_shape, name='noise')
+        self.noises = placeholder(tf.float32, self.noises_shape, name='noises')
 
-        self.Xs_noised = tf.add(self.Xs, self.noise, name='Xs_noised')
+        self.Xs_noised = tf.add(self.Xs, self.noises, name='Xs_noised')
         if self.with_noise:
             Xs = self.Xs_noised
         else:
@@ -354,10 +311,6 @@ class AAE(BaseModel, basicAAEPropertyMixIn):
     def random_z(self):
         pass
 
-    @staticmethod
-    def get_z_noise(shape):
-        return np.random.uniform(-1, 1, size=shape)
-
     def train(self, Xs, Ys, epoch=100, save_interval=None, batch_size=None):
         self._prepare_train(Xs=Xs, Ys=Ys)
         dataset = self.to_dummyDataset(Xs=Xs, Ys=Ys)
@@ -382,12 +335,13 @@ class AAE(BaseModel, basicAAEPropertyMixIn):
 
                 Xs, Ys = dataset.next_batch(batch_size, batch_keys=['Xs', 'Ys'])
                 # print([batch_size, self.z_size])
-                zs = self.get_z_noise([batch_size, self.z_size])
-                noise = self.get_noise(Xs.shape)
-                self.sess.run(self._train_ops, feed_dict={self._Xs: Xs, self._Ys: Ys, self._zs: zs, self._noise: noise})
+                zs = self.get_z_rand([batch_size, self.z_size])
+                noise = self.get_noises(Xs.shape, self.noise_intensity)
+                self.sess.run(self._train_ops,
+                              feed_dict={self._Xs: Xs, self._Ys: Ys, self._zs: zs, self._noises: noise})
 
                 loss = self.sess.run(self._metric_ops,
-                                     feed_dict={self._Xs: Xs, self._Ys: Ys, self._zs: zs, self._noise: noise})
+                                     feed_dict={self._Xs: Xs, self._Ys: Ys, self._zs: zs, self._noises: noise})
 
                 loss_AE, loss_G_gauss, loss_G_cate, loss_D_gauss, loss_D_cate, loss_clf = loss
                 total_AE += np.sum(loss_AE) / dataset.size
@@ -408,37 +362,32 @@ class AAE(BaseModel, basicAAEPropertyMixIn):
                 self.save()
 
     def code(self, Xs):
-        noise = self.get_noise(Xs.shape)
-        return self.get_tf_values(self._code_ops, {self._Xs: Xs, self._noise: noise})
+        noise = self.get_noises(Xs.shape)
+        return self.get_tf_values(self._code_ops, {self._Xs: Xs, self._noises: noise})
 
     def recon(self, Xs, Ys):
-        noise = self.get_noise(Xs.shape)
-        return self.get_tf_values(self._recon_ops, {self._Xs: Xs, self._Ys: Ys, self._noise: noise})
+        noise = self.get_noises(Xs.shape)
+        return self.get_tf_values(self._recon_ops, {self._Xs: Xs, self._Ys: Ys, self._noises: noise})
 
     def generate(self, zs, Ys):
         return self.get_tf_values(self._recon_ops, {self._zs: zs, self._Ys: Ys})
 
     def metric(self, Xs, Ys):
         Xs = np.array(Xs)
-        zs = self.get_z_noise([Xs.shape[0], self.z_size])
-        noise = self.get_noise(Xs.shape)
-        return self.get_tf_values(self._metric_ops, {self._Xs: Xs, self._Ys: Ys, self._zs: zs, self._noise: noise})
+        zs = self.get_z_rand([Xs.shape[0], self.z_size])
+        noises = self.get_noises(Xs.shape)
+        return self.get_tf_values(self._metric_ops, {self._Xs: Xs, self._Ys: Ys, self._zs: zs, self._noises: noises})
 
     def predict_proba(self, Xs):
-        noise = self.get_noise(Xs.shape)
-        return self.get_tf_values(self._predict_ops, {self._Xs: Xs, self._noise: noise})
+        noises = self.get_noises(Xs.shape)
+        return self.get_tf_values(self._predict_ops, {self._Xs: Xs, self._noises: noises})
 
     def predict(self, Xs):
-        noise = self.get_noise(Xs.shape)
-        return self.get_tf_values(self._predict_ops, {self._Xs: Xs, self._noise: noise})
+        noises = self.get_noises(Xs.shape)
+        return self.get_tf_values(self._predict_ops, {self._Xs: Xs, self._noises: noises})
 
     def score(self, Xs, Ys):
         Xs = np.array(Xs)
-        zs = self.get_z_noise([Xs.shape[0], self.z_size])
-        noise = self.get_noise(Xs.shape)
-        return self.get_tf_values(self._score_ops, {self._Xs: Xs, self._Ys: Ys, self._zs: zs, self._noise: noise})
-
-    def get_noise(self, shape=None):
-        if shape is None:
-            shape = self.Xs_shape
-        return np.random.normal(-1 * self.noise_intensity, 1 * self.noise_intensity, size=shape)
+        zs = self.get_z_rand([Xs.shape[0], self.z_size])
+        noises = self.get_noises(Xs.shape)
+        return self.get_tf_values(self._score_ops, {self._Xs: Xs, self._Ys: Ys, self._zs: zs, self._noises: noises})
