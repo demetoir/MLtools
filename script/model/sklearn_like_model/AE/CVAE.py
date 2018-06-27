@@ -16,16 +16,6 @@ class CVAE_MixIn(basicAEPropertyMixIn, Ys_MixIn):
 
 
 class CVAE(BaseModel, CVAE_MixIn):
-    _input_shape_keys = [
-        'X_shape',
-        'Xs_shape',
-        'X_flatten_size',
-        'z_shape',
-        'zs_shape',
-        'Y_shape',
-        'Ys_shape',
-        'noise_shape'
-    ]
     _params_keys = [
         'batch_size',
         'learning_rate',
