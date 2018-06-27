@@ -4,13 +4,6 @@ from script.util.tensor_ops import *
 
 
 class MLPClassifier(BaseClassifierModel):
-    _input_shape_keys = [
-        'X_shape',
-        'Xs_shape',
-        'Y_shape',
-        'Ys_shape',
-        'Y_size'
-    ]
     _params_keys = [
         'batch_size',
         'learning_rate',
@@ -34,26 +27,11 @@ class MLPClassifier(BaseClassifierModel):
         self.l1_norm_lambda = 0.0001
         self.l2_norm_lambda = 0.001
 
-        self.X_shape = None
-        self.Xs_shape = None
-        self.Y_shape = None
-        self.Ys_shape = None
-        self.Y_size = None
+    def _build_input_shapes(self, shapes):
+        ret = {}
+        ret.update(self._build_Xs_input_shape(shapes))
+        ret.update(self._build_Ys_input_shape(shapes))
 
-    def _build_input_shapes(self, input_shapes):
-        X_shape = input_shapes['Xs']
-        Xs_shape = [None] + list(X_shape)
-
-        Y_shape = input_shapes['Ys']
-        Ys_shape = [None] + list(Y_shape)
-        Y_size = Y_shape[0]
-        ret = {
-            'X_shape': X_shape,
-            'Xs_shape': Xs_shape,
-            'Y_shape': Y_shape,
-            'Ys_shape': Ys_shape,
-            'Y_size': Y_size
-        }
         return ret
 
     def classifier(self, Xs, net_shapes, name='classifier'):
@@ -63,7 +41,7 @@ class MLPClassifier(BaseClassifierModel):
             for net_shape in net_shapes:
                 layer.linear_block(net_shape, relu)
 
-            layer.linear(self.Y_size)
+            layer.linear(self.Y_flatten_size)
             logit = layer.last_layer
             h = softmax(logit)
         return logit, h

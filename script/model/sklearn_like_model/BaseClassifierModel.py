@@ -1,15 +1,12 @@
 from tqdm import trange
+from script.model.sklearn_like_model.Mixin import Xs_MixIn, Ys_MixIn
 from script.model.sklearn_like_model.BaseModel import BaseModel
 
 
-class basicClfProperty:
-    @property
-    def _Xs(self):
-        return getattr(self, 'Xs')
-
-    @property
-    def _Ys(self):
-        return getattr(self, 'Ys')
+class basicClfProperty(Xs_MixIn, Ys_MixIn):
+    def __init__(self):
+        Xs_MixIn.__init__(self)
+        Ys_MixIn.__init__(self)
 
     @property
     def _predict_ops(self):
@@ -38,7 +35,9 @@ class basicClfProperty:
 class BaseClassifierModel(BaseModel, basicClfProperty):
 
     def __init__(self, verbose=10, **kwargs):
-        super(BaseClassifierModel, self).__init__(verbose, **kwargs)
+        BaseModel.__init__(self, verbose, **kwargs)
+        basicClfProperty.__init__(self)
+
         self.batch_size = None
 
     def _build_input_shapes(self, input_shapes):
