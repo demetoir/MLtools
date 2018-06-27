@@ -26,11 +26,6 @@ class BaseModel(LoggerMixIn, input_shapesMixIN, metadataMixIN, paramsMixIn):
     AUTHOR = 'demetoir'
 
     def __init__(self, verbose=10, **kwargs):
-        LoggerMixIn.__init__(self)
-        input_shapesMixIN.__init__(self)
-        metadataMixIN.__init__(self)
-        paramsMixIn.__init__(self)
-
         """create instance of AbstractModel
 
         :param verbose:
@@ -38,6 +33,7 @@ class BaseModel(LoggerMixIn, input_shapesMixIN, metadataMixIN, paramsMixIn):
         :param logger_path: path for log file
         if logger_path is None, log ony stdout
         """
+        LoggerMixIn.__init__(self)
         input_shapesMixIN.__init__(self)
         metadataMixIN.__init__(self)
         paramsMixIn.__init__(self)
