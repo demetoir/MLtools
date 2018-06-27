@@ -1,4 +1,4 @@
-from script.model.sklearn_like_model.AE.AutoEncoder import basicAE_DecoderMixIn
+from script.model.sklearn_like_model.AE.AE import basicAE_DecoderMixIn
 from script.model.sklearn_like_model.AE.BaseAutoEncoder import BaseAutoEncoder
 from script.util.Stacker import Stacker
 from script.util.tensor_ops import *
