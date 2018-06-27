@@ -197,32 +197,32 @@ class CVAE(BaseModel, basicAEPropertyMixIn, CAEPropertyMixIn):
                 iter_num += 1
 
                 Xs, Ys = dataset.next_batch(batch_size, batch_keys=['Xs', 'Ys'])
-                noise = self.get_noise(Xs.shape)
+                noise = self.get_noises(Xs.shape)
                 self.sess.run(self._train_ops, feed_dict={self._Xs: Xs, self._Ys: Ys, self._noise: noise})
 
             Xs, Ys = dataset.next_batch(batch_size, batch_keys=['Xs', 'Ys'], look_up=False)
-            noise = self.get_noise(Xs.shape)
+            noise = self.get_noises(Xs.shape)
             loss = self.sess.run(self._metric_ops, feed_dict={self._Xs: Xs, self._Ys: Ys, self._noise: noise})
             self.log.info("e:{e} loss : {loss}".format(e=e, loss=np.mean(loss)))
 
             if save_interval is not None and e % save_interval == 0:
                 self.save()
 
-    def get_noise(self, shape=None):
+    def get_noises(self, shape=None):
         if shape is None:
             shape = self.Xs_shape
         return np.random.normal(-1 * self.noise_intensity, 1 * self.noise_intensity, size=shape)
 
     def code(self, Xs, Ys):
-        noise = self.get_noise(Xs.shape)
+        noise = self.get_noises(Xs.shape)
         return self.get_tf_values(self._code_ops, {self._Xs: Xs, self.Ys: Ys, self._noise: noise})
 
     def recon(self, Xs, Ys):
-        noise = self.get_noise(Xs.shape)
+        noise = self.get_noises(Xs.shape)
         return self.get_tf_values(self._recon_ops, {self._Xs: Xs, self.Ys: Ys, self._noise: noise})
 
     def metric(self, Xs, Ys):
-        noise = self.get_noise(Xs.shape)
+        noise = self.get_noises(Xs.shape)
         return self.get_tf_values(self._metric_ops, {self._Xs: Xs, self.Ys: Ys, self._noise: noise})
 
     def generate(self, zs, Ys):
