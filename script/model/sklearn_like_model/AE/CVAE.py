@@ -149,7 +149,7 @@ class CVAE(BaseModel, CVAE_MixIn):
         self.train_op = tf.train.AdamOptimizer(self.learning_rate, self.beta1).minimize(loss=self.loss,
                                                                                         var_list=self.vars)
 
-    def train(self, Xs, Ys, epoch=100, save_interval=None, batch_size=None):
+    def train(self, Xs, Ys, epoch=1, save_interval=None, batch_size=None):
         self._prepare_train(Xs=Xs, Ys=Ys)
         dataset = self.to_dummyDataset(Xs=Xs, Ys=Ys)
 

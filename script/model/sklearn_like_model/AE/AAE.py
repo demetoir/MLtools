@@ -1,3 +1,4 @@
+from tqdm import trange
 from script.model.sklearn_like_model.Mixin import Ys_MixIn, Xs_MixIn, zs_MixIn, noise_MixIn
 from script.model.sklearn_like_model.BaseModel import BaseModel
 from script.util.Stacker import Stacker
@@ -311,7 +312,7 @@ class AAE(BaseModel, basicAAEPropertyMixIn):
     def random_z(self):
         pass
 
-    def train(self, Xs, Ys, epoch=100, save_interval=None, batch_size=None):
+    def train(self, Xs, Ys, epoch=1, save_interval=None, batch_size=None):
         self._prepare_train(Xs=Xs, Ys=Ys)
         dataset = self.to_dummyDataset(Xs=Xs, Ys=Ys)
 
@@ -322,7 +323,7 @@ class AAE(BaseModel, basicAAEPropertyMixIn):
         iter_per_epoch = dataset.size // batch_size
         self.log.info("train epoch {}, iter/epoch {}".format(epoch, iter_per_epoch))
 
-        for e in range(epoch):
+        for e in trange(epoch):
             dataset.shuffle()
             total_AE = 0
             total_G_gauss = 0
