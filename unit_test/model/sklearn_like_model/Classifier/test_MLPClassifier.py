@@ -2,7 +2,7 @@ from script.data_handler.DatasetPackLoader import DatasetPackLoader
 from script.model.sklearn_like_model.MLPClassifier import MLPClassifier
 
 
-def test_CLf():
+def test_MLPClf():
     class_ = MLPClassifier
     data_pack = DatasetPackLoader().load_dataset("titanic")
     dataset = data_pack['train']
