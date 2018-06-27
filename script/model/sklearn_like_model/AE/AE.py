@@ -8,15 +8,15 @@ import numpy as np
 
 
 def basicAE_Encoder(Xs, net_shapes, latent_code_size, reuse=False, name='encoder'):
-        with tf.variable_scope(name, reuse=reuse):
-            stack = Stacker(Xs)
-            stack.flatten()
-            for shape in net_shapes:
-                stack.linear_block(shape, relu)
+    with tf.variable_scope(name, reuse=reuse):
+        stack = Stacker(Xs)
+        stack.flatten()
+        for shape in net_shapes:
+            stack.linear_block(shape, relu)
 
-            stack.linear_block(latent_code_size, relu)
+        stack.linear_block(latent_code_size, relu)
 
-        return stack.last_layer
+    return stack.last_layer
 
 
 def basicAE_Decoder(zs, net_shapes, flatten_size, output_shape, reuse=False, name='decoder'):
@@ -180,10 +180,7 @@ class AE(BaseModel, basicAEPropertyMixIn):
         return np.random.normal(-1 * self.noise_intensity, 1 * self.noise_intensity, size=shape)
 
     def train(self, Xs, epoch=100, save_interval=None, batch_size=None):
-        shapes = {'Xs': Xs.shape[1:]}
-        self._apply_input_shapes(self.build_input_shapes(shapes))
-        self.is_built()
-
+        self._prepare_train(Xs=Xs)
         dataset = self.to_dummyDataset(Xs=Xs)
 
         if batch_size is None:
@@ -204,6 +201,7 @@ class AE(BaseModel, basicAEPropertyMixIn):
             Xs = dataset.next_batch(batch_size, batch_keys=['Xs'], look_up=False)
             loss = self.metric(Xs)
             self.log.info("e:{e} loss : {loss}".format(e=e, loss=np.mean(loss)))
+
             if save_interval is not None and e % save_interval == 0:
                 self.save()
 
