@@ -1,3 +1,4 @@
+from script.model.sklearn_like_model.Mixin import Ys_MixIn
 from script.model.sklearn_like_model.BaseModel import BaseModel
 from script.model.sklearn_like_model.AE.AE import basicAEPropertyMixIn
 from script.util.Stacker import Stacker
@@ -7,14 +8,14 @@ from tqdm import trange
 import numpy as np
 
 
-class CAEPropertyMixIn:
+class CVAE_MixIn(basicAEPropertyMixIn, Ys_MixIn):
 
-    @property
-    def _Ys(self):
-        return getattr(self, 'Ys', None)
+    def __init__(self):
+        basicAEPropertyMixIn.__init__(self)
+        Ys_MixIn.__init__(self)
 
 
-class CVAE(BaseModel, basicAEPropertyMixIn, CAEPropertyMixIn):
+class CVAE(BaseModel, CVAE_MixIn):
     _input_shape_keys = [
         'X_shape',
         'Xs_shape',
@@ -42,7 +43,9 @@ class CVAE(BaseModel, basicAEPropertyMixIn, CAEPropertyMixIn):
     def __init__(self, batch_size=100, learning_rate=0.01, beta1=0.5, L1_norm_lambda=0.001, latent_code_size=32,
                  z_size=32, encoder_net_shapes=None, decoder_net_shapes=None, with_noise=False, noise_intensity=1.,
                  verbose=10):
-        super(CVAE, self).__init__(verbose)
+        BaseModel.__init__(self, verbose)
+        CVAE_MixIn.__init__(self)
+
         self.batch_size = batch_size
         self.learning_rate = learning_rate
         self.beta1 = beta1
@@ -62,41 +65,18 @@ class CVAE(BaseModel, basicAEPropertyMixIn, CAEPropertyMixIn):
         self.with_noise = with_noise
         self.noise_intensity = noise_intensity
 
-        self.X_shape = None
-        self.Xs_shape = None
-        self.X_flatten_size = None
-
-        self.Y_shape = None
-        self.Ys_shape = None
-
-        self.z_shape = None
-        self.zs_shape = None
-
-        self.noise_shape = None
-
     def _build_input_shapes(self, shapes):
-        X_shape = shapes['Xs']
-        Xs_shape = [None] + list(X_shape)
-        X_flatten_size = self.flatten_shape(X_shape)
+        ret = {}
+        ret.update(self._build_Xs_input_shape(shapes))
 
-        z_shape = [self.z_size]
-        zs_shape = [None, self.z_size]
+        ret.update(self._build_Ys_input_shape(shapes))
 
-        Y_shape = shapes['Ys']
-        Ys_shape = [None] + list(Y_shape)
+        shapes['zs'] = [None, self.z_size]
+        ret.update(self._build_zs_input_shape(shapes))
 
-        noise_shape = [None] + list(X_shape)
+        shapes['noise'] = [None] + list(ret['X_shape'])
+        ret.update(self._build_noise_input_shape(shapes))
 
-        ret = {
-            'X_shape': X_shape,
-            'Xs_shape': Xs_shape,
-            'X_flatten_size': X_flatten_size,
-            'z_shape': z_shape,
-            'zs_shape': zs_shape,
-            'Y_shape': Y_shape,
-            'Ys_shape': Ys_shape,
-            'noise_shape': noise_shape
-        }
         return ret
 
     def encoder(self, Xs, Ys, net_shapes, reuse=False, name='encoder'):
@@ -126,9 +106,9 @@ class CVAE(BaseModel, basicAEPropertyMixIn, CAEPropertyMixIn):
         self.Xs = placeholder(tf.float32, self.Xs_shape, name='Xs')
         self.Ys = placeholder(tf.float32, self.Ys_shape, name='Ys')
         self.zs = placeholder(tf.float32, self.zs_shape, name='zs')
-        self.noise = placeholder(tf.float32, self.noise_shape, name='noise')
+        self.noises = placeholder(tf.float32, self.noises_shape, name='noises')
 
-        self.Xs_noised = tf.add(self.Xs, self.noise, name='Xs_noised')
+        self.Xs_noised = tf.add(self.Xs, self.noises, name='Xs_noised')
         if self.with_noise:
             Xs = self.Xs_noised
         else:
@@ -197,33 +177,28 @@ class CVAE(BaseModel, basicAEPropertyMixIn, CAEPropertyMixIn):
                 iter_num += 1
 
                 Xs, Ys = dataset.next_batch(batch_size, batch_keys=['Xs', 'Ys'])
-                noise = self.get_noises(Xs.shape)
-                self.sess.run(self._train_ops, feed_dict={self._Xs: Xs, self._Ys: Ys, self._noise: noise})
+                noise = self.get_noises(Xs.shape, self.noise_intensity)
+                self.sess.run(self._train_ops, feed_dict={self._Xs: Xs, self._Ys: Ys, self._noises: noise})
 
             Xs, Ys = dataset.next_batch(batch_size, batch_keys=['Xs', 'Ys'], look_up=False)
             noise = self.get_noises(Xs.shape)
-            loss = self.sess.run(self._metric_ops, feed_dict={self._Xs: Xs, self._Ys: Ys, self._noise: noise})
+            loss = self.sess.run(self._metric_ops, feed_dict={self._Xs: Xs, self._Ys: Ys, self._noises: noise})
             self.log.info("e:{e} loss : {loss}".format(e=e, loss=np.mean(loss)))
 
             if save_interval is not None and e % save_interval == 0:
                 self.save()
 
-    def get_noises(self, shape=None):
-        if shape is None:
-            shape = self.Xs_shape
-        return np.random.normal(-1 * self.noise_intensity, 1 * self.noise_intensity, size=shape)
-
     def code(self, Xs, Ys):
         noise = self.get_noises(Xs.shape)
-        return self.get_tf_values(self._code_ops, {self._Xs: Xs, self.Ys: Ys, self._noise: noise})
+        return self.get_tf_values(self._code_ops, {self._Xs: Xs, self.Ys: Ys, self._noises: noise})
 
     def recon(self, Xs, Ys):
         noise = self.get_noises(Xs.shape)
-        return self.get_tf_values(self._recon_ops, {self._Xs: Xs, self.Ys: Ys, self._noise: noise})
+        return self.get_tf_values(self._recon_ops, {self._Xs: Xs, self.Ys: Ys, self._noises: noise})
 
     def metric(self, Xs, Ys):
         noise = self.get_noises(Xs.shape)
-        return self.get_tf_values(self._metric_ops, {self._Xs: Xs, self.Ys: Ys, self._noise: noise})
+        return self.get_tf_values(self._metric_ops, {self._Xs: Xs, self.Ys: Ys, self._noises: noise})
 
     def generate(self, zs, Ys):
         return self.get_tf_values(self._recon_ops, {self._Ys: Ys, self._zs: zs})
