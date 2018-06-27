@@ -150,8 +150,8 @@ class noise_MixIn:
 
 
 class Ys_MixIn:
-    _Xs_shapes_key = 'Ys'
-    _Xs_input_shapes_keys = [
+    _Ys_shapes_key = 'Ys'
+    _Ys_input_shapes_keys = [
         'Y_shape',
         'Ys_shape',
         'Y_flatten_size',
@@ -161,7 +161,7 @@ class Ys_MixIn:
         if not hasattr(self, '_input_shape_keys'):
             self._input_shape_keys = []
 
-        self._input_shape_keys += self._Xs_input_shapes_keys
+        self._input_shape_keys += self._Ys_input_shapes_keys
 
         self.Y_shape = None
         self.Ys_shape = None
@@ -173,14 +173,14 @@ class Ys_MixIn:
 
     def _build_Ys_input_shape(self, shapes):
         shape = shapes['Ys'].shape
-        X_shape = shape[1:]
-        Xs_shape = [None] + list(X_shape)
-        X_flatten_size = self._flatten_shape(X_shape)
+        Y_shape = shape[1:]
+        Ys_shape = [None] + list(Y_shape)
+        Y_flatten_size = self._flatten_shape(Y_shape)
 
         return {
-            'Y_shape': X_shape,
-            'Ys_shape': Xs_shape,
-            'Y_flatten_size': X_flatten_size,
+            'Y_shape': Y_shape,
+            'Ys_shape': Ys_shape,
+            'Y_flatten_size': Y_flatten_size,
         }
 
     @staticmethod
