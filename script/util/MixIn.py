@@ -5,7 +5,12 @@ from script.util.misc_util import dump_pickle, load_pickle
 class LoggerMixIn:
     @property
     def log(self):
-        return Logger(self.__class__.__name__)
+        kwarg = {}
+        if hasattr(self, 'verbose'):
+            verbose = getattr(self, 'verbose')
+            level = Logger.verbose_to_level(verbose)
+            kwarg['level'] = level
+        return Logger(self.__class__.__name__, **kwarg)
 
 
 class PickleMixIn:

@@ -6,7 +6,7 @@ class log_D_AE_error(AbstractVisualizer):
     """visualizer error of discriminator AE in BEGAN"""
 
     def task(self, sess=None, iter_num=None, model=None, dataset=None):
-        noise = model.get_noise()
+        noise = model.get_noises()
         batch_xs = dataset.next_batch(model.batch_size, batch_keys=[BATCH_KEY_TRAIN_X], lookup=True)
         D_real_AE_error, D_gen_AE_error, global_step = sess.run(
             [model.D_real_AE_error, model.D_gen_AE_error, model.global_step],

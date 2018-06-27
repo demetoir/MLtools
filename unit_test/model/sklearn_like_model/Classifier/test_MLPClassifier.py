@@ -2,50 +2,45 @@ from script.data_handler.DatasetPackLoader import DatasetPackLoader
 from script.model.sklearn_like_model.MLPClassifier import MLPClassifier
 
 
-class Test_MLPClassifier:
+def test_MLPClf():
+    class_ = MLPClassifier
+    data_pack = DatasetPackLoader().load_dataset("titanic")
+    dataset = data_pack['train']
+    Xs, Ys = dataset.full_batch(['Xs', 'Ys'])
+    sample_X = Xs[:2]
+    sample_Y = Ys[:2]
 
-    def test(self):
-        data_pack = DatasetPackLoader().load_dataset("titanic")
-        train_set = data_pack['train']
-        input_shapes = train_set.input_shapes
+    model = class_()
+    model.train(Xs, Ys)
 
-        Xs, Ys = train_set.full_batch(
-            batch_keys=["Xs", "Ys"],
-        )
+    predict = model.predict(sample_X)
+    # print(predict)
 
-        model = MLPClassifier(input_shapes)
-        model.build()
-        model.train(Xs, Ys, epoch=1)
+    score = model.score(Xs, Ys)
+    # print(score)
 
-        Xs, Ys = train_set.next_batch(
-            5,
-            batch_keys=["Xs", "Ys"],
-        )
+    proba = model.predict_proba(sample_X)
+    # print(proba)
 
-        predict = model.predict(Xs)
-        print("predict {}".format(predict))
+    metric = model.metric(sample_X, sample_Y)
+    # print(metric)
 
-        loss = model.metric(Xs, Ys)
-        print("loss {}".format(loss))
+    path = model.save()
 
-        proba = model.proba(Xs)
-        print('prob {}'.format(proba))
+    model = class_()
+    model.load(path)
+    model.train(Xs, Ys)
 
-        score = model.score(Xs, Ys)
-        print('score {}'.format(score))
+    predict = model.predict(sample_X)
+    # print(predict)
 
-        path = model.save()
-        model = MLPClassifier()
-        model.load(path)
+    score = model.score(Xs, Ys)
+    # print(score)
 
-        predict = model.predict(Xs)
-        print("predict {}".format(predict))
+    proba = model.predict_proba(sample_X)
+    # print(proba)
 
-        loss = model.metric(Xs, Ys)
-        print("loss {}".format(loss))
+    metric = model.metric(sample_X, sample_Y)
+    # print(metric)
 
-        proba = model.proba(Xs)
-        print('prob {}'.format(proba))
-
-        score = model.score(Xs, Ys)
-        print('score {}'.format(score))
+    model.save()

@@ -1,85 +1,73 @@
-from tqdm import tqdm
+from script.model.sklearn_like_model.Mixin import Ys_MixIn
 from script.model.sklearn_like_model.BaseModel import BaseModel
-from functools import reduce
-
-from script.model.sklearn_like_model.DummyDataset import DummyDataset
+from script.model.sklearn_like_model.AE.AE import basicAEPropertyMixIn
 from script.util.Stacker import Stacker
 from script.util.tensor_ops import *
 from script.util.summary_func import *
+from tqdm import trange
 import numpy as np
 
 
-class CVAE(BaseModel):
+class CVAE_MixIn(basicAEPropertyMixIn, Ys_MixIn):
 
-    @property
-    def hyper_param_key(self):
-        return [
-            'batch_size',
-            'learning_rate',
-            'beta1',
-            'L1_norm_lambda',
-            'K_average_top_k_loss',
-            'code_size',
-            'z_size',
-            'encoder_net_shapes',
-            'decoder_net_shapes',
-        ]
+    def __init__(self):
+        basicAEPropertyMixIn.__init__(self)
+        Ys_MixIn.__init__(self)
 
-    @property
-    def _Xs(self):
-        return self.Xs
 
-    @property
-    def _Ys(self):
-        return self.Ys
+class CVAE(BaseModel, CVAE_MixIn):
+    _params_keys = [
+        'batch_size',
+        'learning_rate',
+        'beta1',
+        'L1_norm_lambda',
+        'K_average_top_k_loss',
+        'code_size',
+        'z_size',
+        'encoder_net_shapes',
+        'decoder_net_shapes',
+        'with_noise',
+        'noise_intensity',
+    ]
 
-    @property
-    def _zs(self):
-        return self.zs
+    def __init__(self, batch_size=100, learning_rate=0.01, beta1=0.5, L1_norm_lambda=0.001, latent_code_size=32,
+                 z_size=32, encoder_net_shapes=None, decoder_net_shapes=None, with_noise=False, noise_intensity=1.,
+                 verbose=10):
+        BaseModel.__init__(self, verbose)
+        CVAE_MixIn.__init__(self)
 
-    @property
-    def _train_ops(self):
-        return [self.train_op, self.op_inc_global_step]
+        self.batch_size = batch_size
+        self.learning_rate = learning_rate
+        self.beta1 = beta1
+        self.L1_norm_lambda = L1_norm_lambda
+        self.latent_code_size = latent_code_size
+        self.z_size = z_size
 
-    @property
-    def _code_ops(self):
-        return self.latent_code
+        if encoder_net_shapes is None:
+            self.encoder_net_shapes = [512, 256, 128]
+        else:
+            self.encoder_net_shapes = decoder_net_shapes
+        if decoder_net_shapes is None:
+            self.decoder_net_shapes = [128, 256, 512]
+        else:
+            self.decoder_net_shapes = decoder_net_shapes
 
-    @property
-    def _recon_ops(self):
-        return self.Xs_recon
+        self.with_noise = with_noise
+        self.noise_intensity = noise_intensity
 
-    @property
-    def _generate_ops(self):
-        return self.Xs_gen
+    def _build_input_shapes(self, shapes):
+        ret = {}
+        ret.update(self._build_Xs_input_shape(shapes))
 
-    @property
-    def _metric_ops(self):
-        return self.loss
+        ret.update(self._build_Ys_input_shape(shapes))
 
-    def hyper_parameter(self):
-        self.batch_size = 100
-        self.learning_rate = 0.01
-        self.beta1 = 0.5
-        self.L1_norm_lambda = 0.001
-        self.K_average_top_k_loss = 10
-        self.latent_code_size = 32
-        self.z_size = 32
-        self.encoder_net_shapes = [512, 256, 128]
-        self.decoder_net_shapes = [128, 256, 512]
+        shapes['zs'] = [None, self.z_size]
+        ret.update(self._build_zs_input_shape(shapes))
 
-    def build_input_shapes(self, input_shapes):
-        self.X_batch_key = 'Xs'
-        self.X_shape = input_shapes[self.X_batch_key]
-        self.Xs_shape = [None] + self.X_shape
-        self.X_flatten_size = reduce(lambda x, y: x * y, self.X_shape)
+        shapes['noise'] = [None] + list(ret['X_shape'])
+        ret.update(self._build_noise_input_shape(shapes))
 
-        self.z_shape = [self.z_size]
-        self.zs_shape = [None, self.z_size]
-
-        self.Y_batch_key = 'Ys'
-        self.Y_shape = input_shapes[self.Y_batch_key]
-        self.Ys_shape = [None] + self.Y_shape
+        return ret
 
     def encoder(self, Xs, Ys, net_shapes, reuse=False, name='encoder'):
         with tf.variable_scope(name, reuse=reuse):
@@ -104,12 +92,19 @@ class CVAE(BaseModel):
 
         return stack.last_layer
 
-    def build_main_graph(self):
+    def _build_main_graph(self):
         self.Xs = placeholder(tf.float32, self.Xs_shape, name='Xs')
         self.Ys = placeholder(tf.float32, self.Ys_shape, name='Ys')
         self.zs = placeholder(tf.float32, self.zs_shape, name='zs')
+        self.noises = placeholder(tf.float32, self.noises_shape, name='noises')
 
-        self.h = self.encoder(self.Xs, self.Ys, self.encoder_net_shapes)
+        self.Xs_noised = tf.add(self.Xs, self.noises, name='Xs_noised')
+        if self.with_noise:
+            Xs = self.Xs_noised
+        else:
+            Xs = self.Xs
+
+        self.h = self.encoder(Xs, self.Ys, self.encoder_net_shapes)
 
         self.mean = self.h[:, :self.z_size]
         self.std = tf.nn.softplus(self.h[:, self.z_size:])
@@ -122,7 +117,7 @@ class CVAE(BaseModel):
         self.vars = collect_vars(join_scope(head, 'encoder'))
         self.vars += collect_vars(join_scope(head, 'decoder'))
 
-    def build_loss_function(self):
+    def _build_loss_function(self):
         X = flatten(self.Xs)
         X_out = flatten(self.Xs_recon)
         mean = self.mean
@@ -150,19 +145,13 @@ class CVAE(BaseModel):
         self.loss = tf.add(-1 * self.cross_entropy, self.KL_Divergence, name='loss')
         self.loss_mean = tf.reduce_mean(self.loss, name='loss_mean')
 
-    def build_train_ops(self):
+    def _build_train_ops(self):
         self.train_op = tf.train.AdamOptimizer(self.learning_rate, self.beta1).minimize(loss=self.loss,
                                                                                         var_list=self.vars)
 
-    def random_z(self):
-        pass
-
-    def train(self, Xs, Ys, epoch=100, save_interval=None, batch_size=None):
-        self.if_not_ready_to_train()
-
-        dataset = DummyDataset()
-        dataset.add_data('Xs', Xs)
-        dataset.add_data('Ys', Ys)
+    def train(self, Xs, Ys, epoch=1, save_interval=None, batch_size=None):
+        self._prepare_train(Xs=Xs, Ys=Ys)
+        dataset = self.to_dummyDataset(Xs=Xs, Ys=Ys)
 
         if batch_size is None:
             batch_size = self.batch_size
@@ -171,28 +160,35 @@ class CVAE(BaseModel):
         iter_per_epoch = dataset.size // batch_size
         self.log.info("train epoch {}, iter/epoch {}".format(epoch, iter_per_epoch))
 
-        for e in tqdm(range(epoch)):
+        for e in trange(epoch):
+            dataset.shuffle()
+
             for i in range(iter_per_epoch):
                 iter_num += 1
 
                 Xs, Ys = dataset.next_batch(batch_size, batch_keys=['Xs', 'Ys'])
-                self.sess.run(self._train_ops, feed_dict={self._Xs: Xs, self._Ys: Ys})
+                noise = self.get_noises(Xs.shape, self.noise_intensity)
+                self.sess.run(self._train_ops, feed_dict={self._Xs: Xs, self._Ys: Ys, self._noises: noise})
 
             Xs, Ys = dataset.next_batch(batch_size, batch_keys=['Xs', 'Ys'], look_up=False)
-            loss = self.sess.run(self._metric_ops, feed_dict={self._Xs: Xs, self._Ys: Ys})
+            noise = self.get_noises(Xs.shape)
+            loss = self.sess.run(self._metric_ops, feed_dict={self._Xs: Xs, self._Ys: Ys, self._noises: noise})
             self.log.info("e:{e} loss : {loss}".format(e=e, loss=np.mean(loss)))
 
             if save_interval is not None and e % save_interval == 0:
                 self.save()
 
     def code(self, Xs, Ys):
-        return self.sess.run(self._code_ops, feed_dict={self._Xs: Xs, self._Ys: Ys})
+        noise = self.get_noises(Xs.shape)
+        return self.get_tf_values(self._code_ops, {self._Xs: Xs, self.Ys: Ys, self._noises: noise})
 
     def recon(self, Xs, Ys):
-        return self.sess.run(self._recon_ops, feed_dict={self._Xs: Xs, self._Ys: Ys})
-
-    def generate(self, zs, Ys):
-        return self.sess.run(self._recon_ops, feed_dict={self._zs: zs, self._Ys: Ys})
+        noise = self.get_noises(Xs.shape)
+        return self.get_tf_values(self._recon_ops, {self._Xs: Xs, self.Ys: Ys, self._noises: noise})
 
     def metric(self, Xs, Ys):
-        return self.sess.run(self._metric_ops, feed_dict={self._Xs: Xs, self._Ys: Ys})
+        noise = self.get_noises(Xs.shape)
+        return self.get_tf_values(self._metric_ops, {self._Xs: Xs, self.Ys: Ys, self._noises: noise})
+
+    def generate(self, zs, Ys):
+        return self.get_tf_values(self._recon_ops, {self._Ys: Ys, self._zs: zs})
