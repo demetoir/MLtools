@@ -1,81 +1,88 @@
 from script.data_handler.DatasetPackLoader import DatasetPackLoader
 from script.model.sklearn_like_model.AE.VAE import VAE
-import numpy as np
 
 
-class Test_VAE:
-    def test_mnist(self):
-        dataset = DatasetPackLoader().load_dataset("MNIST")
-        dataset = dataset['train']
+def test_VAE():
+    class_ = VAE
+    data_pack = DatasetPackLoader().load_dataset("MNIST")
+    dataset = data_pack['train']
+    Xs, Ys = dataset.full_batch(['Xs', 'Ys'])
+    sample_X = Xs[:2]
+    # sample_Y = Ys[:2]
 
-        model = VAE(dataset.input_shapes)
-        model._build()
+    model = class_()
+    model.train(Xs, epoch=1)
 
-        Xs = dataset.full_batch(['Xs'])
+    metric = model.metric(sample_X)
+    # print(metric)
+
+    code = model.code(sample_X)
+    # print(code)
+
+    recon = model.recon(sample_X)
+    # print(recon)
+
+    path = model.save()
+
+    model = class_()
+    model.load(path)
+
+    for i in range(2):
         model.train(Xs, epoch=1)
 
-        sample_X = Xs[:2]
-        code = model.code(sample_X)
-        print("code {code}".format(code=code))
+    metric = model.metric(sample_X)
+    # print(metric)
 
-        recon = model.recon(sample_X)
-        print("recon {recon}".format(recon=recon))
+    metric = model.metric(sample_X)
+    # print(metric)
 
-        loss = model.metric(Xs)
-        loss = np.mean(loss)
-        print("loss {:.4}".format(loss))
+    code = model.code(sample_X)
+    # print(code)
 
-        path = model.save()
+    recon = model.recon(sample_X)
+    # print(recon)
 
-        model = VAE()
-        model.load(path)
-        print('model reloaded')
+    model.save()
 
-        sample_X = Xs[:2]
-        code = model.code(sample_X)
-        print("code {code}".format(code=code))
 
-        recon = model.recon(sample_X)
-        print("recon {recon}".format(recon=recon))
+def test_VAE_with_noise():
+    class_ = VAE
+    data_pack = DatasetPackLoader().load_dataset("MNIST")
+    dataset = data_pack['train']
+    Xs, Ys = dataset.full_batch(['Xs', 'Ys'])
+    sample_X = Xs[:2]
+    # sample_Y = Ys[:2]
 
-        loss = model.metric(Xs)
-        loss = np.mean(loss)
-        print("loss {:.4}".format(loss))
+    model = class_(with_noise=True)
+    model.train(Xs, epoch=1)
 
-    def test_titanic(self):
-        dataset = DatasetPackLoader().load_dataset("titanic")
-        dataset = dataset['train']
+    metric = model.metric(sample_X)
+    # print(metric)
 
-        model = VAE(dataset.input_shapes)
-        model._build()
+    code = model.code(sample_X)
+    # print(code)
 
-        Xs = dataset.full_batch(['Xs'])
+    recon = model.recon(sample_X)
+    # print(recon)
+
+    path = model.save()
+
+    model = class_()
+    model.load(path)
+
+    for i in range(2):
         model.train(Xs, epoch=1)
 
-        sample_X = Xs[:2]
-        code = model.code(sample_X)
-        print("code {code}".format(code=code))
+    metric = model.metric(sample_X)
+    # print(metric)
 
-        recon = model.recon(sample_X)
-        print("recon {recon}".format(recon=recon))
+    metric = model.metric(sample_X)
+    # print(metric)
 
-        loss = model.metric(Xs)
-        loss = np.mean(loss)
-        print("loss {:.4}".format(loss))
+    code = model.code(sample_X)
+    # print(code)
 
-        path = model.save()
+    recon = model.recon(sample_X)
+    # print(recon)
 
-        model = VAE()
-        model.load(path)
-        print('model reloaded')
-
-        sample_X = Xs[:2]
-        code = model.code(sample_X)
-        print("code {code}".format(code=code))
-
-        recon = model.recon(sample_X)
-        print("recon {recon}".format(recon=recon))
-
-        loss = model.metric(Xs)
-        loss = np.mean(loss)
-        print("loss {:.4}".format(loss))
+    model.save()
