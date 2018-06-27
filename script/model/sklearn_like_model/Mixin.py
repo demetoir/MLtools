@@ -4,11 +4,10 @@ import numpy as np
 
 
 class input_shapesMixIN:
-    _input_shape_keys = []
 
     def __init__(self):
-        for key in self._input_shape_keys:
-            setattr(self, key, None)
+        if not hasattr(self, '_input_shape_keys'):
+            self._input_shape_keys = []
 
     @property
     def input_shapes(self):
@@ -223,9 +222,10 @@ class metadataMixIN:
 
 
 class paramsMixIn:
-    _params_keys = []
-
     def __init__(self):
+        if not hasattr(self, '_params_keys'):
+            self._params_keys = []
+
         for key in self._params_keys:
             setattr(self, key, None)
 
