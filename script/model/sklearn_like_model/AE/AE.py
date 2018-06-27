@@ -124,7 +124,7 @@ class AE(BaseModel, basicAEPropertyMixIn):
         self.zs_shape = None
         self.noise_shape = None
 
-    def build_input_shapes(self, shapes):
+    def _build_input_shapes(self, shapes):
         X_shape = shapes['Xs']
         Xs_shape = [None] + list(X_shape)
         X_flatten_size = reduce(lambda x, y: x * y, X_shape)

@@ -40,7 +40,7 @@ class MLPClassifier(BaseClassifierModel):
         self.Ys_shape = None
         self.Y_size = None
 
-    def build_input_shapes(self, input_shapes):
+    def _build_input_shapes(self, input_shapes):
         X_shape = input_shapes['Xs']
         Xs_shape = [None] + list(X_shape)
 

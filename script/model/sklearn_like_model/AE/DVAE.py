@@ -69,7 +69,7 @@ class DVAE(BaseAutoEncoder):
         self.decoder_net_shapes = [128, 256, 512]
         self.noise_intensity = 1.
 
-    def build_input_shapes(self, input_shapes):
+    def _build_input_shapes(self, input_shapes):
         self.X_batch_key = 'Xs'
         self.X_shape = input_shapes[self.X_batch_key]
         self.Xs_shape = [None] + self.X_shape

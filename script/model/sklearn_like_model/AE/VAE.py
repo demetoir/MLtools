@@ -46,7 +46,7 @@ class VAE(AE):
         super().__init__(batch_size, learning_rate, beta1, L1_norm_lambda, latent_code_size, z_size, encoder_net_shapes,
                          decoder_net_shapes, with_noise, noise_intensity, verbose)
 
-    def build_input_shapes(self, shapes):
+    def _build_input_shapes(self, shapes):
         X_shape = shapes['Xs']
         Xs_shape = [None] + list(X_shape)
         X_flatten_size = self.flatten_shape(X_shape)

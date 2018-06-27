@@ -41,7 +41,7 @@ class BaseClassifierModel(BaseModel, basicClfProperty):
         super(BaseClassifierModel, self).__init__(verbose, **kwargs)
         self.batch_size = None
 
-    def build_input_shapes(self, input_shapes):
+    def _build_input_shapes(self, input_shapes):
         raise NotImplementedError
 
     def _build_main_graph(self):
@@ -55,7 +55,7 @@ class BaseClassifierModel(BaseModel, basicClfProperty):
 
     def train(self, Xs, Ys, epoch=1, save_interval=None, batch_size=None):
         shapes = self.shape_extract(Xs=Xs, Ys=Ys)
-        self._apply_input_shapes(self.build_input_shapes(shapes))
+        self._apply_input_shapes(self._build_input_shapes(shapes))
         self.is_built()
 
         dataset = self.to_dummyDataset(Xs=Xs, Ys=Ys)

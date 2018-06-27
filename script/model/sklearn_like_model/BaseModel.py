@@ -229,7 +229,7 @@ class BaseModel(LoggerMixIn, input_shapesMixIN, metadataMixIN, paramsMixIn):
             self._is_built = True
             self.log.info("build success")
 
-    def build_input_shapes(self, input_shapes):
+    def _build_input_shapes(self, input_shapes):
         """load input shapes for tensor placeholder
 
         :type input_shapes: dict
@@ -280,7 +280,7 @@ class BaseModel(LoggerMixIn, input_shapesMixIN, metadataMixIN, paramsMixIn):
         shapes = {}
         for key in kwargs:
             shapes[key] = kwargs[key].shape[1:]
-        input_shapes = self.build_input_shapes(shapes)
+        input_shapes = self._build_input_shapes(shapes)
         self._apply_input_shapes(input_shapes)
         self.is_built()
 

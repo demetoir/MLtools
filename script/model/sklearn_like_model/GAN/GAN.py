@@ -120,7 +120,7 @@ class GAN(BaseModel, basicGANPropertyMixIN, basicGeneratorMixIn, basicDiscrimina
         self.z_shape = None
         self.zs_shape = None
 
-    def build_input_shapes(self, shapes):
+    def _build_input_shapes(self, shapes):
         X_shape = shapes['Xs']
         Xs_shape = [None] + list(X_shape)
 
@@ -168,7 +168,7 @@ class GAN(BaseModel, basicGANPropertyMixIN, basicGeneratorMixIn, basicDiscrimina
 
     def train(self, Xs, epoch=1, save_interval=None, batch_size=None, shuffle=True):
         shapes = {'Xs': Xs.shape[1:]}
-        self._apply_input_shapes(self.build_input_shapes(shapes))
+        self._apply_input_shapes(self._build_input_shapes(shapes))
         self.is_built()
 
         dataset = self.to_dummyDataset(Xs=Xs)

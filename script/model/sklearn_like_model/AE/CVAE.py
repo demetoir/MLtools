@@ -74,7 +74,7 @@ class CVAE(BaseModel, basicAEPropertyMixIn, CAEPropertyMixIn):
 
         self.noise_shape = None
 
-    def build_input_shapes(self, shapes):
+    def _build_input_shapes(self, shapes):
         X_shape = shapes['Xs']
         Xs_shape = [None] + list(X_shape)
         X_flatten_size = self.flatten_shape(X_shape)
