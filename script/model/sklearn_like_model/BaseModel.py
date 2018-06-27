@@ -276,6 +276,14 @@ class BaseModel(LoggerMixIn, input_shapesMixIN, metadataMixIN, paramsMixIn):
         """
         raise NotImplementedError
 
+    def _prepare_train(self, **kwargs):
+        shapes = {}
+        for key in kwargs:
+            shapes[key] = kwargs[key].shape[1:]
+        input_shapes = self.build_input_shapes(shapes)
+        self._apply_input_shapes(input_shapes)
+        self.is_built()
+
     def save(self, path=None):
         if path is None:
             self.log.info('save directory not specified, use default directory')
