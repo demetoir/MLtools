@@ -108,8 +108,12 @@ class zs_MixIn:
         return reduce(lambda a, b: a * b, x)
 
     @staticmethod
-    def get_z_rand(shape):
+    def get_z_rand_uniform(shape):
         return np.random.uniform(-1.0, 1.0, size=shape)
+
+    @staticmethod
+    def get_z_rand_normal(shape):
+        return np.random.normal(size=shape)
 
 
 class noise_MixIn:
