@@ -27,7 +27,7 @@ class MetaDataset(type):
                 except Exception:
                     exc_type, exc_value, exc_traceback = sys.exc_info()
                     err_msg = traceback.format_exception(exc_type, exc_value, exc_traceback)
-                    self.log(*err_msg)
+                    self.log.error(*err_msg)
         setattr(cls, 'load', new_load)
 
 
