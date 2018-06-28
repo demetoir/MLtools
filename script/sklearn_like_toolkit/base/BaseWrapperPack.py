@@ -62,6 +62,7 @@ class BaseWrapperPack(ClfWrapperMixIn, metaclass=meta_BaseWrapperClf):
             try:
                 self.pack[key].fit(Xs, Ys)
             except BaseException as e:
+                log_error_trace(self.log.warn, e)
                 self.log.warn(f'while fitting, {key} raise {e}')
 
     def _collect_predict(self, Xs):
