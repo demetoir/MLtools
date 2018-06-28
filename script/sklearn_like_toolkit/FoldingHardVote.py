@@ -30,6 +30,7 @@ class FoldingHardVote(BaseWrapperClf):
 
     def predict_bincount(self, Xs):
         predicts = self._collect_predict(Xs).transpose()
+        predicts = predicts.astype(np.int64)
         bincount = np.apply_along_axis(
             lambda x: np.bincount(x, minlength=self.class_size),
             axis=1, arr=predicts
@@ -41,6 +42,7 @@ class FoldingHardVote(BaseWrapperClf):
 
     def predict(self, Xs):
         predicts = self._collect_predict(Xs).transpose()
+        predicts = predicts.astype(int)
         maj = np.apply_along_axis(
             lambda x: np.argmax(np.bincount(x, minlength=self.class_size)),
             axis=1, arr=predicts)
