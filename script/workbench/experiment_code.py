@@ -52,7 +52,7 @@ def exp_stacking_metaclf(print, pprint):
             continue
 
         pprint(f'meta clf = {key}')
-        stacking = clf.make_stackingClf(meta_clf)
+        stacking = clf.to_stackingClf(meta_clf)
         stacking.fit(train_Xs, train_Ys)
         score = stacking.score(valid_Xs, valid_Ys)
         pprint(f'score {score}')
@@ -80,7 +80,7 @@ def exp_stackingCV_metaclf(print, pprint):
             continue
 
         pprint(f'meta clf = {key}')
-        stacking = clf.make_stackingCVClf(meta_clf)
+        stacking = clf.to_stackingCVClf(meta_clf)
         stacking.fit(train_Xs, train_Ys)
         score = stacking.score_pack(valid_Xs, valid_Ys)
         pprint(f'score {score}')
@@ -235,7 +235,7 @@ def exp_model_confidence():
     clf_pack.drop_clf('mlxMLP')
     clf_pack.drop_clf('skQDA')
 
-    esm_pack = clf_pack.make_ensembleClfpack()
+    esm_pack = clf_pack.to_ensembleClfpack()
     esm_pack.fit(train_Xs, train_Ys)
 
     train_dataset.sort()
@@ -328,7 +328,7 @@ def exp_titanic_data_difficulty():
 
     result_path = './titanic_difficulty_stat.csv'
     if not os.path.exists(result_path):
-        esm_pack = clf_pack.make_ensembleClfpack()
+        esm_pack = clf_pack.to_ensembleClfpack()
         esm_pack.fit(train_Xs, train_Ys)
 
         pack_dict = difficulty_stat(clf_pack, train_dataset, n=100)
