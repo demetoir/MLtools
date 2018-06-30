@@ -76,7 +76,7 @@ class CVAE(BaseModel, CVAE_MixIn):
             for shape in net_shapes:
                 stack.linear_block(shape, relu)
 
-            stack.linear_block(self.latent_code_size * 2, relu)
+            stack.linear_block(self.z_size * 2, relu)
 
         return stack.last_layer
 
