@@ -52,7 +52,7 @@ def basicGenerator(z, net_shapes, flatten_size, output_shape, reuse=False, name=
         layer = Stacker(z)
 
         for shape in net_shapes:
-            layer.linear(shape)
+            layer.linear_block(shape, lrelu)
 
         layer.linear(flatten_size)
         layer.sigmoid()
@@ -66,7 +66,7 @@ def basicDiscriminator(X, net_shapes, reuse=False, name='discriminator'):
         layer = Stacker(flatten(X))
 
         for shape in net_shapes:
-            layer.linear(shape)
+            layer.linear(shape, lrelu)
 
         layer.linear(1)
         layer.sigmoid()
