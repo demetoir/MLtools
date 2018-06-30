@@ -19,7 +19,7 @@ def generator(z, Y, net_shape, flatten_size, output_shape, reuse=False, name='ge
         layer = Stacker(concat((z, Y), axis=1))
 
         for shape in net_shape:
-            layer.linear(shape)
+            layer.linear_block(shape, lrelu)
 
         layer.linear(flatten_size)
         layer.sigmoid()
@@ -33,7 +33,7 @@ def discriminator(X, Y, net_shapes, reuse=False, name='discriminator'):
         layer = Stacker(concat([flatten(X), Y], axis=1))
 
         for shape in net_shapes:
-            layer.linear(shape)
+            layer.linear_block(shape, lrelu)
 
         layer.linear(1)
         layer.sigmoid()
