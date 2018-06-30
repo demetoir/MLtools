@@ -193,7 +193,8 @@ class C_GAN(BaseModel, basicC_GANPropertyMixIN):
 
                 Xs, Ys = dataset.next_batch(batch_size)
                 zs = self.get_z_rand_normal([batch_size, self.n_noise])
-                self.sess.run(self._train_ops, feed_dict={self._Xs: Xs, self._zs: zs, self._Ys: Ys})
+                self.run_ops(self._train_ops, {self._Xs: Xs, self._zs: zs, self._Ys: Ys})
+                # self.sess.run(self._train_ops, feed_dict={self._Xs: Xs, self._zs: zs, self._Ys: Ys})
 
                 loss_D, loss_G = self.sess.run([self.D_loss_mean, self.G_loss_mean],
                                                feed_dict={self._Xs: Xs, self._zs: zs, self._Ys: Ys})
@@ -212,6 +213,8 @@ class C_GAN(BaseModel, basicC_GANPropertyMixIN):
 
             if save_interval is not None and e % save_interval == 0:
                 self.save()
+
+
 
     def generate(self, size, Ys):
         zs = self.get_z_rand_normal([size, self.n_noise])

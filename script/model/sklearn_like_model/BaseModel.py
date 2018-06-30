@@ -236,3 +236,7 @@ class BaseModel(LoggerMixIn, input_shapesMixIN, metadataMixIN, paramsMixIn):
     @staticmethod
     def flatten_shape(x):
         return reduce(lambda a, b: a * b, x)
+
+    def run_ops(self, ops, feed_dict):
+        for op in ops:
+            self.sess.run(op, feed_dict=feed_dict)
