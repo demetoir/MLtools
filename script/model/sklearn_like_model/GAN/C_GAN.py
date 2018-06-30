@@ -49,11 +49,18 @@ class basicC_GANPropertyMixIN(Xs_MixIn, Ys_MixIn, zs_MixIn):
 
     @property
     def _train_ops(self):
-        return [
+        with_clipping = getattr(self, 'with_clipping', False)
+
+        train_ops = [
             getattr(self, 'train_G'),
             getattr(self, 'train_D'),
             getattr(self, 'op_inc_global_step')
         ]
+
+        if with_clipping:
+            train_ops += [getattr(self, 'clip_D_op')]
+
+        return train_ops
 
     @property
     def _metric_ops(self):
@@ -82,10 +89,12 @@ class C_GAN(BaseModel, basicC_GANPropertyMixIN):
         'learning_rate',
         'D_net_shape',
         'G_net_shape',
+        'loss_type',
+        'clipping'
     ]
 
     def __init__(self, n_noise=256, batch_size=64, learning_rate=0.0002, D_net_shape=None, G_net_shape=None,
-                 verbose=10):
+                 loss_type='GAN', with_clipping=False, clipping=0.01, verbose=10):
         BaseModel.__init__(self, verbose)
         basicC_GANPropertyMixIN.__init__(self)
 
@@ -101,6 +110,10 @@ class C_GAN(BaseModel, basicC_GANPropertyMixIN):
             self.G_net_shape = [256, 256]
         else:
             self.G_net_shape = None
+
+        self.loss_type = loss_type
+        self.with_clipping = with_clipping
+        self.clipping = clipping
 
     def _build_input_shapes(self, shapes):
         ret = {}
@@ -127,11 +140,23 @@ class C_GAN(BaseModel, basicC_GANPropertyMixIN):
         self.D_vals = collect_vars(join_scope(get_scope(), 'discriminator'))
 
     def _build_loss_function(self):
-        self.D_real_loss = tf.reduce_mean(self.D_real, name='loss_D_real')
-        self.D_gen_loss = tf.reduce_mean(self.D_gen, name='loss_D_gen')
+        if self.loss_type == 'WGAN':
+            self.D_real_loss = -tf.reduce_mean(self.D_real, axis=1)
+            self.D_gen_loss = tf.reduce_mean(self.D_gen, axis=1)
+            self.D_loss = self.D_real_loss + self.D_gen_loss
+            self.G_loss = -self.D_gen_loss
+        elif self.loss_type == 'GAN':
+            self.D_real_loss = tf.reduce_mean(self.D_real, name='loss_D_real')
+            self.D_gen_loss = tf.reduce_mean(self.D_gen, name='loss_D_gen')
+            self.D_loss = tf.reduce_mean(-tf.log(self.D_real) - tf.log(1. - self.D_gen), name='loss_D')
+            self.G_loss = tf.reduce_mean(-tf.log(self.D_gen), name='loss_G')
+        elif self.loss_type == 'LSGAN':
+            self.D_real_loss = tf.reduce_mean(self.D_real)
+            self.D_gen_loss = tf.reduce_mean(self.D_gen)
 
-        self.D_loss = tf.reduce_mean(-tf.log(self.D_real) - tf.log(1. - self.D_gen), name='loss_D')
-        self.G_loss = tf.reduce_mean(-tf.log(self.D_gen), name='loss_G')
+            square_sum = tf.add(tf.square(tf.subtract(self.D_real, 1)), tf.square(self.D_gen))
+            self.D_loss = tf.multiply(0.5, tf.reduce_mean(square_sum))
+            self.G_loss = tf.multiply(0.5, tf.reduce_mean(tf.square(tf.subtract(self.D_gen, 1))))
 
         self.D_loss_mean = tf.reduce_mean(self.D_loss)
         self.G_loss_mean = tf.reduce_mean(self.G_loss)
@@ -142,6 +167,11 @@ class C_GAN(BaseModel, basicC_GANPropertyMixIN):
 
         self.train_G = tf.train.AdamOptimizer(self.learning_rate) \
             .minimize(self.G_loss, var_list=self.G_vals)
+
+        if self.with_clipping:
+            self.clip_D_op = [var.assign(tf.clip_by_value(var, -self.clipping, self.clipping)) for var in self.D_vals]
+        else:
+            self.clip_D_op = None
 
     def train(self, Xs, Ys, epoch=1, save_interval=None, batch_size=None):
         self._prepare_train(Xs=Xs, Ys=Ys)
@@ -168,12 +198,12 @@ class C_GAN(BaseModel, basicC_GANPropertyMixIN):
                 loss_D, loss_G = self.sess.run([self.D_loss_mean, self.G_loss_mean],
                                                feed_dict={self._Xs: Xs, self._zs: zs, self._Ys: Ys})
 
-                print("e:{}  D={}, G={}".format(e, loss_D, loss_G))
+                # print("e:{}  D={}, G={}".format(e, loss_D, loss_G))
                 if np.isnan(loss_D) or np.isnan(loss_G):
                     self.log.error('loss is nan D loss={}, G loss={}'.format(loss_D, loss_G))
                     raise TrainFailError('loss is nan D loss={}, G loss={}'.format(loss_D, loss_G))
 
-                # self.log.info("D={} G={}".format(loss_D, loss_G))
+                self.log.info("D={} G={}".format(loss_D, loss_G))
                 total_D += loss_D / iter_per_epoch
                 total_G += loss_G / iter_per_epoch
 
