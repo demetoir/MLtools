@@ -60,10 +60,18 @@ def test_plt_tool_count():
     plt_tools.count(titanic, column='class', hue='who')
 
 
-def test_plt_scatter():
-    xs = [np.array([i * k for i in range(32)]) for k in range(-10, 10)]
+def test_plt_line():
+    xs = [np.array([i * float(k) for i in range(32)]) for k in range(-10, 10)]
+
     plt_tools = PlotTools()
-    plt_tools.scatter(*xs)
+    plt_tools.line(xs)
+
+
+def test_plt_scatter_2d():
+    xys = [(np.random.uniform(10, -10, [1000]), np.random.normal(k, 1, [1000])) for k in range(1, 20)]
+
+    plt_tools = PlotTools()
+    plt_tools.scatter_2d(xys)
 
 
 def test_plt_dist():
