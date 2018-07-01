@@ -1,6 +1,52 @@
+import itertools
 import numpy as np
 from PIL import Image
 from script.util.misc_util import time_stamp, path_join, setup_file
+
+color_set = ['b', 'r', 'g', 'c', 'm', 'y', 'k']
+marker_set = [
+    # '.',
+              # ',',
+              'o', 'v', '<', '>', '1', '2', '3', '4', 's', 'p', '*', 'h', 'H', '+', 'x', 'D', 'd',
+              '|', '_', ]
+"""
+    ``'.'``          point marker
+    ``','``          pixel marker
+    ``'o'``          circle marker
+    ``'v'``          triangle_down marker
+    ``'^'``          triangle_up marker
+    ``'<'``          triangle_left marker
+    ``'>'``          triangle_right marker
+    ``'1'``          tri_down marker
+    ``'2'``          tri_up marker
+    ``'3'``          tri_left marker
+    ``'4'``          tri_right marker
+    ``'s'``          square marker
+    ``'p'``          pentagon marker
+    ``'*'``          star marker
+    ``'h'``          hexagon1 marker
+    ``'H'``          hexagon2 marker
+    ``'+'``          plus marker
+    ``'x'``          x marker
+    ``'D'``          diamond marker
+    ``'d'``          thin_diamond marker
+    ``'|'``          vline marker
+    ``'_'``          hline marker
+"""
+
+line_set = ['-', '--', '-.', ':']
+"""
+    ``'-'``          solid line style
+    ``'--'``         dashed line style
+    ``'-.'``         dash-dot line style
+    ``':'``          dotted line style
+"""
+
+scatter_markers = list(itertools.product(marker_set, color_set))
+# scatter_markers = map(lambda x: "".join(x), scatter_markers)
+
+line_marker = list(itertools.product(line_set, color_set))
+line_marker = map(lambda x: "".join(x), line_marker)
 
 
 class PlotTools:
@@ -120,52 +166,30 @@ class PlotTools:
 
         self.plt_common_teardown(fig, path=path, show=show, title=title, extend=extend)
 
-    def scatter(self, *args, color='auto', path=None, show=False, title=None, extend='.png'):
+    def line(self, dots, linewidth=1, path=None, show=False, title=None, extend='.png'):
         self.sns_setup()
         fig = self.figure
 
-        color_set = ['b', 'r', 'g', 'c', 'm', 'y', 'k', 'w']
-        marker_set = ['.', ',', 'o', 'v', '<', '>', '1', '2', '3', '4', 's', 'p', '*', 'h', 'H', '+', 'x', 'D', 'd',
-                      '|', '_', ]
-        line_set = ['-', '--', '-.', ':']
-        """
-            ``'-'``          solid line style
-            ``'--'``         dashed line style
-            ``'-.'``         dash-dot line style
-            ``':'``          dotted line style
-        """
+        if type(dots) is np.array:
+            print(type(dots))
 
-        """
-            ``'.'``          point marker
-            ``','``          pixel marker
-            ``'o'``          circle marker
-            ``'v'``          triangle_down marker
-            ``'^'``          triangle_up marker
-            ``'<'``          triangle_left marker
-            ``'>'``          triangle_right marker
-            ``'1'``          tri_down marker
-            ``'2'``          tri_up marker
-            ``'3'``          tri_left marker
-            ``'4'``          tri_right marker
-            ``'s'``          square marker
-            ``'p'``          pentagon marker
-            ``'*'``          star marker
-            ``'h'``          hexagon1 marker
-            ``'H'``          hexagon2 marker
-            ``'+'``          plus marker
-            ``'x'``          x marker
-            ``'D'``          diamond marker
-            ``'d'``          thin_diamond marker
-            ``'|'``          vline marker
-            ``'_'``          hline marker
-        """
+        for idx, (x, marker) in enumerate(zip(dots, line_marker)):
+            # print(f"{marker}")
+            self.plt.plot(x, marker, label=str(idx), linewidth=linewidth)
 
-        new_xs = []
-        for x in args:
-            new_xs += [x, 'b--']
-        xs = new_xs
+        self.plt.legend(loc='center left', bbox_to_anchor=(1, 0.5))
 
-        self.plt.plot(*xs)
+        self.plt_common_teardown(fig, path=path, show=show, title=title, extend=extend)
+
+    def scatter_2d(self, dots, marker_size=2, path=None, show=False, title=None, extend='.png'):
+        self.sns_setup()
+        fig = self.figure
+
+        for idx, (xy, (marker, color)) in enumerate(zip(dots, scatter_markers)):
+            x, y = xy
+            self.plt.scatter(x, y, marker_size, color, marker, label=str(idx))
+
+        self.plt.legend(loc='center left', bbox_to_anchor=(1, 0.5))
 
         self.plt_common_teardown(fig, path=path, show=show, title=title, extend=extend)
 
