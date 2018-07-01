@@ -40,7 +40,7 @@ class BaseClassifierModel(BaseModel, basicClfProperty):
 
         self.batch_size = None
 
-    def _build_input_shapes(self, input_shapes):
+    def _build_input_shapes(self, shapes):
         raise NotImplementedError
 
     def _build_main_graph(self):

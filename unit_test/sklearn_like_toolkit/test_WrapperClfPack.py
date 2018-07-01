@@ -31,7 +31,7 @@ def test_param_search():
 
 def test_make_FoldingHardVote():
     clf = ClassifierPack(['skMLP', "skBernoulli_NB", "skDecisionTree"])
-    clf = clf.make_FoldingHardVote()
+    clf = clf.to_FoldingHardVote()
     clf.fit(train_Xs, train_Ys)
 
     predict = clf.predict(sample_Xs)
@@ -50,7 +50,7 @@ def test_make_FoldingHardVote():
 def test_make_stackingClf():
     clf = ClassifierPack(['skMLP', "skBernoulli_NB", "skDecisionTree"])
 
-    clf = clf.make_stackingClf(meta_clf)
+    clf = clf.to_stackingClf(meta_clf)
     clf.fit(train_Xs, train_Ys)
 
     predict = clf.predict(valid_Xs[:4])
@@ -66,7 +66,7 @@ def test_make_stackingClf():
 def test_make_stackingCVClf():
     clf = ClassifierPack(['skMLP', "skBernoulli_NB", "skDecisionTree"])
     meta_clf = clf.pack["skBernoulli_NB"]
-    clf = clf.make_stackingCVClf(meta_clf)
+    clf = clf.to_stackingCVClf(meta_clf)
     clf.fit(train_Xs, train_Ys)
 
     predict = clf.predict(valid_Xs[:4])

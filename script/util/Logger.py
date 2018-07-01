@@ -76,7 +76,7 @@ class Logger:
     def verbose_to_level(verbose):
         ret = None
         for level in [0, 10, 20, 30, 40, 50]:
-            if verbose <= level:
+            if verbose >= level:
                 ret = level
         return ret
 

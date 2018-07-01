@@ -28,11 +28,13 @@ class CVAE(BaseModel, CVAE_MixIn):
         'decoder_net_shapes',
         'with_noise',
         'noise_intensity',
+        'loss_type',
+        'KL_D_rate'
     ]
 
     def __init__(self, batch_size=100, learning_rate=0.01, beta1=0.5, L1_norm_lambda=0.001, latent_code_size=32,
                  z_size=32, encoder_net_shapes=None, decoder_net_shapes=None, with_noise=False, noise_intensity=1.,
-                 verbose=10):
+                 loss_type='VAE', KL_D_rate=1.0, verbose=10):
         BaseModel.__init__(self, verbose)
         CVAE_MixIn.__init__(self)
 
@@ -42,6 +44,7 @@ class CVAE(BaseModel, CVAE_MixIn):
         self.L1_norm_lambda = L1_norm_lambda
         self.latent_code_size = latent_code_size
         self.z_size = z_size
+        self.loss_type = loss_type
 
         if encoder_net_shapes is None:
             self.encoder_net_shapes = [512, 256, 128]
@@ -54,6 +57,7 @@ class CVAE(BaseModel, CVAE_MixIn):
 
         self.with_noise = with_noise
         self.noise_intensity = noise_intensity
+        self.KL_D_rate = KL_D_rate
 
     def _build_input_shapes(self, shapes):
         ret = {}
@@ -76,7 +80,7 @@ class CVAE(BaseModel, CVAE_MixIn):
             for shape in net_shapes:
                 stack.linear_block(shape, relu)
 
-            stack.linear_block(self.latent_code_size * 2, relu)
+            stack.linear_block(self.z_size * 2, relu)
 
         return stack.last_layer
 
@@ -128,21 +132,19 @@ class CVAE(BaseModel, CVAE_MixIn):
             1 - tf.log(tf.square(std) + 1e-8) + tf.square(mean) + tf.square(std), axis=1)
 
         # in autoencoder's perspective loss can be divide to reconstruct error and regularization error
-        # self.recon_error = -1 * self.cross_entropy
-        # self.regularization_error = self.KL_Divergence
-        # self.loss = self.recon_error + self.regularization_error
+        self.recon_error = -1 * self.cross_entropy
+        self.regularization_error = self.KL_Divergence * self.KL_D_rate
+        self.MSE = tf.reduce_sum(tf.squared_difference(X, X_out), axis=1)
 
-        # only cross entropy loss also work
-        # self.loss = -1 * self.cross_entropy
+        if self.loss_type == 'VAE':
+            self.loss = self.recon_error + self.regularization_error
+        elif self.loss_type == 'recon_only':
+            self.loss = -1 * self.cross_entropy
+        elif self.loss_type == 'MSE_with_KL':
+            self.loss = self.MSE + self.KL_Divergence
+        elif self.loss_type == 'MSE_only':
+            self.loss = self.MSE
 
-        # using MSE than cross entropy loss also work but slow
-        # self.MSE= tf.reduce_sum(tf.squared_difference(X, X_out), axis=1)
-        # self.loss = self.MSE + self.KL_Divergence
-
-        # this one also work
-        # self.loss = self.MSE
-
-        self.loss = tf.add(-1 * self.cross_entropy, self.KL_Divergence, name='loss')
         self.loss_mean = tf.reduce_mean(self.loss, name='loss_mean')
 
     def _build_train_ops(self):

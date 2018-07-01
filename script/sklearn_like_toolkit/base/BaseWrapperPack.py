@@ -38,7 +38,7 @@ class BaseWrapperPack(ClfWrapperMixIn, metaclass=meta_BaseWrapperClf):
             for result in optimizer.top_k_result():
                 self.log.info(pformat(result))
 
-    def gridSearchCV(self, Xs, Ys):
+    def gridSearchCV(self, Xs, Ys, **kwargs):
         Ys = self.np_arr_to_index(Ys)
 
         total = len(self.pack)
@@ -47,7 +47,7 @@ class BaseWrapperPack(ClfWrapperMixIn, metaclass=meta_BaseWrapperClf):
             current += 1
             try:
                 self.log.info(f'gridSearchCV at {key} {current}/{total}')
-                optimizer = wrapperGridSearchCV(clf, clf.tuning_grid)
+                optimizer = wrapperGridSearchCV(clf, clf.tuning_grid, **kwargs)
                 optimizer.fit(Xs, Ys)
                 self.pack[key] = optimizer.best_estimator_
                 self.optimize_result = optimizer.cv_results_
@@ -62,6 +62,7 @@ class BaseWrapperPack(ClfWrapperMixIn, metaclass=meta_BaseWrapperClf):
             try:
                 self.pack[key].fit(Xs, Ys)
             except BaseException as e:
+                log_error_trace(self.log.warn, e)
                 self.log.warn(f'while fitting, {key} raise {e}')
 
     def _collect_predict(self, Xs):

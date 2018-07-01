@@ -33,7 +33,7 @@ class BaseModel(LoggerMixIn, input_shapesMixIN, metadataMixIN, paramsMixIn):
         :param logger_path: path for log file
         if logger_path is None, log ony stdout
         """
-        LoggerMixIn.__init__(self)
+        LoggerMixIn.__init__(self, verbose=verbose)
         input_shapesMixIN.__init__(self)
         metadataMixIN.__init__(self)
         paramsMixIn.__init__(self)
@@ -106,11 +106,11 @@ class BaseModel(LoggerMixIn, input_shapesMixIN, metadataMixIN, paramsMixIn):
             self.__is_built = True
             self.log.info("build success")
 
-    def _build_input_shapes(self, input_shapes):
+    def _build_input_shapes(self, shapes):
         """load input shapes for tensor placeholder
 
-        :type input_shapes: dict
-        :param input_shapes: input shapes for tensor placeholder
+        :type shapes: dict
+        :param shapes: input shapes for tensor placeholder
 
         :raise NotImplementError
         if not Implemented
@@ -201,6 +201,7 @@ class BaseModel(LoggerMixIn, input_shapesMixIN, metadataMixIN, paramsMixIn):
         self._close_saver()
         self._open_saver()
         self.saver.restore(self.sess, self.check_point_path)
+        return self
 
     def get_tf_values(self, fetches, feet_dict):
         self._check_build()
@@ -235,3 +236,7 @@ class BaseModel(LoggerMixIn, input_shapesMixIN, metadataMixIN, paramsMixIn):
     @staticmethod
     def flatten_shape(x):
         return reduce(lambda a, b: a * b, x)
+
+    def run_ops(self, ops, feed_dict):
+        for op in ops:
+            self.sess.run(op, feed_dict=feed_dict)

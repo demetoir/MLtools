@@ -336,7 +336,7 @@ class AAE(BaseModel, basicAAEPropertyMixIn):
 
                 Xs, Ys = dataset.next_batch(batch_size, batch_keys=['Xs', 'Ys'])
                 # print([batch_size, self.z_size])
-                zs = self.get_z_rand([batch_size, self.z_size])
+                zs = self.get_z_rand_uniform([batch_size, self.z_size])
                 noise = self.get_noises(Xs.shape, self.noise_intensity)
                 self.sess.run(self._train_ops,
                               feed_dict={self._Xs: Xs, self._Ys: Ys, self._zs: zs, self._noises: noise})
@@ -375,7 +375,7 @@ class AAE(BaseModel, basicAAEPropertyMixIn):
 
     def metric(self, Xs, Ys):
         Xs = np.array(Xs)
-        zs = self.get_z_rand([Xs.shape[0], self.z_size])
+        zs = self.get_z_rand_uniform([Xs.shape[0], self.z_size])
         noises = self.get_noises(Xs.shape)
         return self.get_tf_values(self._metric_ops, {self._Xs: Xs, self._Ys: Ys, self._zs: zs, self._noises: noises})
 
@@ -389,6 +389,6 @@ class AAE(BaseModel, basicAAEPropertyMixIn):
 
     def score(self, Xs, Ys):
         Xs = np.array(Xs)
-        zs = self.get_z_rand([Xs.shape[0], self.z_size])
+        zs = self.get_z_rand_uniform([Xs.shape[0], self.z_size])
         noises = self.get_noises(Xs.shape)
         return self.get_tf_values(self._score_ops, {self._Xs: Xs, self._Ys: Ys, self._zs: zs, self._noises: noises})

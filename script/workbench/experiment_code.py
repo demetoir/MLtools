@@ -52,7 +52,7 @@ def exp_stacking_metaclf(print, pprint):
             continue
 
         pprint(f'meta clf = {key}')
-        stacking = clf.make_stackingClf(meta_clf)
+        stacking = clf.to_stackingClf(meta_clf)
         stacking.fit(train_Xs, train_Ys)
         score = stacking.score(valid_Xs, valid_Ys)
         pprint(f'score {score}')
@@ -80,7 +80,7 @@ def exp_stackingCV_metaclf(print, pprint):
             continue
 
         pprint(f'meta clf = {key}')
-        stacking = clf.make_stackingCVClf(meta_clf)
+        stacking = clf.to_stackingCVClf(meta_clf)
         stacking.fit(train_Xs, train_Ys)
         score = stacking.score_pack(valid_Xs, valid_Ys)
         pprint(f'score {score}')
@@ -235,7 +235,7 @@ def exp_model_confidence():
     clf_pack.drop_clf('mlxMLP')
     clf_pack.drop_clf('skQDA')
 
-    esm_pack = clf_pack.make_ensembleClfpack()
+    esm_pack = clf_pack.to_ensembleClfpack()
     esm_pack.fit(train_Xs, train_Ys)
 
     train_dataset.sort()
@@ -328,7 +328,7 @@ def exp_titanic_data_difficulty():
 
     result_path = './titanic_difficulty_stat.csv'
     if not os.path.exists(result_path):
-        esm_pack = clf_pack.make_ensembleClfpack()
+        esm_pack = clf_pack.to_ensembleClfpack()
         esm_pack.fit(train_Xs, train_Ys)
 
         pack_dict = difficulty_stat(clf_pack, train_dataset, n=100)
@@ -614,3 +614,176 @@ def exp_titanic_corr_heatmap():
     # plot_corr_matrix(df, df.keys(), 3)
 
 
+def exp_C_GAN_with_titanic():
+    def show(data):
+        pass
+
+    pass
+    #
+    data_size = 4000
+    zero_one_rate = 0.5
+    datapack = DatasetPackLoader().load_dataset('titanic')
+    train_set = datapack['train']
+    test_set = datapack['test']
+    train_set.shuffle()
+    train, valid = train_set.split()
+
+    train_Xs, train_Ys = train.full_batch(['Xs', 'Ys'])
+    valid_Xs, valid_Ys = valid.full_batch(['Xs', 'Ys'])
+    #
+    print(train_Xs.shape, train_Ys.shape)
+    # path = 'C:\\Users\\demetoir_desktop\\PycharmProjects\\MLtools\\instance\\demetoir_C_GAN_2018-06-29_02-33-02'
+    # if not os.path.exists(path):
+    gan = C_GAN(learning_rate=0.001, n_noise=32, loss_type='GAN', with_clipping=True, clipping=.15)
+    gan.train(train_Xs, train_Ys, epoch=1000)
+    # path = gan.save()
+    # print(path)
+
+    # path = "C:\\Users\\demetoir_desktop\\PycharmProjects\\MLtools\\instance\\demetoir_C_GAN_2018-06-29_03-06-38"
+    # gan = C_GAN().load(path)
+
+    metric = gan.metric(train_Xs, train_Ys)
+    pprint(metric)
+
+    Ys_gen = [[1, 0] for _ in range(int(data_size * zero_one_rate))] \
+             + [[0, 1] for _ in range(int(data_size * (1 - zero_one_rate)))]
+    Ys_gen = np.array(Ys_gen)
+
+    Xs_gen = gan.generate(1, Ys_gen[:1])
+    Xs_gen = to_zero_one_encoding(Xs_gen)
+    pprint(Xs_gen)
+    pprint(Xs_gen.shape)
+
+    # plot_1d(train_Xs[:1])
+    # plot_1d(Xs_gen)
+    # plt.plot(train_Xs[:1])
+    # plt.show()
+
+    # Xs_merge = np.concatenate([Xs_gen, train_Xs], axis=0)
+    # Ys_merge = np.concatenate([Ys_gen, train_Ys], axis=0)
+    # clf_pack = ClassifierPack()
+    # # clf_pack.drop_clf('skQDA')
+    # clf_pack.drop_clf('skGaussian_NB')
+    # clf_pack.drop_clf('mlxSoftmaxRegressionClf')
+    # clf_pack.drop_clf('mlxPerceptronClf')
+    # clf_pack.drop_clf('mlxMLP')
+    # clf_pack.drop_clf('mlxLogisticRegression')
+    # clf_pack.drop_clf('mlxAdaline')
+    # clf_pack.drop_clf('skLinear_SVC')
+    # clf_pack.drop_clf('skSGD')
+    # clf_pack.drop_clf('skRBF_SVM')
+    # clf_pack.drop_clf('skMultinomial_NB')
+    # clf_pack.fit(Xs_merge, Ys_merge)
+    #
+    # score = clf_pack.score(Xs_merge, Ys_merge)
+    # pprint(score)
+    #
+    # score = clf_pack.score(Xs_gen, Ys_gen)
+    # pprint(score)
+    #
+    # score = clf_pack.score(train_Xs, train_Ys)
+    # pprint(score)
+    #
+    # score = clf_pack.score(valid_Xs, valid_Ys)
+    # pprint(score)
+
+    # esm_pack = clf_pack.to_ensembleClfpack()
+    # esm_pack.fit(Xs_merge, Ys_merge)
+    #
+    # score = esm_pack.score_pack(Xs_gen, Ys_gen)
+    # pprint(score)
+    #
+    # score = esm_pack.score_pack(train_Xs, train_Ys)
+    # pprint(score)
+    #
+    # score = esm_pack.score_pack(valid_Xs, valid_Ys)
+    # pprint(score)
+
+
+def exp_CVAE_with_titanic():
+    data_size = 4000
+    zero_one_rate = 0.5
+    datapack = DatasetPackLoader().load_dataset('titanic')
+    train_set = datapack['train']
+    test_set = datapack['test']
+    train_set.shuffle()
+    train, valid = train_set.split()
+
+    train_Xs, train_Ys = train.full_batch(['Xs', 'Ys'])
+    valid_Xs, valid_Ys = valid.full_batch(['Xs', 'Ys'])
+
+    # path = 'C:\\Users\\demetoir_desktop\\PycharmProjects\\MLtools\\instance\\demetoir_C_GAN_2018-06-29_02-33-02'
+    # if not os.path.exists(path):
+    cvae = CVAE(learning_rate=0.1, z_size=32, verbose=20, KL_D_rate=.05)
+    cvae.train(train_Xs, train_Ys, epoch=1)
+    # path = gan.save()
+    # print(path)
+
+    # path = "C:\\Users\\demetoir_desktop\\PycharmProjects\\MLtools\\instance\\demetoir_C_GAN_2018-06-29_03-06-38"
+    # gan = C_GAN().load(path)
+
+    metric = cvae.metric(train_Xs, train_Ys)
+    pprint(metric)
+
+    Xs_gen = cvae.recon(train_Xs, train_Ys)
+
+    # plot_1d(Xs_gen[:1])
+    # plot_1d(train_Xs[:1])
+
+    #
+    # Xs_gen = np.concatenate([Xs_gen, cvae.recon(train_Xs, train_Ys)], axis=0)
+    # Xs_gen = np.concatenate([Xs_gen, cvae.recon(train_Xs, train_Ys)], axis=0)
+    # Xs_gen = np.concatenate([Xs_gen, cvae.recon(train_Xs, train_Ys)], axis=0)
+    # Xs_gen = np.concatenate([Xs_gen, cvae.recon(train_Xs, train_Ys)], axis=0)
+    # Xs_gen = to_zero_one_encoding(Xs_gen)
+    # pprint(Xs_gen)
+    # pprint(Xs_gen.shape)
+    # Ys_gen = np.concatenate([train_Ys, train_Ys, train_Ys, train_Ys, train_Ys], axis=0)
+
+    # Xs_merge = np.concatenate([Xs_gen, train_Xs], axis=0)
+    # Ys_merge = np.concatenate([Ys_gen, train_Ys], axis=0)
+    # clf_pack = ClassifierPack()
+    # # clf_pack.drop_clf('skQDA')
+    # clf_pack.drop_clf('skGaussian_NB')
+    # clf_pack.drop_clf('mlxSoftmaxRegressionClf')
+    # clf_pack.drop_clf('mlxPerceptronClf')
+    # clf_pack.drop_clf('mlxMLP')
+    # clf_pack.drop_clf('mlxLogisticRegression')
+    # clf_pack.drop_clf('mlxAdaline')
+    # clf_pack.drop_clf('skLinear_SVC')
+    # clf_pack.drop_clf('skSGD')
+    # clf_pack.drop_clf('skRBF_SVM')
+    # clf_pack.drop_clf('skMultinomial_NB')
+    # clf_pack.fit(Xs_gen, Ys_gen)
+    #
+    # score = clf_pack.score(Xs_gen, Ys_gen)
+    # pprint(score)
+    #
+    # score = clf_pack.score(Xs_gen, Ys_gen)
+    # pprint(score)
+    #
+    # score = clf_pack.score(train_Xs, train_Ys)
+    # pprint(score)
+    #
+    # score = clf_pack.score(valid_Xs, valid_Ys)
+    # pprint(score)
+    #
+    # esm_pack = clf_pack.to_ensembleClfpack()
+    # esm_pack.fit(Xs_gen, Ys_gen)
+    #
+    # score = esm_pack.score(Xs_gen, Ys_gen)
+    # pprint(score)
+    #
+    # score = esm_pack.score(train_Xs, train_Ys)
+    # pprint(score)
+    #
+    # score = esm_pack.score(valid_Xs, valid_Ys)
+    # pprint(score)
+    #
+    # test_Xs = test_set.full_batch('Xs')
+    # predict = esm_pack.predict(test_Xs)['FoldingHardVote']
+    # # predict = clf_pack.predict(test_Xs)['skBagging']
+    # pprint(predict)
+    # pprint(predict.shape)
+    # submit_path = './submit.csv'
+    # datapack.to_kaggle_submit_csv(submit_path, predict)

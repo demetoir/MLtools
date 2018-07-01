@@ -52,7 +52,7 @@ def basicGenerator(z, net_shapes, flatten_size, output_shape, reuse=False, name=
         layer = Stacker(z)
 
         for shape in net_shapes:
-            layer.linear(shape)
+            layer.linear_block(shape, lrelu)
 
         layer.linear(flatten_size)
         layer.sigmoid()
@@ -66,7 +66,7 @@ def basicDiscriminator(X, net_shapes, reuse=False, name='discriminator'):
         layer = Stacker(flatten(X))
 
         for shape in net_shapes:
-            layer.linear(shape)
+            layer.linear(shape, lrelu)
 
         layer.linear(1)
         layer.sigmoid()
@@ -132,7 +132,7 @@ class GAN(BaseModel, basicGANPropertyMixIN):
         self.train_G = tf.train.AdamOptimizer(learning_rate=self.G_learning_rate) \
             .minimize(self.G_loss, var_list=self.G_vals)
 
-    def train(self, Xs, epoch=1, save_interval=None, batch_size=None, shuffle=True):
+    def train(self, Xs, epoch=1, save_interval=None, batch_size=None):
         self._prepare_train(Xs=Xs)
         dataset = self.to_dummyDataset(Xs=Xs)
 
@@ -143,8 +143,7 @@ class GAN(BaseModel, basicGANPropertyMixIN):
         iter_per_epoch = dataset.size // batch_size
         self.log.info("train epoch {}, iter/epoch {}".format(epoch, iter_per_epoch))
         for e in trange(epoch):
-            if shuffle:
-                dataset.shuffle()
+            dataset.shuffle()
 
             total_G = 0
             total_D = 0
@@ -152,7 +151,7 @@ class GAN(BaseModel, basicGANPropertyMixIN):
                 iter_num += 1
 
                 Xs = dataset.next_batch(batch_size)
-                zs = self.get_z_rand([batch_size, self.n_noise])
+                zs = self.get_z_rand_normal([batch_size, self.n_noise])
                 self.sess.run(self._train_ops, feed_dict={self._Xs: Xs, self._zs: zs})
 
                 loss_D, loss_G = self.sess.run([self.D_loss_mean, self.G_loss_mean],
@@ -172,10 +171,10 @@ class GAN(BaseModel, basicGANPropertyMixIN):
                 self.save()
 
     def generate(self, size):
-        zs = self.get_z_rand([size, self.n_noise])
+        zs = self.get_z_rand_normal([size, self.n_noise])
         return self.get_tf_values(self._gen_ops, {self.zs: zs})
 
     def metric(self, Xs):
-        zs = self.get_z_rand([Xs.shape[0], self.n_noise])
+        zs = self.get_z_rand_normal([Xs.shape[0], self.n_noise])
         D_loss, G_loss = self.get_tf_values(self._metric_ops, {self._Xs: Xs, self._zs: zs})
         return {'D_loss': D_loss, 'G_loss': G_loss}

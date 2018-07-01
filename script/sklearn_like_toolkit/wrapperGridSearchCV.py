@@ -41,7 +41,5 @@ class wrapperGridSearchCV(GridSearchCVProgressBar, ClfWrapperMixIn, metaclass=me
     def __init__(self, estimator, param_grid, scoring=None, fit_params=None, n_jobs=CPU_COUNT, iid=True, refit=True,
                  cv=None, verbose=0, pre_dispatch='2*n_jobs', error_score='raise', return_train_score="warn"):
         GridSearchCVProgressBar.__init__(self, estimator, param_grid, scoring, fit_params, n_jobs, iid, refit, cv,
-                                         verbose,
-                                         pre_dispatch,
-                                         error_score, return_train_score)
+                                         verbose, pre_dispatch, error_score, return_train_score)
         ClfWrapperMixIn.__init__(self)

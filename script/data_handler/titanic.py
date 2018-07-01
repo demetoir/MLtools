@@ -4,7 +4,7 @@ from script.data_handler.BaseDataset import BaseDataset
 from script.data_handler.BaseDatasetPack import BaseDatasetPack
 import os
 import pandas as pd
-from script.util.pandas_util import df_bucketize, df_to_np_dict, df_to_np_onehot_embedding
+from script.util.pandas_util import df_bucketize, df_to_np_dict, df_to_onehot_embedding
 
 FOLDER_NAME = "tatanic"
 PASSENGERID = 'PassengerId'
@@ -294,8 +294,7 @@ def build_transform(df):
     with_not_only_family = trans_with_not_only_family(room_mate_number, group_first_name_count)
 
     x_df = pd.concat(
-        [df[[SURVIVED]],
-         fare,
+        [fare,
          age,
          honorific,
          sex,
@@ -353,41 +352,33 @@ class titanic_train(BaseDataset):
         if not self.caching or not os.path.exists(trans_path):
             df = load_merge_set()
             merge_transform = build_transform(df)
-            train, test = split_train_test(merge_transform)
+            merge_transform_onehot = df_to_onehot_embedding(merge_transform)
+            merge_df = pd.concat([merge_transform_onehot, df[[SURVIVED]]], axis=1)
+            train, test = split_train_test(merge_df)
 
             merge_transform.to_csv(path_join(path, 'trans_merge.csv'))
-            train.to_csv(path_join(path, 'trans_train.csv'))
-            test.to_csv(path_join(path, 'trans_test.csv'))
+            train.to_csv(path_join(path, 'trans_train.csv'), index=False)
+            test.to_csv(path_join(path, 'trans_test.csv'), index=False)
 
-        df = pd.read_csv(trans_path)
+        df = pd.read_csv(trans_path, index_col=False)
         self.data = df_to_np_dict(df)
 
     def save(self):
         pass
 
     def transform(self):
-        Xs_df_keys = [
-            'Fare_bucket',
-            'Age_bucket',
-            'Honorific',
-            'Sex',
-            'Embarked',
-            'Pclass',
-            'SibSp',
-            'Parch',
-            'family_size',
-            'ticket_head',
-            'room_mate_number',
-            'group_first_name_count',
-            'with_not_only_family',
-            'Cabin'
-        ]
-        Xs_df = self.to_DataFrame(Xs_df_keys)
-        self.add_data('Xs', df_to_np_onehot_embedding(Xs_df))
+        df = self.to_DataFrame()
 
-        ys_df = self.to_DataFrame(['Survived'])
-        ys_df = ys_df.astype(int)
-        self.add_data('Ys', df_to_np_onehot_embedding(ys_df))
+        id_ = pd.DataFrame(df.pop('id_'))
+        self.add_data('id_', np.array(id_))
+
+        Ys_df = pd.DataFrame(df.pop(SURVIVED))
+        Ys_df = Ys_df.astype(int)
+        Ys_df = df_to_onehot_embedding(Ys_df)
+        self.add_data('Ys', np.array(Ys_df))
+
+        Xs_df = df
+        self.add_data('Xs', np.array(Xs_df))
 
 
 class titanic_test(BaseDataset):
@@ -427,39 +418,28 @@ class titanic_test(BaseDataset):
         if not self.caching or not os.path.exists(trans_path):
             df = load_merge_set()
             merge_transform = build_transform(df)
-            train, test = split_train_test(merge_transform)
+            merge_transform_onehot = df_to_onehot_embedding(merge_transform)
+            merge_df = pd.concat([merge_transform_onehot, df[[SURVIVED]]], axis=1)
+            train, test = split_train_test(merge_df)
 
-            merge_transform.to_csv('trans_merge.csv')
-            train.to_csv('trans_train.csv')
-            test.to_csv('trans_test.csv')
+            merge_transform.to_csv(path_join(path, 'trans_merge.csv'))
+            train.to_csv(path_join(path, 'trans_train.csv'), index=False)
+            test.to_csv(path_join(path, 'trans_test.csv'), index=False)
 
-        df = pd.read_csv(trans_path)
-
+        df = pd.read_csv(trans_path, index_col=False)
         self.data = df_to_np_dict(df)
 
     def save(self):
         pass
 
     def transform(self):
-        Xs_df_keys = [
-            'Fare_bucket',
-            'Age_bucket',
-            'Honorific',
-            'Sex',
-            'Embarked',
-            'Pclass',
-            'SibSp',
-            'Parch',
-            'family_size',
-            'ticket_head',
-            'room_mate_number',
-            'group_first_name_count',
-            'with_not_only_family',
-            'Cabin'
-        ]
-        Xs_df = self.to_DataFrame(Xs_df_keys)
+        df = self.to_DataFrame()
 
-        self.add_data('Xs', df_to_np_onehot_embedding(Xs_df))
+        id_ = pd.DataFrame(df.pop('id_'))
+        self.add_data('id_', np.array(id_))
+
+        Xs_df = df
+        self.add_data('Xs', np.array(Xs_df))
 
 
 class titanic(BaseDatasetPack):
