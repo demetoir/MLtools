@@ -33,7 +33,7 @@ class BaseModel(LoggerMixIn, input_shapesMixIN, metadataMixIN, paramsMixIn):
         :param logger_path: path for log file
         if logger_path is None, log ony stdout
         """
-        LoggerMixIn.__init__(self)
+        LoggerMixIn.__init__(self, verbose=verbose)
         input_shapesMixIN.__init__(self)
         metadataMixIN.__init__(self)
         paramsMixIn.__init__(self)
