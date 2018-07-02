@@ -1,7 +1,5 @@
-import warnings
-from script.sklearn_like_toolkit.base.BaseWrapperClf import BaseWrapperClf
-from script.sklearn_like_toolkit.warpper.sklearn_wrapper import skBernoulli_NB
-from script.util.numpy_utils import NP_ARRAY_TYPE_INDEX
+from mlxtend.regressor import StackingCVRegressor as _StackingCVRegressor
+from mlxtend.regressor import StackingRegressor as _StackingRegressor
 from mlxtend.classifier import Adaline as _Adaline
 from mlxtend.classifier import EnsembleVoteClassifier as _EnsembleVoteClassifier
 from mlxtend.classifier import LogisticRegression as _LogisticRegression
@@ -10,11 +8,17 @@ from mlxtend.classifier import Perceptron as _Perceptron
 from mlxtend.classifier import SoftmaxRegression as _SoftmaxRegression
 from mlxtend.classifier import StackingCVClassifier as _StackingCVClassifier
 from mlxtend.classifier import StackingClassifier as _StackingClassifier
-from script.sklearn_like_toolkit.base.MixIn import meta_BaseWrapperClf, meta_BaseWrapperClf_with_ABC
+from mlxtend.regressor.linear_regression import LinearRegression as _LinearRegression
+from script.sklearn_like_toolkit.base.BaseWrapperReg import BaseWrapperReg
+from script.sklearn_like_toolkit.base.BaseWrapperClf import BaseWrapperClf
+from script.sklearn_like_toolkit.warpper.sklearn_wrapper import skBernoulli_NB
+from script.sklearn_like_toolkit.base.MixIn import meta_BaseWrapperClf
+from script.sklearn_like_toolkit.base.MixIn import meta_BaseWrapperClf_with_ABC
+from script.sklearn_like_toolkit.base.MixIn import meta_BaseWrapperReg_with_ABC
+import warnings
 
 
 class mlxAdalineClf(_Adaline, BaseWrapperClf, metaclass=meta_BaseWrapperClf_with_ABC):
-    model_Ys_type = NP_ARRAY_TYPE_INDEX
     tuning_grid = {
         'eta': [i / 10.0 for i in range(1, 10 + 1, 3)],
         'epochs': [64, 128, 256],
@@ -33,7 +37,6 @@ class mlxAdalineClf(_Adaline, BaseWrapperClf, metaclass=meta_BaseWrapperClf_with
 
 
 class mlxLogisticRegressionClf(_LogisticRegression, BaseWrapperClf, metaclass=meta_BaseWrapperClf_with_ABC):
-    model_Ys_type = NP_ARRAY_TYPE_INDEX
     tuning_grid = {
         'eta': [i / 10.0 for i in range(1, 10 + 1, 3)],
         'epochs': [64, 128, 256],
@@ -151,3 +154,43 @@ class mlxStackingCVClf(BaseWrapperClf, _StackingCVClassifier, metaclass=meta_Bas
 
     def score_pack(self, X, y):
         return self._apply_metric_pack(y, self.predict(X))
+
+
+class mlxLinearReg(BaseWrapperReg, _LinearRegression, metaclass=meta_BaseWrapperReg_with_ABC):
+    tuning_grid = {
+        # 'eta': [i / 10.0 for i in range(1, 10 + 1, 3)],
+        # 'epochs': [64, 128, 256],
+        # 'minibatches': [1, 2, 4, 8],
+    }
+    remain_param = {
+    }
+
+    def __init__(self, eta=0.01, epochs=50, minibatches=None, random_seed=None, print_progress=0):
+        _LinearRegression.__init__(self, eta, epochs, minibatches, random_seed, print_progress)
+        BaseWrapperReg.__init__(self)
+
+    def score(self, X, y, sample_weight=None):
+        # TODO implement
+        return None
+
+
+class mlxStackingCVReg(BaseWrapperReg, _StackingCVRegressor, metaclass=meta_BaseWrapperReg_with_ABC):
+    tuning_grid = {
+        # 'eta': [i / 10.0 for i in range(1, 10 + 1, 3)],
+        # 'epochs': [64, 128, 256],
+        # 'minibatches': [1, 2, 4, 8],
+    }
+
+    def __init__(self, regressors, meta_regressor, cv=5, shuffle=True, use_features_in_secondary=False,
+                 store_train_meta_features=False, refit=True):
+        _StackingCVRegressor.__init__(
+            self, regressors, meta_regressor, cv, shuffle, use_features_in_secondary, store_train_meta_features, refit)
+        BaseWrapperReg.__init__(self)
+
+
+class mlxStackingReg(BaseWrapperReg, _StackingRegressor, metaclass=meta_BaseWrapperReg_with_ABC):
+    tuning_grid = {}
+
+    def __init__(self, regressors, meta_regressor, verbose=0, store_train_meta_features=False, refit=True):
+        _StackingRegressor.__init__(regressors, meta_regressor, verbose, store_train_meta_features, refit)
+        BaseWrapperReg.__init__(self)
