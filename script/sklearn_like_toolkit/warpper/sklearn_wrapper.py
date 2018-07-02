@@ -24,12 +24,6 @@ from script.sklearn_like_toolkit.base.MixIn import meta_BaseWrapperClf, meta_Bas
 
 
 class skMLP(BaseWrapperClf, _skMLPClassifier, metaclass=meta_BaseWrapperClf_with_ABC):
-    tuning_grid = {
-        'activation': ['relu'],
-        'alpha': [0.01, 0.1, 1, 10],
-        'hidden_layer_sizes': [(32,), (64,), (128,)],
-    }
-
     def __init__(self, hidden_layer_sizes=(100,), activation="relu", solver='adam', alpha=0.0001, batch_size='auto',
                  learning_rate="constant", learning_rate_init=0.001, power_t=0.5, max_iter=200, shuffle=True,
                  random_state=None, tol=1e-4, verbose=False, warm_start=False, momentum=0.9, nesterovs_momentum=True,
@@ -37,21 +31,22 @@ class skMLP(BaseWrapperClf, _skMLPClassifier, metaclass=meta_BaseWrapperClf_with
         warnings.filterwarnings(module='sklearn*', action='ignore', category=ConvergenceWarning)
 
         BaseWrapperClf.__init__(self)
-        _skMLPClassifier.__init__(self, hidden_layer_sizes, activation, solver, alpha, batch_size, learning_rate,
-                                  learning_rate_init,
-                                  power_t, max_iter, shuffle, random_state, tol, verbose, warm_start, momentum,
-                                  nesterovs_momentum, early_stopping, validation_fraction, beta_1, beta_2, epsilon)
+        _skMLPClassifier.__init__(
+            self, hidden_layer_sizes, activation, solver, alpha, batch_size, learning_rate, learning_rate_init, power_t,
+            max_iter, shuffle, random_state, tol, verbose, warm_start, momentum, nesterovs_momentum, early_stopping,
+            validation_fraction, beta_1, beta_2, epsilon)
 
-    tuning_params = {
-        'hidden_layer_sizes': (100,),
-        'activation': ['identity', 'logistic', 'tanh', 'relu'],
-        'max_iter': 200,
-        'learning_rate': ['constant', 'invscaling', 'adaptive'],
-        'learning_rate_init': 0.001,
-        'tol': 0.0001,
-        # L2 penalty
-        'alpha': 1,
+    tuning_grid = {
+        'activation': ['relu'],
+        'alpha': [0.01, 0.1, 1, 10],
+        'hidden_layer_sizes': [(32,), (64,), (128,)],
+
+        # 'max_iter': 200,
+        # 'learning_rate': ['constant', 'invscaling', 'adaptive'],
+        # 'learning_rate_init': 0.001,
+        # 'tol': 0.0001,
     }
+
     solver_param = {
         'solver': ['lbfgs', 'sgd', 'adam'],
 
@@ -66,6 +61,7 @@ class skMLP(BaseWrapperClf, _skMLPClassifier, metaclass=meta_BaseWrapperClf_with
         'nesterovs_momentum': True,
         'power_t': 0.5,
     }
+
     etc_param = {
         'random_state': None,
         'verbose': False,
@@ -76,12 +72,10 @@ class skMLP(BaseWrapperClf, _skMLPClassifier, metaclass=meta_BaseWrapperClf_with
         'batch_size': 'auto',
         'shuffle': True,
         'validation_fraction': 0.1,
-
     }
 
 
 class skGaussian_NB(BaseWrapperClf, _skGaussianNB, metaclass=meta_BaseWrapperClf_with_ABC):
-
     def __init__(self, priors=None):
         _skGaussianNB.__init__(self, priors)
         BaseWrapperClf.__init__(self)
@@ -100,12 +94,8 @@ class skBernoulli_NB(BaseWrapperClf, _skBernoulliNB, metaclass=meta_BaseWrapperC
     tuning_grid = {
         'alpha': [0.00001, 0.0001, 0.001, 0.01, 0.1, 1.0, 10.0],
         'binarize': [i / 10.0 for i in range(0, 10)],
-    }
-    tuning_params = {
-        'alpha': 1.0,
-        'binarize': 0.0,
-        'class_prior': None,
-        'fit_prior': True
+        # 'class_prior': None,
+        # 'fit_prior': True
     }
 
 
@@ -116,11 +106,8 @@ class skMultinomial_NB(BaseWrapperClf, _skMultinomialNB, metaclass=meta_BaseWrap
 
     tuning_grid = {
         'alpha': [0.00001, 0.0001, 0.001, 0.01, 0.1, 1.0, 10.0],
-    }
-    tuning_params = {
-        'alpha': 1.0,
-        'class_prior': None,
-        'fit_prior': True
+        # 'class_prior': None,
+        # 'fit_prior': True
     }
 
 
@@ -132,9 +119,6 @@ class skQDA(BaseWrapperClf, _skQDA, metaclass=meta_BaseWrapperClf):
         _skQDA.__init__(self, priors, reg_param, store_covariance, tol, store_covariances)
 
     tuning_grid = {
-    }
-    tuning_params = {
-
     }
     remain_param = {
         # TODO
@@ -148,29 +132,19 @@ class skQDA(BaseWrapperClf, _skQDA, metaclass=meta_BaseWrapperClf):
 
 
 class skDecisionTree(BaseWrapperClf, _skDecisionTreeClassifier, metaclass=meta_BaseWrapperClf_with_ABC):
-    """
-    sklearn base DecisionTreeClassifier
-    """
-
     def __init__(self, criterion="gini", splitter="best", max_depth=None, min_samples_split=2, min_samples_leaf=1,
                  min_weight_fraction_leaf=0., max_features=None, random_state=None, max_leaf_nodes=None,
                  min_impurity_decrease=0., min_impurity_split=None, class_weight=None, presort=False):
-        _skDecisionTreeClassifier.__init__(self, criterion, splitter, max_depth, min_samples_split, min_samples_leaf,
-                                           min_weight_fraction_leaf,
-                                           max_features, random_state, max_leaf_nodes, min_impurity_decrease,
-                                           min_impurity_split,
-                                           class_weight, presort)
+        _skDecisionTreeClassifier.__init__(
+            self, criterion, splitter, max_depth, min_samples_split, min_samples_leaf, min_weight_fraction_leaf,
+            max_features, random_state, max_leaf_nodes, min_impurity_decrease, min_impurity_split, class_weight,
+            presort)
         BaseWrapperClf.__init__(self)
 
     tuning_grid = {
         'max_depth': [i for i in range(1, 10)],
         'min_samples_leaf': [i for i in range(1, 5)],
         'min_samples_split': [i for i in range(2, 5)],
-    }
-    tuning_params = {
-        'max_depth': None,
-        'min_samples_leaf': 1,
-        'min_samples_split': 2,
     }
     default_only_params = {
         'criterion': 'gini',
@@ -195,13 +169,10 @@ class skRandomForest(BaseWrapperClf, _skRandomForestClassifier, metaclass=meta_B
                  min_weight_fraction_leaf=0., max_features="auto", max_leaf_nodes=None, min_impurity_decrease=0.,
                  min_impurity_split=None, bootstrap=True, oob_score=False, n_jobs=1, random_state=None, verbose=0,
                  warm_start=False, class_weight=None):
-        _skRandomForestClassifier.__init__(self, n_estimators, criterion, max_depth, min_samples_split,
-                                           min_samples_leaf,
-                                           min_weight_fraction_leaf, max_features, max_leaf_nodes,
-                                           min_impurity_decrease,
-                                           min_impurity_split, bootstrap, oob_score, n_jobs, random_state, verbose,
-                                           warm_start,
-                                           class_weight)
+        _skRandomForestClassifier.__init__(
+            self, n_estimators, criterion, max_depth, min_samples_split, min_samples_leaf, min_weight_fraction_leaf,
+            max_features, max_leaf_nodes, min_impurity_decrease, min_impurity_split, bootstrap, oob_score, n_jobs,
+            random_state, verbose, warm_start, class_weight)
         BaseWrapperClf.__init__(self)
 
     tuning_grid = {
@@ -210,12 +181,7 @@ class skRandomForest(BaseWrapperClf, _skRandomForestClassifier, metaclass=meta_B
         'min_samples_leaf': [i for i in range(1, 5)],
         'min_samples_split': [i for i in range(2, 5)],
     }
-    tuning_params = {
-        'n_estimators': 10,
-        'max_depth': None,
-        'min_samples_leaf': 1,
-        'min_samples_split': 2,
-    }
+
     etc_param = {
         # class weight option
         'class_weight': None,
@@ -244,11 +210,10 @@ class skExtraTrees(BaseWrapperClf, _skExtraTreesClassifier, metaclass=meta_BaseW
                  min_weight_fraction_leaf=0., max_features="auto", max_leaf_nodes=None, min_impurity_decrease=0.,
                  min_impurity_split=None, bootstrap=False, oob_score=False, n_jobs=1, random_state=None, verbose=0,
                  warm_start=False, class_weight=None):
-        _skExtraTreesClassifier.__init__(self, n_estimators, criterion, max_depth, min_samples_split, min_samples_leaf,
-                                         min_weight_fraction_leaf, max_features, max_leaf_nodes, min_impurity_decrease,
-                                         min_impurity_split, bootstrap, oob_score, n_jobs, random_state, verbose,
-                                         warm_start,
-                                         class_weight)
+        _skExtraTreesClassifier.__init__(
+            self, n_estimators, criterion, max_depth, min_samples_split, min_samples_leaf, min_weight_fraction_leaf,
+            max_features, max_leaf_nodes, min_impurity_decrease, min_impurity_split, bootstrap, oob_score, n_jobs,
+            random_state, verbose, warm_start, class_weight)
         BaseWrapperClf.__init__(self)
 
     tuning_grid = {
@@ -256,13 +221,6 @@ class skExtraTrees(BaseWrapperClf, _skExtraTreesClassifier, metaclass=meta_BaseW
         'max_depth': [i for i in range(1, 10, 2)],
         'min_samples_leaf': [i for i in range(1, 5)],
         'min_samples_split': [i for i in range(2, 5)],
-    }
-    tuning_params = {
-        # tuning params
-        'n_estimators': 10,
-        'max_depth': None,
-        'min_samples_leaf': 1,
-        'min_samples_split': 2,
     }
     only_default_params = {
         'bootstrap': False,
@@ -294,13 +252,7 @@ class skAdaBoost(BaseWrapperClf, _skAdaBoostClassifier, metaclass=meta_BaseWrapp
     tuning_grid = {
         'learning_rate': [0.00001, 0.0001, 0.001, 0.01, 0.1, 1.0],
         'n_estimators': [8, 16, 32, 64, 128, 256],
-    }
-    tuning_params = {
-        'base_estimator': None,
-        # tuning param
-        'learning_rate': 1.0,
-        'n_estimators': 50,
-
+        # 'base_estimator': None,
     }
     etc_param = {
         # etc
@@ -310,21 +262,18 @@ class skAdaBoost(BaseWrapperClf, _skAdaBoostClassifier, metaclass=meta_BaseWrapp
 
 
 class skGradientBoosting(BaseWrapperClf, _skGradientBoostingClassifier, metaclass=meta_BaseWrapperClf_with_ABC):
-    def _make_estimator(self, append=True):
-        pass
-
     def __init__(self, loss='deviance', learning_rate=0.1, n_estimators=100, subsample=1.0, criterion='friedman_mse',
                  min_samples_split=2, min_samples_leaf=1, min_weight_fraction_leaf=0., max_depth=3,
                  min_impurity_decrease=0., min_impurity_split=None, init=None, random_state=None, max_features=None,
                  verbose=0, max_leaf_nodes=None, warm_start=False, presort='auto'):
-        _skGradientBoostingClassifier.__init__(self, loss, learning_rate, n_estimators, subsample, criterion,
-                                               min_samples_split,
-                                               min_samples_leaf,
-                                               min_weight_fraction_leaf, max_depth, min_impurity_decrease,
-                                               min_impurity_split,
-                                               init,
-                                               random_state, max_features, verbose, max_leaf_nodes, warm_start, presort)
+        _skGradientBoostingClassifier.__init__(
+            self, loss, learning_rate, n_estimators, subsample, criterion, min_samples_split, min_samples_leaf,
+            min_weight_fraction_leaf, max_depth, min_impurity_decrease, min_impurity_split, init, random_state,
+            max_features, verbose, max_leaf_nodes, warm_start, presort)
         BaseWrapperClf.__init__(self)
+
+    def _make_estimator(self, append=True):
+        pass
 
     tuning_grid = {
         'learning_rate': [0.001, 0.01, 0.1, 1],
@@ -332,14 +281,6 @@ class skGradientBoosting(BaseWrapperClf, _skGradientBoostingClassifier, metaclas
         'n_estimators': [16, 32, 64, 128, 256],
         'min_samples_leaf': [i for i in range(1, 5)],
         'min_samples_split': [i for i in range(2, 5)],
-    }
-    tuning_params = {
-        # tuning param
-        'learning_rate': 0.1,
-        'max_depth': 3,
-        'n_estimators': 100,
-        'min_samples_leaf': 1,
-        'min_samples_split': 2,
     }
     only_default_params = {
         'criterion': 'friedman_mse',
@@ -364,11 +305,14 @@ class skGradientBoosting(BaseWrapperClf, _skGradientBoostingClassifier, metaclas
 
 
 class skKNeighbors(BaseWrapperClf, _skKNeighborsClassifier, metaclass=meta_BaseWrapperClf_with_ABC):
+    def __init__(self, n_neighbors=5, weights='uniform', algorithm='auto', leaf_size=30, p=2, metric='minkowski',
+                 metric_params=None, n_jobs=1, **kwargs):
+        _skKNeighborsClassifier.__init__(
+            self, n_neighbors, weights, algorithm, leaf_size, p, metric, metric_params, n_jobs, **kwargs)
+        BaseWrapperClf.__init__(self)
+
     tuning_grid = {
         'n_neighbors': [i for i in range(1, 32)],
-    }
-    tuning_params = {
-        'n_neighbors': 5,
     }
     only_default_params = {
         'weights': 'uniform',
@@ -376,31 +320,23 @@ class skKNeighbors(BaseWrapperClf, _skKNeighborsClassifier, metaclass=meta_BaseW
         'p': 2,
         'leaf_size': 30,
     }
+
     etc_param = {
         'n_jobs': 1,
         'metric': 'minkowski',
         'metric_params': None,
     }
 
-    def __init__(self, n_neighbors=5, weights='uniform', algorithm='auto', leaf_size=30, p=2, metric='minkowski',
-                 metric_params=None, n_jobs=1, **kwargs):
-        _skKNeighborsClassifier.__init__(self, n_neighbors, weights, algorithm, leaf_size, p, metric,
-                                         metric_params, n_jobs,
-                                         **kwargs)
-        BaseWrapperClf.__init__(self)
-
 
 class skGaussianProcess(BaseWrapperClf, _skGaussianProcessClassifier, metaclass=meta_BaseWrapperClf_with_ABC):
     def __init__(self, kernel=None, optimizer="fmin_l_bfgs_b", n_restarts_optimizer=0, max_iter_predict=100,
                  warm_start=False, copy_X_train=True, random_state=None, multi_class="one_vs_rest", n_jobs=1):
-        _skGaussianProcessClassifier.__init__(self, kernel, optimizer, n_restarts_optimizer, max_iter_predict,
-                                              warm_start, copy_X_train, random_state, multi_class, n_jobs)
+        _skGaussianProcessClassifier.__init__(
+            self, kernel, optimizer, n_restarts_optimizer, max_iter_predict, warm_start, copy_X_train, random_state,
+            multi_class, n_jobs)
         BaseWrapperClf.__init__(self, )
 
     tuning_grid = {
-
-    }
-    tuning_params = {
 
     }
     remain_param = {
@@ -426,14 +362,21 @@ class skGaussianProcess(BaseWrapperClf, _skGaussianProcessClassifier, metaclass=
 class skSGD(BaseWrapperClf, _skSGDClassifier, metaclass=meta_BaseWrapperClf_with_ABC):
     # todo wtf?
     # http://scikit-learn.org/stable/modules/generated/sklearn.linear_model.SGDClassifier.html#sklearn.linear_model.SGDClassifier
+    def __init__(self, loss="hinge", penalty='l2', alpha=0.0001, l1_ratio=0.15, fit_intercept=True, max_iter=1000,
+                 tol=None, shuffle=True, verbose=0, epsilon=DEFAULT_EPSILON, n_jobs=1, random_state=None,
+                 learning_rate="optimal", eta0=0.0, power_t=0.5, class_weight=None, warm_start=False, average=False,
+                 n_iter=None):
+        _skSGDClassifier.__init__(
+            self, loss, penalty, alpha, l1_ratio, fit_intercept, max_iter, tol, shuffle, verbose, epsilon, n_jobs,
+            random_state, learning_rate, eta0, power_t, class_weight, warm_start, average, n_iter)
+        BaseWrapperClf.__init__(self)
+
     tuning_grid = {
         # todo random..
         'alpha': [0.0001, 0.001, 0.01, 0.1, 1, 1.0],
 
     }
-    tuning_params = {
-        'alpha': 0.0001,
-    }
+
     remain_param = {
         # TODO
         'tol': None,
@@ -463,32 +406,20 @@ class skSGD(BaseWrapperClf, _skSGDClassifier, metaclass=meta_BaseWrapperClf_with
         'shuffle': True,
     }
 
-    def __init__(self, loss="hinge", penalty='l2', alpha=0.0001, l1_ratio=0.15, fit_intercept=True, max_iter=1000,
-                 tol=None, shuffle=True, verbose=0, epsilon=DEFAULT_EPSILON, n_jobs=1, random_state=None,
-                 learning_rate="optimal", eta0=0.0, power_t=0.5, class_weight=None, warm_start=False, average=False,
-                 n_iter=None):
-        _skSGDClassifier.__init__(self, loss, penalty, alpha, l1_ratio, fit_intercept, max_iter, tol, shuffle, verbose,
-                                  epsilon,
-                                  n_jobs, random_state, learning_rate, eta0, power_t, class_weight, warm_start, average,
-                                  n_iter)
-        BaseWrapperClf.__init__(self)
-
 
 class skLinear_SVC(BaseWrapperClf, _skLinearSVC, metaclass=meta_BaseWrapperClf_with_ABC):
-    def __init__(self):
-        _skLinearSVC.__init__(self, penalty='l2', loss='squared_hinge', dual=True, tol=1e-4,
-                              C=1.0, multi_class='ovr', fit_intercept=True,
-                              intercept_scaling=1, class_weight=None, verbose=0,
-                              random_state=None, max_iter=1000)
+    def __init__(self, penalty='l2', loss='squared_hinge', dual=True, tol=1e-4, C=1.0, multi_class='ovr',
+                 fit_intercept=True, intercept_scaling=1, class_weight=None, verbose=0, random_state=None,
+                 max_iter=1000):
+        _skLinearSVC.__init__(
+            self, penalty, loss, dual, tol, C, multi_class, fit_intercept, intercept_scaling, class_weight, verbose,
+            random_state, max_iter)
+
         BaseWrapperClf.__init__(self)
 
     tuning_grid = {
         'C': [0.00001, 0.0001, 0.001, 0.01, 0.1, 1.0, 10],
         'max_iter': [2 ** i for i in range(6, 13)],
-    }
-    tuning_params = {
-        'C': 1.0,
-        'max_iter': 1000,
     }
     only_default_params = {
         'fit_intercept': True,
@@ -513,17 +444,14 @@ class skRBF_SVM(BaseWrapperClf, _skSVC, metaclass=meta_BaseWrapperClf_with_ABC):
     def __init__(self, C=1.0, kernel='rbf', degree=3, gamma='auto', coef0=0.0, shrinking=True, probability=True,
                  tol=1e-3, cache_size=200, class_weight=None, verbose=False, max_iter=-1, decision_function_shape='ovr',
                  random_state=None):
-        _skSVC.__init__(self, C, kernel, degree, gamma, coef0, shrinking, probability, tol, cache_size, class_weight,
-                        verbose, max_iter, decision_function_shape, random_state)
+        _skSVC.__init__(
+            self, C, kernel, degree, gamma, coef0, shrinking, probability, tol, cache_size, class_weight, verbose,
+            max_iter, decision_function_shape, random_state)
         BaseWrapperClf.__init__(self)
 
     tuning_grid = {
         'C': [1 ** i for i in range(-5, 5)],
         'gamma': [1 ** i for i in range(-5, 5)],
-    }
-    tuning_params = {
-        'C': 1,
-        'gamma': 2,
     }
     # todo
     remain_param = {
@@ -543,25 +471,27 @@ class skRBF_SVM(BaseWrapperClf, _skSVC, metaclass=meta_BaseWrapperClf_with_ABC):
 
 
 class skVoting(BaseWrapperClf, _skVotingClassifier, metaclass=meta_BaseWrapperClf_with_ABC):
-    tuning_grid = {
-    }
-    tuning_params = {
-    }
-
     def __init__(self, estimators, voting='hard', weights=None, n_jobs=1, flatten_transform=None):
         _skVotingClassifier.__init__(self, estimators, voting, weights, n_jobs, flatten_transform)
         BaseWrapperClf.__init__(self)
 
-
-class skBagging(BaseWrapperClf, _BaggingClassifier, metaclass=meta_BaseWrapperClf_with_ABC):
     tuning_grid = {
     }
+
     tuning_params = {
     }
 
+
+class skBagging(BaseWrapperClf, _BaggingClassifier, metaclass=meta_BaseWrapperClf_with_ABC):
     def __init__(self, base_estimator=None, n_estimators=10, max_samples=1.0, max_features=1.0, bootstrap=True,
                  bootstrap_features=False, oob_score=False, warm_start=False, n_jobs=1, random_state=None, verbose=0):
-        _BaggingClassifier.__init__(self, base_estimator, n_estimators, max_samples, max_features, bootstrap,
-                                    bootstrap_features,
-                                    oob_score, warm_start, n_jobs, random_state, verbose)
+        _BaggingClassifier.__init__(
+            self, base_estimator, n_estimators, max_samples, max_features, bootstrap, bootstrap_features, oob_score,
+            warm_start, n_jobs, random_state, verbose)
         BaseWrapperClf.__init__(self)
+
+    tuning_grid = {
+    }
+
+    tuning_params = {
+    }
