@@ -1,6 +1,5 @@
-from sklearn_like_toolkit.warpper.xgboost_wrapper import XGBoostReg
+from script.sklearn_like_toolkit.warpper.xgboost_wrapper import XGBoostReg
 from sklearn.metrics import mean_squared_error, r2_score
-
 from unit_test.sklearn_like_toolkit.wrapper.helper import get_reg_data
 
 

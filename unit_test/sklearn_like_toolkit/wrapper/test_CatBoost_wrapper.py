@@ -1,5 +1,5 @@
 from sklearn.metrics import mean_squared_error, r2_score
-from sklearn_like_toolkit.warpper.catboost_wrapper import CatBoostReg
+from script.sklearn_like_toolkit.warpper.catboost_wrapper import CatBoostReg
 from unit_test.sklearn_like_toolkit.wrapper.helper import get_reg_data
 
 
