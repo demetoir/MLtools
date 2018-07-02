@@ -35,6 +35,7 @@ def wrapper_reg_common(reg, ):
     score = reg.score(train_x, train_y)
     pprint(score)
 
+    # TODO implement
     # The coefficients
     # print('Coefficients: \n', regr.coef_)
     # The mean squared error
