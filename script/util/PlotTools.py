@@ -1,14 +1,15 @@
 import itertools
 import numpy as np
+import warnings
 from PIL import Image
 from script.util.misc_util import time_stamp, path_join, setup_file
 
 color_set = ['b', 'r', 'g', 'c', 'm', 'y', 'k']
 marker_set = [
     # '.',
-              # ',',
-              'o', 'v', '<', '>', '1', '2', '3', '4', 's', 'p', '*', 'h', 'H', '+', 'x', 'D', 'd',
-              '|', '_', ]
+    # ',',
+    'o', 'v', '<', '>', '1', '2', '3', '4', 's', 'p', '*', 'h', 'H', '+', 'x', 'D', 'd',
+    '|', '_', ]
 """
     ``'.'``          point marker
     ``','``          pixel marker
@@ -49,6 +50,7 @@ line_marker = list(itertools.product(line_set, color_set))
 line_marker = map(lambda x: "".join(x), line_marker)
 
 
+
 class PlotTools:
 
     def __init__(self, dpi=300):
@@ -62,6 +64,7 @@ class PlotTools:
         import matplotlib.pyplot as _plt
         self.plt = _plt
         del _plt
+
 
     @staticmethod
     def to_2d_square(np_arr_1d, padding=None):
@@ -147,12 +150,14 @@ class PlotTools:
         self.sns.set_color_codes()
 
     def dist(self, np_x, bins=None, ax=None, axlabel=None, path=None, show=False, title=None, extend='.png'):
+        warnings.filterwarnings(module='matplotlib*', action='ignore', category=UserWarning)
+
         self.sns_setup()
 
         sns_plot = self.sns.distplot(np_x, bins=bins, rug=True, hist=True, ax=ax, axlabel=axlabel,
-                                     rug_kws={"color": "g", 'label': 'rug'},
-                                     kde_kws={"color": "r", "label": "KDE"},
-                                     hist_kws={"color": "b", "label": 'hist'})
+                                         rug_kws={"color": "g", 'label': 'rug'},
+                                         kde_kws={"color": "r", "label": "KDE"},
+                                         hist_kws={"color": "b", "label": 'hist'})
         fig = sns_plot.figure
 
         self.plt_common_teardown(fig, path=path, show=show, title=title, extend=extend)
