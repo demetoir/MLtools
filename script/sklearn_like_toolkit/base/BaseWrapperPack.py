@@ -20,6 +20,9 @@ class BaseWrapperPack(ClfWrapperMixIn, metaclass=meta_BaseWrapperClf):
     def __str__(self):
         return self.__class__.__name__
 
+    def __getitem__(self, item):
+        return self.pack.__getitem__(item)
+
     def param_search(self, Xs, Ys):
         result_csv_path = path_join('.', 'param_search_result', time_stamp())
         Ys = self.np_arr_to_index(Ys)
@@ -144,3 +147,6 @@ class BaseWrapperPack(ClfWrapperMixIn, metaclass=meta_BaseWrapperClf):
                 log_error_trace(self.log.warn, e, f'while execute confidence at {key},\n')
 
         return confidences
+
+    def drop(self, key):
+        self.pack.pop(key)
