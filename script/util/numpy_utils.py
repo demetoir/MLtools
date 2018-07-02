@@ -173,6 +173,9 @@ def get_np_arr_type(np_arr):
 
 
 def reformat_np_arr(np_arr, to_np_arr_type, from_np_arr_type=None):
+    if not is_np_arr(np_arr):
+        np_arr = np.array(np_arr)
+
     if from_np_arr_type is None:
         from_np_arr_type = get_np_arr_type(np_arr)
 
