@@ -2,6 +2,7 @@ from pprint import pprint
 import seaborn as sns
 import numpy as np
 from script.util.PlotTools import PlotTools
+from util.deco import deco_timeit
 
 
 def test_plot_tools_pair_plot():
@@ -14,16 +15,16 @@ def test_plot_tools_pair_plot():
 def test_plot_tool_to_2d_square():
     plt_tools = PlotTools()
     rand_x_1d = np.random.normal(3, 5, [15])
-    pprint(plt_tools._to_2d_square(rand_x_1d))
-    pprint(plt_tools._to_2d_square(rand_x_1d).shape)
+    pprint(plt_tools.to_2d_square(rand_x_1d))
+    pprint(plt_tools.to_2d_square(rand_x_1d).shape)
 
     rand_x_1d = np.random.normal(3, 5, [16])
-    pprint(plt_tools._to_2d_square(rand_x_1d))
-    pprint(plt_tools._to_2d_square(rand_x_1d).shape)
+    pprint(plt_tools.to_2d_square(rand_x_1d))
+    pprint(plt_tools.to_2d_square(rand_x_1d).shape)
 
     rand_x_1d = np.random.normal(3, 5, [17])
-    pprint(plt_tools._to_2d_square(rand_x_1d))
-    pprint(plt_tools._to_2d_square(rand_x_1d).shape)
+    pprint(plt_tools.to_2d_square(rand_x_1d))
+    pprint(plt_tools.to_2d_square(rand_x_1d).shape)
 
 
 def test_plot_tools_cluster_map():
@@ -78,3 +79,28 @@ def test_plt_dist():
     rand_x_1d = np.random.normal(3, 5, [20])
     plt_tools = PlotTools()
     plt_tools.dist(rand_x_1d)
+
+
+@deco_timeit
+def test_plot_tool_timeit():
+    rand_x_1d = np.random.normal(3, 5, [10000])
+    tool = PlotTools()
+    for i in range(10):
+        tool.dist(rand_x_1d)
+
+
+@deco_timeit
+def test_plot_tool_async_timeit():
+    rand_x_1d = np.random.normal(3, 5, [10000])
+    tool = PlotTools()
+
+    from multiprocessing_on_dill.pool import Pool
+    pool = Pool(processes=8)
+
+    childs = []
+    for i in range(10):
+        child = pool.apply_async(tool.dist, args=[rand_x_1d])
+        childs += [child]
+
+    for child in childs:
+        child.get()
