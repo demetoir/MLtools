@@ -14,16 +14,16 @@ def test_plot_tools_pair_plot():
 def test_plot_tool_to_2d_square():
     plt_tools = PlotTools()
     rand_x_1d = np.random.normal(3, 5, [15])
-    pprint(plt_tools.to_2d_square(rand_x_1d))
-    pprint(plt_tools.to_2d_square(rand_x_1d).shape)
+    pprint(plt_tools._to_2d_square(rand_x_1d))
+    pprint(plt_tools._to_2d_square(rand_x_1d).shape)
 
     rand_x_1d = np.random.normal(3, 5, [16])
-    pprint(plt_tools.to_2d_square(rand_x_1d))
-    pprint(plt_tools.to_2d_square(rand_x_1d).shape)
+    pprint(plt_tools._to_2d_square(rand_x_1d))
+    pprint(plt_tools._to_2d_square(rand_x_1d).shape)
 
     rand_x_1d = np.random.normal(3, 5, [17])
-    pprint(plt_tools.to_2d_square(rand_x_1d))
-    pprint(plt_tools.to_2d_square(rand_x_1d).shape)
+    pprint(plt_tools._to_2d_square(rand_x_1d))
+    pprint(plt_tools._to_2d_square(rand_x_1d).shape)
 
 
 def test_plot_tools_cluster_map():
