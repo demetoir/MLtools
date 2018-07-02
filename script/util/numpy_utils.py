@@ -199,3 +199,7 @@ def np_stat_dict(a):
         'std': np.round(a.std(), decimals=4),
         'count': len(a),
     }
+
+
+def is_np_arr(x):
+    return isinstance(x, np.ndarray)
