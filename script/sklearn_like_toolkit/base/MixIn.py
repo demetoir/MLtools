@@ -30,6 +30,30 @@ class meta_BaseWrapperClf_with_ABC(meta_BaseWrapperClf, ABCMeta):
     pass
 
 
+class meta_BaseWrapperReg(type):
+    def __init__(cls, name, bases, cls_dict):
+        type.__init__(cls, name, bases, cls_dict)
+
+        # def deco_reformat_y(func):
+        #     def wrapper(*args, **kwargs):
+        #         y = args[2]
+        #         args = list(args[:2]) + [Reformat_Ys_MixIn.np_arr_to_index(y)] + list(args[3:])
+        #
+        #         ret = func(*args, **kwargs)
+        #         return ret
+        #
+        #     return wrapper
+        #
+        # func_names = ['score', 'score_pack', 'fit']
+        # for func_name in func_names:
+        #     if hasattr(cls, func_name):
+        #         setattr(cls, func_name, deco_reformat_y(getattr(cls, func_name)))
+
+
+class meta_BaseWrapperReg_with_ABC(meta_BaseWrapperReg, ABCMeta):
+    pass
+
+
 class Reformat_Ys_MixIn:
     @staticmethod
     def np_arr_to_index(Xs):
@@ -108,4 +132,12 @@ class ClfWrapperMixIn(score_pack_MixIn, PickleMixIn, LoggerMixIn, ClfConfidenceM
         PickleMixIn.__init__(self)
         LoggerMixIn.__init__(self)
         ClfConfidenceMixIn.__init__(self)
+        etc_MixIn.__init__(self)
+
+
+class RegWrapperMixIn(PickleMixIn, LoggerMixIn, etc_MixIn):
+    def __init__(self):
+        # score_pack_MixIn.__init__(self)
+        PickleMixIn.__init__(self)
+        LoggerMixIn.__init__(self)
         etc_MixIn.__init__(self)
