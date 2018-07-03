@@ -57,15 +57,6 @@ class ClassifierPack(BaseWrapperClfPack):
         mlxSoftmaxRegressionClf.__name__: mlxSoftmaxRegressionClf,
     }
 
-    def __init__(self, pack_keys=None):
-        super().__init__()
-        if pack_keys is None:
-            pack_keys = self.class_pack.keys()
-
-        self.pack = {}
-        for key in pack_keys:
-            self.pack[key] = self.class_pack[key]()
-
     def to_FoldingHardVote(self):
         clfs = [v for k, v in self.pack.items()]
         return FoldingHardVoteClf(clfs)
