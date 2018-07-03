@@ -1,8 +1,6 @@
 from pprint import pprint
-
 from sklearn.metrics import mean_squared_error, r2_score
-
-from data_handler.DatasetPackLoader import DatasetPackLoader
+from script.data_handler.DatasetPackLoader import DatasetPackLoader
 
 
 def get_reg_data():
