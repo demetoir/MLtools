@@ -1,5 +1,4 @@
 from pprint import pprint
-from sklearn.metrics import mean_squared_error, r2_score
 from script.data_handler.DatasetPackLoader import DatasetPackLoader
 
 
@@ -29,23 +28,28 @@ def wrapper_reg_common(reg, ):
 
     reg.fit(train_x, train_y)
 
-    predict = reg.predict(test_x)
-    pprint(predict)
+    try:
+        predict = reg.predict(test_x)
+        pprint(predict)
+    except BaseException as e:
+        pprint(f" while predict in {reg}, {e}")
 
-    score = reg.score(train_x, train_y)
-    pprint(score)
+    try:
+        score = reg.score(train_x, train_y)
+        pprint(score)
+    except BaseException as e:
+        pprint(f" while score in {reg}, {e}")
 
     # TODO implement
     # The coefficients
     # print('Coefficients: \n', regr.coef_)
     # The mean squared error
 
-    mse = mean_squared_error(test_y, predict)
-    pprint("Mean squared error: %.2f" % mse)
-
-    # Explained variance score: 1 is perfect prediction
-    score = r2_score(test_y, predict)
-    pprint('Variance score: %.2f' % score)
+    try:
+        score = reg.score_pack(train_x, train_y)
+        pprint(score)
+    except BaseException as e:
+        pprint(f" while score_pack in {reg}, {e}")
 
 
 def wrapper_clf_common(clf):
