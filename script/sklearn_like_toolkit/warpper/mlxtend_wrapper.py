@@ -11,7 +11,7 @@ from mlxtend.classifier import StackingClassifier as _StackingClassifier
 from mlxtend.regressor.linear_regression import LinearRegression as _LinearRegression
 from script.sklearn_like_toolkit.base.BaseWrapperReg import BaseWrapperReg
 from script.sklearn_like_toolkit.base.BaseWrapperClf import BaseWrapperClf
-from script.sklearn_like_toolkit.warpper.sklearn_wrapper import skBernoulli_NB
+from script.sklearn_like_toolkit.warpper.sklearn_wrapper import skBernoulli_NBClf
 from script.sklearn_like_toolkit.base.MixIn import meta_BaseWrapperClf
 from script.sklearn_like_toolkit.base.MixIn import meta_BaseWrapperClf_with_ABC
 from script.sklearn_like_toolkit.base.MixIn import meta_BaseWrapperReg_with_ABC
@@ -125,7 +125,7 @@ class mlxStackingClf(BaseWrapperClf, _StackingClassifier, metaclass=meta_BaseWra
                  use_features_in_secondary=False, store_train_meta_features=False, use_clones=True):
         warnings.filterwarnings(module='mlxtend*', action='ignore', category=FutureWarning)
         if meta_classifier is None:
-            meta_classifier = skBernoulli_NB()
+            meta_classifier = skBernoulli_NBClf()
 
         BaseWrapperClf.__init__(self)
         _StackingClassifier.__init__(self, classifiers, meta_classifier, use_probas, average_probas, verbose,
@@ -145,7 +145,7 @@ class mlxStackingCVClf(BaseWrapperClf, _StackingCVClassifier, metaclass=meta_Bas
         warnings.filterwarnings(module='mlxtend*', action='ignore', category=FutureWarning)
 
         if meta_classifier is None:
-            meta_classifier = skBernoulli_NB()
+            meta_classifier = skBernoulli_NBClf()
 
         BaseWrapperClf.__init__(self)
         _StackingCVClassifier.__init__(self, classifiers, meta_classifier, use_probas, cv, use_features_in_secondary,
@@ -193,5 +193,5 @@ class mlxStackingReg(BaseWrapperReg, _StackingRegressor, metaclass=meta_BaseWrap
     tuning_grid = {}
 
     def __init__(self, regressors, meta_regressor, verbose=0, store_train_meta_features=False, refit=True):
-        _StackingRegressor.__init__(regressors, meta_regressor, verbose, store_train_meta_features, refit)
+        _StackingRegressor.__init__(self, regressors, meta_regressor, verbose, store_train_meta_features, refit)
         BaseWrapperReg.__init__(self)
