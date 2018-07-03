@@ -168,6 +168,7 @@ class mlxLinearReg(BaseWrapperReg, _LinearRegression, metaclass=meta_BaseWrapper
     def __init__(self, eta=0.01, epochs=50, minibatches=None, random_seed=None, print_progress=0):
         _LinearRegression.__init__(self, eta, epochs, minibatches, random_seed, print_progress)
         BaseWrapperReg.__init__(self)
+        warnings.filterwarnings(module='mlxtend*', action='ignore', category=FutureWarning)
 
     def score(self, X, y, sample_weight=None):
         predict = self.predict(X)
