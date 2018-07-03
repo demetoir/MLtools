@@ -10,12 +10,19 @@ from script.util.misc_util import time_stamp, dump_pickle, load_pickle, path_joi
 class BaseWrapperClfPack(ClfWrapperMixIn, metaclass=meta_BaseWrapperClf):
     class_pack = {}
 
-    def __init__(self):
+    def __init__(self, pack_keys=None):
         super().__init__()
         self.pack = {}
         self.optimizers = {}
         self.optimize_result = {}
         self.params_save_path = SKLEARN_PARAMS_SAVE_PATH
+
+        if pack_keys is None:
+            pack_keys = self.class_pack.keys()
+
+        self.pack = {}
+        for key in pack_keys:
+            self.pack[key] = self.class_pack[key]()
 
     def __str__(self):
         return self.__class__.__name__
