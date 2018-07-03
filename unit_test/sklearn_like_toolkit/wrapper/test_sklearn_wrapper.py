@@ -3,7 +3,7 @@ from script.sklearn_like_toolkit.warpper.sklearn_wrapper import skRidgeClf, skRi
     skRandomForestReg, skBaggingReg, skGaussianProcessReg, skDecisionTreeReg, skExtraTreeReg, skHuberReg, \
     skRadiusNeighborsReg, skKNeighborsReg, skPassiveAggressiveReg, skRANSACReg, skTheilSenReg, skKernelRidgeReg, \
     skElasticNetCvReg, skBayesianRidgeReg, skARDReg, skLogisticReg, skSGDReg, skRidgeReg, skLassoReg, skLassoCVReg, \
-    skLassoLarsReg, skLassoLarsCVReg, skElasticNetReg
+    skLassoLarsReg, skLassoLarsCVReg, skElasticNetReg, skIsotonicReg
 from unit_test.sklearn_like_toolkit.wrapper.helper import wrapper_clf_common, wrapper_reg_common
 
 
@@ -164,4 +164,9 @@ def test_skLassoLarsCVReg():
 
 def test_skElasticNetReg():
     reg = skElasticNetReg()
+    wrapper_reg_common(reg)
+
+
+def test_skIsotonicReg():
+    reg = skIsotonicReg()
     wrapper_reg_common(reg)
