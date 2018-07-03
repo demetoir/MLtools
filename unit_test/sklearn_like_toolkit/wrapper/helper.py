@@ -2,6 +2,8 @@ from pprint import pprint
 
 from sklearn.metrics import mean_squared_error, r2_score
 
+from data_handler.DatasetPackLoader import DatasetPackLoader
+
 
 def get_reg_data():
     import numpy as np
@@ -46,3 +48,29 @@ def wrapper_reg_common(reg, ):
     # Explained variance score: 1 is perfect prediction
     score = r2_score(test_y, predict)
     pprint('Variance score: %.2f' % score)
+
+
+def wrapper_clf_common(clf):
+    datapack = DatasetPackLoader().load_dataset("titanic")
+    train_set = datapack['train']
+    train_set, valid_set = train_set.split((7, 3))
+    train_Xs, train_Ys = train_set.full_batch(['Xs', 'Ys'])
+    valid_Xs, valid_Ys = valid_set.full_batch(['Xs', 'Ys'])
+    sample_Xs, sample_Ys = valid_Xs[:2], valid_Ys[:2]
+
+    clf.fit(train_Xs, train_Ys)
+
+    predict = clf.predict(valid_Xs[:4])
+    print(f'predict {predict}')
+
+    try:
+        proba = clf.predict_proba(valid_Xs[:4])
+        print(f'proba {proba}')
+    except BaseException as e:
+        print(f'while {clf} predict_proba {e}')
+
+    score = clf.score(valid_Xs, valid_Ys)
+    print(f'score {score}')
+
+    score = clf.score_pack(valid_Xs, valid_Ys)
+    print(f'score_pack {score}')
