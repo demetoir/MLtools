@@ -1,5 +1,5 @@
-from data_handler.DatasetPackLoader import DatasetPackLoader
-from model.sklearn_like_model.GAN.C_GAN import C_GAN
+from script.data_handler.DatasetPackLoader import DatasetPackLoader
+from script.model.sklearn_like_model.GAN.C_GAN import C_GAN
 
 
 def to_zero_one_encoding(x):

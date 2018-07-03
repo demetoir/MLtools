@@ -2,7 +2,7 @@ from pprint import pprint
 import seaborn as sns
 import numpy as np
 from script.util.PlotTools import PlotTools
-from util.deco import deco_timeit
+from script.util.deco import deco_timeit
 
 
 def test_plot_tools_pair_plot():
