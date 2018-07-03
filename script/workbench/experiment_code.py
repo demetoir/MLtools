@@ -9,7 +9,7 @@ from script.data_handler.titanic import build_transform
 from script.sklearn_like_toolkit.ClassifierPack import ClassifierPack
 from script.data_handler.DatasetPackLoader import DatasetPackLoader
 from script.sklearn_like_toolkit.EnsembleClfPack import EnsembleClfPack
-from script.sklearn_like_toolkit.FoldingHardVote import FoldingHardVote
+from script.sklearn_like_toolkit.FoldingHardVoteClf import FoldingHardVoteClf
 from script.sklearn_like_toolkit.warpper.mlxtend_wrapper import mlxStackingCVClf, mlxStackingClf
 from sklearn.neural_network.multilayer_perceptron import MLPRegressor
 from lightgbm import LGBMRegressor
@@ -40,11 +40,11 @@ def exp_stacking_metaclf(print, pprint):
     valid_Xs, valid_Ys = valid_set.full_batch(['Xs', 'Ys'])
 
     clf = ClassifierPack()
-    clf.drop_clf('mlxMLP')
-    clf.drop_clf('mlxAdaline')
-    clf.drop_clf('mlxSoftmaxRegressionClf')
-    clf.drop_clf('skGaussian_NB')
-    clf.drop_clf('skQDA')
+    clf.drop('mlxMLP')
+    clf.drop('mlxAdaline')
+    clf.drop('mlxSoftmaxRegressionClf')
+    clf.drop('skGaussian_NB')
+    clf.drop('skQDA')
 
     pack = clf.pack
     for key, meta_clf in pack.items():
@@ -68,11 +68,11 @@ def exp_stackingCV_metaclf(print, pprint):
     valid_Xs, valid_Ys = valid_set.full_batch(['Xs', 'Ys'])
 
     clf = ClassifierPack()
-    clf.drop_clf('mlxMLP')
-    clf.drop_clf('mlxAdaline')
-    clf.drop_clf('mlxSoftmaxRegressionClf')
-    clf.drop_clf('skGaussian_NB')
-    clf.drop_clf('skQDA')
+    clf.drop('mlxMLP')
+    clf.drop('mlxAdaline')
+    clf.drop('mlxSoftmaxRegressionClf')
+    clf.drop('skGaussian_NB')
+    clf.drop('skQDA')
 
     pack = clf.pack
     for key, meta_clf in pack.items():
@@ -96,11 +96,11 @@ def exp_titanic_statistic(print, pprint):
     valid_Xs, valid_Ys = valid_set.full_batch(['Xs', 'Ys'])
 
     clf_pack = ClassifierPack()
-    clf_pack.drop_clf('mlxMLP')
-    clf_pack.drop_clf('mlxAdaline')
-    clf_pack.drop_clf('mlxSoftmaxRegressionClf')
-    clf_pack.drop_clf('skGaussian_NB')
-    clf_pack.drop_clf('skQDA')
+    clf_pack.drop('mlxMLP')
+    clf_pack.drop('mlxAdaline')
+    clf_pack.drop('mlxSoftmaxRegressionClf')
+    clf_pack.drop('skGaussian_NB')
+    clf_pack.drop('skQDA')
 
     pack = clf_pack.pack
     pprint(f'pack list {pack}')
@@ -135,7 +135,7 @@ def exp_titanic_statistic(print, pprint):
     def voting_stacking_stackingCV(pack, param_type, pack_n, top):
         pprint(f'param_type={param_type}, pack_n={pack_n}, top={top}')
 
-        voting = FoldingHardVote(pack)
+        voting = FoldingHardVoteClf(pack)
         voting.fit(train_Xs, train_Ys)
         score_pack = voting.score_pack(valid_Xs, valid_Ys)
         pprint(f'{param_type} param clf pack * {pack_n}, {top} to hard voting')
@@ -229,11 +229,11 @@ def exp_model_confidence():
         clf_pack.dump(clf_pack_path)
 
     clf_pack = ClassifierPack().load(clf_pack_path)
-    clf_pack.drop_clf('mlxAdaline')
-    clf_pack.drop_clf('mlxLogisticRegression')
-    clf_pack.drop_clf('skGaussian_NB')
-    clf_pack.drop_clf('mlxMLP')
-    clf_pack.drop_clf('skQDA')
+    clf_pack.drop('mlxAdaline')
+    clf_pack.drop('mlxLogisticRegression')
+    clf_pack.drop('skGaussian_NB')
+    clf_pack.drop('mlxMLP')
+    clf_pack.drop('skQDA')
 
     esm_pack = clf_pack.to_ensembleClfpack()
     esm_pack.fit(train_Xs, train_Ys)
@@ -285,11 +285,11 @@ def exp_titanic_data_difficulty():
         clf_pack.dump(clf_pack_path)
 
     clf_pack = ClassifierPack().load(clf_pack_path)
-    clf_pack.drop_clf('mlxAdaline')
-    clf_pack.drop_clf('mlxLogisticRegression')
-    clf_pack.drop_clf('skGaussian_NB')
-    clf_pack.drop_clf('mlxMLP')
-    clf_pack.drop_clf('skQDA')
+    clf_pack.drop('mlxAdaline')
+    clf_pack.drop('mlxLogisticRegression')
+    clf_pack.drop('skGaussian_NB')
+    clf_pack.drop('mlxMLP')
+    clf_pack.drop('skQDA')
 
     def difficulty_stat(pack, dataset, n=100):
         dataset.sort()

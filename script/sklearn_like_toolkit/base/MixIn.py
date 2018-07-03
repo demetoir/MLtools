@@ -4,6 +4,12 @@ from sklearn.metrics import accuracy_score, confusion_matrix, roc_auc_score, rec
 from script.util.MixIn import PickleMixIn, LoggerMixIn
 from script.util.misc_util import log_error_trace
 from script.util.numpy_utils import reformat_np_arr, NP_ARRAY_TYPE_INDEX, NP_ARRAY_TYPE_ONEHOT
+from sklearn.metrics.regression import r2_score
+from sklearn.metrics.regression import explained_variance_score
+from sklearn.metrics.regression import mean_absolute_error
+from sklearn.metrics.regression import mean_squared_error
+from sklearn.metrics.regression import mean_squared_log_error
+from sklearn.metrics.regression import median_absolute_error
 
 
 class meta_BaseWrapperClf(type):
@@ -30,6 +36,30 @@ class meta_BaseWrapperClf_with_ABC(meta_BaseWrapperClf, ABCMeta):
     pass
 
 
+class meta_BaseWrapperReg(type):
+    def __init__(cls, name, bases, cls_dict):
+        type.__init__(cls, name, bases, cls_dict)
+
+        # def deco_reformat_y(func):
+        #     def wrapper(*args, **kwargs):
+        #         y = args[2]
+        #         args = list(args[:2]) + [Reformat_Ys_MixIn.np_arr_to_index(y)] + list(args[3:])
+        #
+        #         ret = func(*args, **kwargs)
+        #         return ret
+        #
+        #     return wrapper
+        #
+        # func_names = ['score', 'score_pack', 'fit']
+        # for func_name in func_names:
+        #     if hasattr(cls, func_name):
+        #         setattr(cls, func_name, deco_reformat_y(getattr(cls, func_name)))
+
+
+class meta_BaseWrapperReg_with_ABC(meta_BaseWrapperReg, ABCMeta):
+    pass
+
+
 class Reformat_Ys_MixIn:
     @staticmethod
     def np_arr_to_index(Xs):
@@ -48,11 +78,43 @@ CLF_METRICS = {
     'precision_score': precision_score,
 }
 
+REG_METRIC = {
+    r2_score.__name__: r2_score,
+    explained_variance_score.__name__: explained_variance_score,
+    mean_absolute_error.__name__: mean_absolute_error,
+    mean_squared_log_error.__name__: mean_squared_log_error,
+    mean_squared_error.__name__: mean_squared_error,
+    median_absolute_error.__name__: median_absolute_error,
+}
 
-class score_pack_MixIn(Reformat_Ys_MixIn):
+
+class clf_score_pack_MixIn(Reformat_Ys_MixIn):
     def __init__(self):
         Reformat_Ys_MixIn.__init__(self)
         self._metrics = CLF_METRICS
+
+    def _apply_metric(self, Y_true, Y_predict, metric):
+        return self._metrics[metric](Y_true, Y_predict)
+
+    def _apply_metric_pack(self, Y_true, Y_predict):
+        ret = {}
+        for key in self._metrics:
+            try:
+                ret[key] = self._apply_metric(Y_true, Y_predict, key)
+            except BaseException as e:
+                log_error_trace(getattr(self, 'log').warn, e,
+                                head=f'while {self.__class__} execute score_pack, skip to applying metric {key}\n')
+        return ret
+
+    def score_pack(self, X, y):
+        y = self.np_arr_to_index(y)
+        return self._apply_metric_pack(y, getattr(self, 'predict')(X))
+
+
+class reg_score_pack_MixIn(Reformat_Ys_MixIn):
+    def __init__(self):
+        Reformat_Ys_MixIn.__init__(self)
+        self._metrics = REG_METRIC
 
     def _apply_metric(self, Y_true, Y_predict, metric):
         return self._metrics[metric](Y_true, Y_predict)
@@ -102,10 +164,18 @@ class etc_MixIn:
         return clf.__class__(**clf.get_params())
 
 
-class ClfWrapperMixIn(score_pack_MixIn, PickleMixIn, LoggerMixIn, ClfConfidenceMixIn, etc_MixIn):
+class ClfWrapperMixIn(clf_score_pack_MixIn, PickleMixIn, LoggerMixIn, ClfConfidenceMixIn, etc_MixIn):
     def __init__(self):
-        score_pack_MixIn.__init__(self)
+        clf_score_pack_MixIn.__init__(self)
         PickleMixIn.__init__(self)
         LoggerMixIn.__init__(self)
         ClfConfidenceMixIn.__init__(self)
+        etc_MixIn.__init__(self)
+
+
+class RegWrapperMixIn(reg_score_pack_MixIn, PickleMixIn, LoggerMixIn, etc_MixIn):
+    def __init__(self):
+        reg_score_pack_MixIn.__init__(self)
+        PickleMixIn.__init__(self)
+        LoggerMixIn.__init__(self)
         etc_MixIn.__init__(self)

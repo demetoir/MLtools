@@ -1,9 +1,9 @@
-from script.sklearn_like_toolkit.warpper.sklearn_wrapper import skBernoulli_NB
+from script.sklearn_like_toolkit.warpper.sklearn_wrapper import skBernoulli_NBClf
 from script.sklearn_like_toolkit.wrapperGridSearchCV import wrapperGridSearchCV
 from script.data_handler.DatasetPackLoader import DatasetPackLoader
 from script.sklearn_like_toolkit.ClassifierPack import ClassifierPack
 
-meta_clf = skBernoulli_NB()
+meta_clf = skBernoulli_NBClf()
 datapack = DatasetPackLoader().load_dataset("titanic")
 train_set = datapack['train']
 train_set, valid_set = train_set.split((7, 3))
@@ -108,7 +108,7 @@ def test_pickle_clf_pack():
 
 
 def test_wrapperGridSearchCV():
-    clf_cls = skBernoulli_NB
+    clf_cls = skBernoulli_NBClf
     base_clf = clf_cls()
     param_search = wrapperGridSearchCV(base_clf, clf_cls.tuning_grid)
 

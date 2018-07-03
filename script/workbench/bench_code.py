@@ -3,22 +3,19 @@
 import os
 from script.data_handler.DatasetPackLoader import DatasetPackLoader
 from script.sklearn_like_toolkit.ClassifierPack import ClassifierPack
+from script.sklearn_like_toolkit.warpper.sklearn_wrapper import skIsotonicReg
 from script.util.Logger import pprint_logger, Logger
 from script.util.deco import deco_timeit
-import numpy as np
-
-########################################################################################################################
+from script.sklearn_like_toolkit.RegressionPack import RegressionPack
+from unit_test.sklearn_like_toolkit.wrapper.helper import wrapper_reg_common
 # print(built-in function) is not good for logging
-from script.util.misc_util import path_join, time_stamp, setup_file
-from script.util.PlotTools import PlotTools
+from unit_test.sklearn_like_toolkit.wrapper.test_sklearn_wrapper import test_skRidgeClf, test_skRidgeCVClf, \
+    test_skPassiveAggressiveClf, test_skKNeighborsClf, test_skNearestCentroidClf, test_skRadiusNeighborsClf
 
 bprint = print
 logger = Logger('bench_code', level='INFO', )
 print = logger.info
 pprint = pprint_logger(print)
-
-
-#######################################################################################################################
 
 
 def onehot_label_smooth(Ys, smooth=0.05):
@@ -47,14 +44,14 @@ def titanic_submit():
 
     clf_pack = ClassifierPack().load(path)
     # pprint(clf_pack.optimize_result)
-    clf_pack.drop_clf('skQDA')
-    clf_pack.drop_clf('skGaussian_NB')
-    clf_pack.drop_clf('mlxSoftmaxRegressionClf')
-    clf_pack.drop_clf('mlxPerceptronClf')
-    clf_pack.drop_clf('mlxMLP')
-    clf_pack.drop_clf('mlxLogisticRegression')
-    clf_pack.drop_clf('mlxAdaline')
-    clf_pack.drop_clf('skLinear_SVC')
+    clf_pack.drop('skQDA')
+    clf_pack.drop('skGaussian_NB')
+    clf_pack.drop('mlxSoftmaxRegressionClf')
+    clf_pack.drop('mlxPerceptronClf')
+    clf_pack.drop('mlxMLP')
+    clf_pack.drop('mlxLogisticRegression')
+    clf_pack.drop('mlxAdaline')
+    clf_pack.drop('skLinear_SVC')
 
     train_Xs, train_Ys = train.full_batch(['Xs', 'Ys'])
     valid_Xs, valid_Ys = valid.full_batch(['Xs', 'Ys'])
@@ -91,20 +88,6 @@ def to_zero_one_encoding(x):
     return x
 
 
-
-def test_plot_tool_async():
-    rand_x_1d = np.random.normal(3, 5, [10])
-
-    tool = PlotTools()
-    for i in range(10):
-        tool.dist(rand_x_1d)
-
-
 @deco_timeit
 def main():
-    test_plot_tool_async()
-    # titanic_submit()
-    # test_C_GAN()
-    # exp_C_GAN_with_titanic()
-    # exp_CVAE_with_titanic()
     pass

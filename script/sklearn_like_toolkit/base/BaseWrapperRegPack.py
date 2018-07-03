@@ -2,23 +2,33 @@ import os
 from pprint import pformat
 from env_settting import SKLEARN_PARAMS_SAVE_PATH
 from script.sklearn_like_toolkit.ParamOptimizer import ParamOptimizer
-from script.sklearn_like_toolkit.base.MixIn import ClfWrapperMixIn, meta_BaseWrapperClf
+from script.sklearn_like_toolkit.base.MixIn import RegWrapperMixIn, meta_BaseWrapperReg
 from script.sklearn_like_toolkit.wrapperGridSearchCV import wrapperGridSearchCV
 from script.util.misc_util import time_stamp, dump_pickle, load_pickle, path_join, log_error_trace
 
 
-class BaseWrapperPack(ClfWrapperMixIn, metaclass=meta_BaseWrapperClf):
+class BaseWrapperRegPack(RegWrapperMixIn, metaclass=meta_BaseWrapperReg):
     class_pack = {}
 
-    def __init__(self):
+    def __init__(self, pack_keys=None):
         super().__init__()
         self.pack = {}
         self.optimizers = {}
         self.optimize_result = {}
         self.params_save_path = SKLEARN_PARAMS_SAVE_PATH
 
+        if pack_keys is None:
+            pack_keys = self.class_pack.keys()
+
+        self.pack = {}
+        for key in pack_keys:
+            self.pack[key] = self.class_pack[key]()
+
     def __str__(self):
         return self.__class__.__name__
+
+    def __getitem__(self, item):
+        return self.pack.__getitem__(item)
 
     def param_search(self, Xs, Ys):
         result_csv_path = path_join('.', 'param_search_result', time_stamp())
@@ -144,3 +154,6 @@ class BaseWrapperPack(ClfWrapperMixIn, metaclass=meta_BaseWrapperClf):
                 log_error_trace(self.log.warn, e, f'while execute confidence at {key},\n')
 
         return confidences
+
+    def drop(self, key):
+        self.pack.pop(key)
