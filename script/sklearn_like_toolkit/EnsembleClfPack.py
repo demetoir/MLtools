@@ -1,9 +1,9 @@
-from script.sklearn_like_toolkit.base.BaseWrapperPack import BaseWrapperPack
+from script.sklearn_like_toolkit.base.BaseWrapperClfPack import BaseWrapperClfPack
 from script.sklearn_like_toolkit.FoldingHardVoteClf import FoldingHardVoteClf
 from script.sklearn_like_toolkit.warpper.mlxtend_wrapper import mlxStackingCVClf, mlxStackingClf
 
 
-class EnsembleClfPack(BaseWrapperPack):
+class EnsembleClfPack(BaseWrapperClfPack):
     class_pack = {
         'FoldingHardVote': FoldingHardVoteClf,
         'mlxStackingCVClf': mlxStackingCVClf,
