@@ -69,7 +69,7 @@ import warnings
 # ExpSineSquared
 
 
-class skMLP(BaseWrapperClf, _skMLPClassifier, metaclass=meta_BaseWrapperClf_with_ABC):
+class skMLPClf(BaseWrapperClf, _skMLPClassifier, metaclass=meta_BaseWrapperClf_with_ABC):
     def __init__(self, hidden_layer_sizes=(100,), activation="relu", solver='adam', alpha=0.0001, batch_size='auto',
                  learning_rate="constant", learning_rate_init=0.001, power_t=0.5, max_iter=200, shuffle=True,
                  random_state=None, tol=1e-4, verbose=False, warm_start=False, momentum=0.9, nesterovs_momentum=True,
@@ -121,7 +121,7 @@ class skMLP(BaseWrapperClf, _skMLPClassifier, metaclass=meta_BaseWrapperClf_with
     }
 
 
-class skGaussian_NB(BaseWrapperClf, _skGaussianNB, metaclass=meta_BaseWrapperClf_with_ABC):
+class skGaussian_NBClf(BaseWrapperClf, _skGaussianNB, metaclass=meta_BaseWrapperClf_with_ABC):
     def __init__(self, priors=None):
         _skGaussianNB.__init__(self, priors)
         BaseWrapperClf.__init__(self)
@@ -132,7 +132,7 @@ class skGaussian_NB(BaseWrapperClf, _skGaussianNB, metaclass=meta_BaseWrapperClf
     }
 
 
-class skBernoulli_NB(BaseWrapperClf, _skBernoulliNB, metaclass=meta_BaseWrapperClf_with_ABC):
+class skBernoulli_NBClf(BaseWrapperClf, _skBernoulliNB, metaclass=meta_BaseWrapperClf_with_ABC):
     def __init__(self, alpha=1.0, binarize=.0, fit_prior=True, class_prior=None):
         _skBernoulliNB.__init__(self, alpha, binarize, fit_prior, class_prior)
         BaseWrapperClf.__init__(self)
@@ -145,7 +145,7 @@ class skBernoulli_NB(BaseWrapperClf, _skBernoulliNB, metaclass=meta_BaseWrapperC
     }
 
 
-class skMultinomial_NB(BaseWrapperClf, _skMultinomialNB, metaclass=meta_BaseWrapperClf_with_ABC):
+class skMultinomial_NBClf(BaseWrapperClf, _skMultinomialNB, metaclass=meta_BaseWrapperClf_with_ABC):
     def __init__(self, alpha=1.0, fit_prior=True, class_prior=None):
         _skMultinomialNB.__init__(self, alpha, fit_prior, class_prior)
         BaseWrapperClf.__init__(self)
@@ -157,7 +157,7 @@ class skMultinomial_NB(BaseWrapperClf, _skMultinomialNB, metaclass=meta_BaseWrap
     }
 
 
-class skQDA(BaseWrapperClf, _skQDA, metaclass=meta_BaseWrapperClf):
+class skQDAClf(BaseWrapperClf, _skQDA, metaclass=meta_BaseWrapperClf):
     def __init__(self, priors=None, reg_param=0., store_covariance=False, tol=1.0e-4, store_covariances=None):
         warnings.filterwarnings(module='sklearn*', action='ignore', category=Warning)
 
@@ -177,7 +177,7 @@ class skQDA(BaseWrapperClf, _skQDA, metaclass=meta_BaseWrapperClf):
     }
 
 
-class skDecisionTree(BaseWrapperClf, _skDecisionTreeClassifier, metaclass=meta_BaseWrapperClf_with_ABC):
+class skDecisionTreeClf(BaseWrapperClf, _skDecisionTreeClassifier, metaclass=meta_BaseWrapperClf_with_ABC):
     def __init__(self, criterion="gini", splitter="best", max_depth=None, min_samples_split=2, min_samples_leaf=1,
                  min_weight_fraction_leaf=0., max_features=None, random_state=None, max_leaf_nodes=None,
                  min_impurity_decrease=0., min_impurity_split=None, class_weight=None, presort=False):
@@ -210,7 +210,7 @@ class skDecisionTree(BaseWrapperClf, _skDecisionTreeClassifier, metaclass=meta_B
     }
 
 
-class skRandomForest(BaseWrapperClf, _skRandomForestClassifier, metaclass=meta_BaseWrapperClf_with_ABC):
+class skRandomForestClf(BaseWrapperClf, _skRandomForestClassifier, metaclass=meta_BaseWrapperClf_with_ABC):
     def __init__(self, n_estimators=10, criterion="gini", max_depth=None, min_samples_split=2, min_samples_leaf=1,
                  min_weight_fraction_leaf=0., max_features="auto", max_leaf_nodes=None, min_impurity_decrease=0.,
                  min_impurity_split=None, bootstrap=True, oob_score=False, n_jobs=1, random_state=None, verbose=0,
@@ -250,7 +250,7 @@ class skRandomForest(BaseWrapperClf, _skRandomForestClassifier, metaclass=meta_B
     }
 
 
-class skExtraTrees(BaseWrapperClf, _skExtraTreesClassifier, metaclass=meta_BaseWrapperClf_with_ABC):
+class skExtraTreesClf(BaseWrapperClf, _skExtraTreesClassifier, metaclass=meta_BaseWrapperClf_with_ABC):
 
     def __init__(self, n_estimators=10, criterion="gini", max_depth=None, min_samples_split=2, min_samples_leaf=1,
                  min_weight_fraction_leaf=0., max_features="auto", max_leaf_nodes=None, min_impurity_decrease=0.,
@@ -290,7 +290,7 @@ class skExtraTrees(BaseWrapperClf, _skExtraTreesClassifier, metaclass=meta_BaseW
     }
 
 
-class skAdaBoost(BaseWrapperClf, _skAdaBoostClassifier, metaclass=meta_BaseWrapperClf_with_ABC):
+class skAdaBoostClf(BaseWrapperClf, _skAdaBoostClassifier, metaclass=meta_BaseWrapperClf_with_ABC):
     def __init__(self, base_estimator=None, n_estimators=50, learning_rate=1., algorithm='SAMME.R', random_state=None):
         _skAdaBoostClassifier.__init__(self, base_estimator, n_estimators, learning_rate, algorithm, random_state)
         BaseWrapperClf.__init__(self)
@@ -307,7 +307,7 @@ class skAdaBoost(BaseWrapperClf, _skAdaBoostClassifier, metaclass=meta_BaseWrapp
     }
 
 
-class skGradientBoosting(BaseWrapperClf, _skGradientBoostingClassifier, metaclass=meta_BaseWrapperClf_with_ABC):
+class skGradientBoostingClf(BaseWrapperClf, _skGradientBoostingClassifier, metaclass=meta_BaseWrapperClf_with_ABC):
     def __init__(self, loss='deviance', learning_rate=0.1, n_estimators=100, subsample=1.0, criterion='friedman_mse',
                  min_samples_split=2, min_samples_leaf=1, min_weight_fraction_leaf=0., max_depth=3,
                  min_impurity_decrease=0., min_impurity_split=None, init=None, random_state=None, max_features=None,
@@ -350,31 +350,27 @@ class skGradientBoosting(BaseWrapperClf, _skGradientBoostingClassifier, metaclas
     }
 
 
-class skKNeighbors(BaseWrapperClf, _skKNeighborsClassifier, metaclass=meta_BaseWrapperClf_with_ABC):
+class skKNeighborsClf(_KNeighborsClassifier, BaseWrapperClf, metaclass=meta_BaseWrapperClf_with_ABC):
+
     def __init__(self, n_neighbors=5, weights='uniform', algorithm='auto', leaf_size=30, p=2, metric='minkowski',
                  metric_params=None, n_jobs=1, **kwargs):
-        _skKNeighborsClassifier.__init__(
+        _KNeighborsClassifier.__init__(
             self, n_neighbors, weights, algorithm, leaf_size, p, metric, metric_params, n_jobs, **kwargs)
         BaseWrapperClf.__init__(self)
 
     tuning_grid = {
-        'n_neighbors': [i for i in range(1, 32)],
-    }
-    only_default_params = {
+        'n_neighbors': 5,
         'weights': 'uniform',
-        'algorithm': ['auto', 'ball_tree', 'kd_tree', 'brute'],
-        'p': 2,
+        'algorithm': 'auto',
         'leaf_size': 30,
-    }
-
-    etc_param = {
-        'n_jobs': 1,
+        'p': 2,
         'metric': 'minkowski',
         'metric_params': None,
+        'n_jobs': 1,
     }
 
 
-class skGaussianProcess(BaseWrapperClf, _skGaussianProcessClassifier, metaclass=meta_BaseWrapperClf_with_ABC):
+class skGaussianProcessClf(BaseWrapperClf, _skGaussianProcessClassifier, metaclass=meta_BaseWrapperClf_with_ABC):
     def __init__(self, kernel=None, optimizer="fmin_l_bfgs_b", n_restarts_optimizer=0, max_iter_predict=100,
                  warm_start=False, copy_X_train=True, random_state=None, multi_class="one_vs_rest", n_jobs=1):
         _skGaussianProcessClassifier.__init__(
@@ -405,7 +401,7 @@ class skGaussianProcess(BaseWrapperClf, _skGaussianProcessClassifier, metaclass=
     }
 
 
-class skSGD(BaseWrapperClf, _skSGDClassifier, metaclass=meta_BaseWrapperClf_with_ABC):
+class skSGDClf(BaseWrapperClf, _skSGDClassifier, metaclass=meta_BaseWrapperClf_with_ABC):
     # todo wtf?
     # http://scikit-learn.org/stable/modules/generated/sklearn.linear_model.SGDClassifier.html#sklearn.linear_model.SGDClassifier
     def __init__(self, loss="hinge", penalty='l2', alpha=0.0001, l1_ratio=0.15, fit_intercept=True, max_iter=1000,
@@ -453,7 +449,7 @@ class skSGD(BaseWrapperClf, _skSGDClassifier, metaclass=meta_BaseWrapperClf_with
     }
 
 
-class skLinear_SVC(BaseWrapperClf, _skLinearSVC, metaclass=meta_BaseWrapperClf_with_ABC):
+class skLinear_SVCClf(BaseWrapperClf, _skLinearSVC, metaclass=meta_BaseWrapperClf_with_ABC):
     def __init__(self, penalty='l2', loss='squared_hinge', dual=True, tol=1e-4, C=1.0, multi_class='ovr',
                  fit_intercept=True, intercept_scaling=1, class_weight=None, verbose=0, random_state=None,
                  max_iter=1000):
@@ -486,7 +482,7 @@ class skLinear_SVC(BaseWrapperClf, _skLinearSVC, metaclass=meta_BaseWrapperClf_w
     }
 
 
-class skRBF_SVM(BaseWrapperClf, _SVC, metaclass=meta_BaseWrapperClf_with_ABC):
+class skRBF_SVMClf(BaseWrapperClf, _SVC, metaclass=meta_BaseWrapperClf_with_ABC):
     def __init__(self, C=1.0, kernel='rbf', degree=3, gamma='auto', coef0=0.0, shrinking=True, probability=True,
                  tol=1e-3, cache_size=200, class_weight=None, verbose=False, max_iter=-1, decision_function_shape='ovr',
                  random_state=None):
@@ -516,7 +512,7 @@ class skRBF_SVM(BaseWrapperClf, _SVC, metaclass=meta_BaseWrapperClf_with_ABC):
     }
 
 
-class skVoting(BaseWrapperClf, _skVotingClassifier, metaclass=meta_BaseWrapperClf_with_ABC):
+class skVotingClf(BaseWrapperClf, _skVotingClassifier, metaclass=meta_BaseWrapperClf_with_ABC):
     def __init__(self, estimators, voting='hard', weights=None, n_jobs=1, flatten_transform=None):
         _skVotingClassifier.__init__(self, estimators, voting, weights, n_jobs, flatten_transform)
         BaseWrapperClf.__init__(self)
@@ -528,7 +524,7 @@ class skVoting(BaseWrapperClf, _skVotingClassifier, metaclass=meta_BaseWrapperCl
     }
 
 
-class skBagging(BaseWrapperClf, _BaggingClassifier, metaclass=meta_BaseWrapperClf_with_ABC):
+class skBaggingClf(BaseWrapperClf, _BaggingClassifier, metaclass=meta_BaseWrapperClf_with_ABC):
     def __init__(self, base_estimator=None, n_estimators=10, max_samples=1.0, max_features=1.0, bootstrap=True,
                  bootstrap_features=False, oob_score=False, warm_start=False, n_jobs=1, random_state=None, verbose=0):
         _BaggingClassifier.__init__(
@@ -629,26 +625,6 @@ class skRadiusNeighborsClf(_RadiusNeighborsClassifier, BaseWrapperClf, metaclass
         'metric': 'minkowski',
         'outlier_label': None,
         'metric_params': None,
-    }
-
-
-class skKNeighborsClf(_KNeighborsClassifier, BaseWrapperClf, metaclass=meta_BaseWrapperClf_with_ABC):
-
-    def __init__(self, n_neighbors=5, weights='uniform', algorithm='auto', leaf_size=30, p=2, metric='minkowski',
-                 metric_params=None, n_jobs=1, **kwargs):
-        _KNeighborsClassifier.__init__(
-            self, n_neighbors, weights, algorithm, leaf_size, p, metric, metric_params, n_jobs, **kwargs)
-        BaseWrapperClf.__init__(self)
-
-    tuning_grid = {
-        'n_neighbors': 5,
-        'weights': 'uniform',
-        'algorithm': 'auto',
-        'leaf_size': 30,
-        'p': 2,
-        'metric': 'minkowski',
-        'metric_params': None,
-        'n_jobs': 1,
     }
 
 
