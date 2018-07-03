@@ -7,7 +7,7 @@ from script.sklearn_like_toolkit.wrapperGridSearchCV import wrapperGridSearchCV
 from script.util.misc_util import time_stamp, dump_pickle, load_pickle, path_join, log_error_trace
 
 
-class BaseWrapperPack(ClfWrapperMixIn, metaclass=meta_BaseWrapperClf):
+class BaseWrapperClfPack(ClfWrapperMixIn, metaclass=meta_BaseWrapperClf):
     class_pack = {}
 
     def __init__(self):
