@@ -170,8 +170,8 @@ class mlxLinearReg(BaseWrapperReg, _LinearRegression, metaclass=meta_BaseWrapper
         BaseWrapperReg.__init__(self)
 
     def score(self, X, y, sample_weight=None):
-        # TODO implement
-        return None
+        predict = self.predict(X)
+        return self._apply_metric(y, predict, 'explained_variance_score')
 
 
 class mlxStackingCVReg(BaseWrapperReg, _StackingCVRegressor, metaclass=meta_BaseWrapperReg_with_ABC):
