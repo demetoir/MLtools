@@ -3,7 +3,7 @@ from script.data_handler.DummyDataset import DummyDataset
 from script.sklearn_like_toolkit.base.BaseWrapperClf import BaseWrapperClf
 
 
-class FoldingHardVote(BaseWrapperClf):
+class FoldingHardVoteClf(BaseWrapperClf):
     def __init__(self, clfs, split_rate=0.8):
         super().__init__()
         self.clfs = [self._clone(clf) for clf in clfs]

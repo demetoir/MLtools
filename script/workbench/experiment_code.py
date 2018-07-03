@@ -9,7 +9,7 @@ from script.data_handler.titanic import build_transform
 from script.sklearn_like_toolkit.ClassifierPack import ClassifierPack
 from script.data_handler.DatasetPackLoader import DatasetPackLoader
 from script.sklearn_like_toolkit.EnsembleClfPack import EnsembleClfPack
-from script.sklearn_like_toolkit.FoldingHardVote import FoldingHardVote
+from script.sklearn_like_toolkit.FoldingHardVoteClf import FoldingHardVoteClf
 from script.sklearn_like_toolkit.warpper.mlxtend_wrapper import mlxStackingCVClf, mlxStackingClf
 from sklearn.neural_network.multilayer_perceptron import MLPRegressor
 from lightgbm import LGBMRegressor
@@ -135,7 +135,7 @@ def exp_titanic_statistic(print, pprint):
     def voting_stacking_stackingCV(pack, param_type, pack_n, top):
         pprint(f'param_type={param_type}, pack_n={pack_n}, top={top}')
 
-        voting = FoldingHardVote(pack)
+        voting = FoldingHardVoteClf(pack)
         voting.fit(train_Xs, train_Ys)
         score_pack = voting.score_pack(valid_Xs, valid_Ys)
         pprint(f'{param_type} param clf pack * {pack_n}, {top} to hard voting')

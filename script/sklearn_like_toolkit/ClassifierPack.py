@@ -1,5 +1,5 @@
 from script.sklearn_like_toolkit.EnsembleClfPack import EnsembleClfPack
-from script.sklearn_like_toolkit.FoldingHardVote import FoldingHardVote
+from script.sklearn_like_toolkit.FoldingHardVoteClf import FoldingHardVoteClf
 from script.sklearn_like_toolkit.base.BaseWrapperPack import BaseWrapperPack
 from script.sklearn_like_toolkit.warpper.catboost_wrapper import CatBoostClf
 from script.sklearn_like_toolkit.warpper.lightGBM_wrapper import LightGBMClf
@@ -68,7 +68,7 @@ class ClassifierPack(BaseWrapperPack):
 
     def to_FoldingHardVote(self):
         clfs = [v for k, v in self.pack.items()]
-        return FoldingHardVote(clfs)
+        return FoldingHardVoteClf(clfs)
 
     def to_stackingClf(self, meta_clf=None):
         clfs = [clf for k, clf in self.pack.items() if hasattr(clf, 'get_params')]
