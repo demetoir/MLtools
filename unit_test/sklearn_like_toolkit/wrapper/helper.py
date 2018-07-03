@@ -58,17 +58,26 @@ def wrapper_clf_common(clf):
 
     clf.fit(train_Xs, train_Ys)
 
-    predict = clf.predict(valid_Xs[:4])
-    print(f'predict {predict}')
+    try:
+        predict = clf.predict(valid_Xs)
+        print(f'predict {predict}')
+    except BaseException as e:
+        print(f'while {clf} predict {e}')
 
     try:
-        proba = clf.predict_proba(valid_Xs[:4])
+        proba = clf.predict_proba(valid_Xs)
         print(f'proba {proba}')
     except BaseException as e:
         print(f'while {clf} predict_proba {e}')
 
-    score = clf.score(valid_Xs, valid_Ys)
-    print(f'score {score}')
+    try:
+        score = clf.score(valid_Xs, valid_Ys)
+        print(f'score {score}')
+    except BaseException as e:
+        print(f'while {clf} score {e}')
 
-    score = clf.score_pack(valid_Xs, valid_Ys)
-    print(f'score_pack {score}')
+    try:
+        score = clf.score_pack(valid_Xs, valid_Ys)
+        print(f'score_pack {score}')
+    except BaseException as e:
+        print(f'while {clf} score_pack {e}')
