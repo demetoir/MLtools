@@ -65,7 +65,7 @@ def test_make_stackingClf():
 
 def test_make_stackingCVClf():
     clf = ClassifierPack(['skMLPClf', "skBernoulli_NBClf", "skDecisionTreeClf"])
-    meta_clf = clf.pack["skBernoulli_NB"]
+    meta_clf = clf.pack["skBernoulli_NBClf"]
     clf = clf.to_stackingCVClf(meta_clf)
     clf.fit(train_Xs, train_Ys)
 
