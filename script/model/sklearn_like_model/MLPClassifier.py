@@ -2,30 +2,33 @@ from script.model.sklearn_like_model.BaseClassifierModel import BaseClassifierMo
 from script.util.Stacker import Stacker
 from script.util.tensor_ops import *
 
+MLP_param_keys = [
+    'batch_size',
+    'learning_rate',
+    'beta1',
+    'dropout_rate',
+    'K_average_top_k_loss',
+    'net_shapes',
+    'activation',
+    'l1_norm_lambda',
+    'l2_norm_lambda'
+]
+
 
 class MLPClassifier(BaseClassifierModel):
-    _params_keys = [
-        'batch_size',
-        'learning_rate',
-        'beta1',
-        'dropout_rate',
-        'K_average_top_k_loss',
-        'net_shapes',
-        'activation',
-        'l1_norm_lambda',
-        'l2_norm_lambda'
-    ]
+    _params_keys = MLP_param_keys
 
-    def __init__(self, verbose=10, **kwargs):
+    def __init__(self, verbose=10, batch_size=100, learning_rate=0.01, beta1=0.5, k_average_top_loss=20,
+                 net_shapes=(256, 256,), activation='relu', l1_norm_lambda=0.001, l2_norm_lambda=0.001, **kwargs):
         super().__init__(verbose, **kwargs)
-        self.batch_size = 100
-        self.learning_rate = 0.01
-        self.beta1 = 0.5
-        self.K_average_top_k_loss = 20
-        self.net_shapes = [128, 128]
-        self.activation = 'relu'
-        self.l1_norm_lambda = 0.0001
-        self.l2_norm_lambda = 0.001
+        self.batch_size = batch_size
+        self.learning_rate = learning_rate
+        self.beta1 = beta1
+        self.K_average_top_k_loss = k_average_top_loss
+        self.net_shapes = net_shapes
+        self.activation = activation
+        self.l1_norm_lambda = l1_norm_lambda
+        self.l2_norm_lambda = l2_norm_lambda
 
     def _build_input_shapes(self, shapes):
         ret = {}
