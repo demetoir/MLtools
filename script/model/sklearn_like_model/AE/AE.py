@@ -77,7 +77,7 @@ class AE(BaseModel, basicAEPropertyMixIn):
     ]
 
     def __init__(self, batch_size=100, learning_rate=0.01, beta1=0.5, L1_norm_lambda=0.001, latent_code_size=32,
-                 z_size=32, encoder_net_shapes=None, decoder_net_shapes=None, with_noise=False, noise_intensity=1.,
+                 z_size=32, encoder_net_shapes=(512,), decoder_net_shapes=(512,), with_noise=False, noise_intensity=1.,
                  verbose=10):
         BaseModel.__init__(self, verbose)
         basicAEPropertyMixIn.__init__(self)
@@ -89,14 +89,8 @@ class AE(BaseModel, basicAEPropertyMixIn):
         self.latent_code_size = latent_code_size
         self.z_size = z_size
 
-        if encoder_net_shapes is None:
-            self.encoder_net_shapes = [512, 256, 128]
-        else:
-            self.encoder_net_shapes = decoder_net_shapes
-        if decoder_net_shapes is None:
-            self.decoder_net_shapes = [128, 256, 512]
-        else:
-            self.decoder_net_shapes = decoder_net_shapes
+        self.encoder_net_shapes = encoder_net_shapes
+        self.decoder_net_shapes = decoder_net_shapes
 
         self.with_noise = with_noise
         self.noise_intensity = noise_intensity
