@@ -13,7 +13,7 @@ sample_Xs, sample_Ys = valid_Xs[:2], valid_Ys[:2]
 
 
 def test_param_search():
-    clf_pack = ClassifierPack(['skMLP'])
+    clf_pack = ClassifierPack(['skMLPClf'])
     clf_pack.param_search(train_Xs, train_Ys)
     train_score = clf_pack.score(train_Xs, train_Ys)
     valid_score = clf_pack.score(valid_Xs, valid_Ys)
@@ -30,7 +30,7 @@ def test_param_search():
 
 
 def test_make_FoldingHardVote():
-    clf = ClassifierPack(['skMLP', "skBernoulli_NB", "skDecisionTree"])
+    clf = ClassifierPack(['skMLPClf', "skBernoulli_NBClf", "skDecisionTreeClf"])
     clf = clf.to_FoldingHardVote()
     clf.fit(train_Xs, train_Ys)
 
@@ -48,7 +48,7 @@ def test_make_FoldingHardVote():
 
 
 def test_make_stackingClf():
-    clf = ClassifierPack(['skMLP', "skBernoulli_NB", "skDecisionTree"])
+    clf = ClassifierPack(['skMLPClf', "skBernoulli_NBClf", "skDecisionTreeClf"])
 
     clf = clf.to_stackingClf(meta_clf)
     clf.fit(train_Xs, train_Ys)
@@ -64,7 +64,7 @@ def test_make_stackingClf():
 
 
 def test_make_stackingCVClf():
-    clf = ClassifierPack(['skMLP', "skBernoulli_NB", "skDecisionTree"])
+    clf = ClassifierPack(['skMLPClf', "skBernoulli_NBClf", "skDecisionTreeClf"])
     meta_clf = clf.pack["skBernoulli_NB"]
     clf = clf.to_stackingCVClf(meta_clf)
     clf.fit(train_Xs, train_Ys)
@@ -80,7 +80,7 @@ def test_make_stackingCVClf():
 
 
 def test_ClassifierPack():
-    clf = ClassifierPack(['skMLP', "skBernoulli_NB", "skDecisionTree"])
+    clf = ClassifierPack(['skMLPClf', "skBernoulli_NBClf", "skDecisionTreeClf"])
     clf.fit(train_Xs, train_Ys)
     predict = clf.predict(valid_Xs[:2])
     print('predict', predict)
@@ -95,7 +95,7 @@ def test_ClassifierPack():
 
 
 def test_pickle_clf_pack():
-    clf_pack = ClassifierPack(['skMLP'])
+    clf_pack = ClassifierPack(['skMLPClf'])
     clf_pack.fit(train_Xs, train_Ys)
 
     score = clf_pack.score_pack(train_Xs, train_Ys)
@@ -128,7 +128,7 @@ def test_wrapperGridSearchCV():
 
 def test_wrapper_pack_grid_search():
     path = './test_wrapper_pack_grid_search.pkl'
-    clf_pack = ClassifierPack(['skMLP', "skBernoulli_NB", "skDecisionTree"])
+    clf_pack = ClassifierPack(['skMLPClf', "skBernoulli_NBClf", "skDecisionTreeClf"])
     clf_pack.fit(train_Xs, train_Ys)
     clf_pack.gridSearchCV(train_Xs, train_Ys)
     score = clf_pack.score_pack(train_Xs, train_Ys)
