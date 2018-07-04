@@ -93,24 +93,16 @@ class C_GAN(BaseModel, basicC_GANPropertyMixIN):
         'clipping'
     ]
 
-    def __init__(self, n_noise=256, batch_size=64, learning_rate=0.0002, D_net_shape=None, G_net_shape=None,
-                 loss_type='GAN', with_clipping=False, clipping=0.01, verbose=10):
+    def __init__(self, n_noise=256, batch_size=64, learning_rate=0.0002, D_net_shape=(256, 256,),
+                 G_net_shape=(256, 256,), loss_type='GAN', with_clipping=False, clipping=0.01, verbose=10):
         BaseModel.__init__(self, verbose)
         basicC_GANPropertyMixIN.__init__(self)
 
         self.n_noise = n_noise
         self.batch_size = batch_size
         self.learning_rate = learning_rate
-
-        if D_net_shape is None:
-            self.D_net_shape = [256, 256]
-        else:
-            self.D_net_shape = None
-        if G_net_shape is None:
-            self.G_net_shape = [256, 256]
-        else:
-            self.G_net_shape = None
-
+        self.D_net_shape = D_net_shape
+        self.G_net_shape = G_net_shape
         self.loss_type = loss_type
         self.with_clipping = with_clipping
         self.clipping = clipping
@@ -213,8 +205,6 @@ class C_GAN(BaseModel, basicC_GANPropertyMixIN):
 
             if save_interval is not None and e % save_interval == 0:
                 self.save()
-
-
 
     def generate(self, size, Ys):
         zs = self.get_z_rand_normal([size, self.n_noise])

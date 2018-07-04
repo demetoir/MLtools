@@ -1,9 +1,9 @@
 from script.model.sklearn_like_model.Mixin import Xs_MixIn, zs_MixIn
 from script.model.sklearn_like_model.BaseModel import BaseModel
 from script.util.Stacker import Stacker
-from script.util.tensor_ops import *
 from tqdm import trange
 import numpy as np
+from script.util.tensor_ops import *
 
 
 class TrainFailError(BaseException):
@@ -66,7 +66,7 @@ def basicDiscriminator(X, net_shapes, reuse=False, name='discriminator'):
         layer = Stacker(flatten(X))
 
         for shape in net_shapes:
-            layer.linear(shape, lrelu)
+            layer.linear_block(shape, lrelu)
 
         layer.linear(1)
         layer.sigmoid()
@@ -81,19 +81,23 @@ class GAN(BaseModel, basicGANPropertyMixIN):
         'learning_rate',
         'D_net_shape',
         'G_net_shape',
+        'loss_type',
+        'clipping'
     ]
 
-    def __init__(self, verbose=10, **kwargs):
+    def __init__(self, verbose=10, n_noise=256, batch_size=64, learning_rate=0.0002, D_net_shape=(256, 256,),
+                 G_net_shape=(256, 256,), loss_type='GAN', with_clipping=False, clipping=0.01, **kwargs):
         BaseModel.__init__(self, verbose, **kwargs)
         basicGANPropertyMixIN.__init__(self)
 
-        self.n_noise = 256
-        self.batch_size = 64
-        self.learning_rate = 0.0002
-        self.D_net_shape = (128, 128)
-        self.G_net_shape = (128, 128)
-        self.D_learning_rate = 0.0001
-        self.G_learning_rate = 0.0001
+        self.n_noise = n_noise
+        self.batch_size = batch_size
+        self.learning_rate = learning_rate
+        self.D_net_shape = D_net_shape
+        self.G_net_shape = G_net_shape
+        self.loss_type = loss_type
+        self.with_clipping = with_clipping
+        self.clipping = clipping
 
     def _build_input_shapes(self, shapes):
         ret = {}
@@ -126,10 +130,10 @@ class GAN(BaseModel, basicGANPropertyMixIN):
         self.G_loss_mean = tf.reduce_mean(self.G_loss)
 
     def _build_train_ops(self):
-        self.train_D = tf.train.AdamOptimizer(learning_rate=self.D_learning_rate) \
+        self.train_D = tf.train.AdamOptimizer(learning_rate=self.learning_rate) \
             .minimize(self.D_loss, var_list=self.D_vals)
 
-        self.train_G = tf.train.AdamOptimizer(learning_rate=self.G_learning_rate) \
+        self.train_G = tf.train.AdamOptimizer(learning_rate=self.learning_rate) \
             .minimize(self.G_loss, var_list=self.G_vals)
 
     def train(self, Xs, epoch=1, save_interval=None, batch_size=None):
