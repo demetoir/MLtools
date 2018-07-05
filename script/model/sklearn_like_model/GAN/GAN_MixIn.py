@@ -24,17 +24,17 @@ class GAN_loss_builder_MixIn:
 
     @staticmethod
     def GAN_loss(D_real, D_gen):
-        D_real_loss = tf.reduce_mean(D_real, name='loss_D_real')
-        D_gen_loss = tf.reduce_mean(D_gen, name='loss_D_gen')
-        D_loss = tf.reduce_mean(-tf.log(D_real) - tf.log(1. - D_gen), name='loss_D')
-        G_loss = tf.reduce_mean(-tf.log(D_gen), name='loss_G')
+        D_real_loss = tf.reduce_mean(D_real, name='D_real_loss')
+        D_gen_loss = tf.reduce_mean(D_gen, name='D_gen_loss')
+        D_loss = tf.reduce_mean(-tf.log(D_real) - tf.log(1. - D_gen), name='D_loss')
+        G_loss = tf.reduce_mean(-tf.log(D_gen), name='G_loss')
 
         return D_real_loss, D_gen_loss, D_loss, G_loss
 
     @staticmethod
     def LSGAN_loss(D_real, D_gen):
-        D_real_loss = tf.reduce_mean(D_real, name='loss_D_real')
-        D_gen_loss = tf.reduce_mean(D_gen, name='loss_D_gen')
+        D_real_loss = tf.reduce_mean(D_real, name='D_real_loss')
+        D_gen_loss = tf.reduce_mean(D_gen, name='D_gen_loss')
 
         square_sum = tf.add(tf.square(tf.subtract(D_real, 1)), tf.square(D_gen))
         D_loss = identity(tf.multiply(0.5, tf.reduce_mean(square_sum)), 'D_loss')
@@ -44,7 +44,13 @@ class GAN_loss_builder_MixIn:
 
     @staticmethod
     def L1_GAN_loss(D_real, D_gen):
-        pass
+        D_real_loss = tf.reduce_mean(tf.abs(D_real - 1.), name='D_real_loss')
+        D_gen_loss = tf.reduce_mean(tf.abs(D_gen), name='D_gen_loss')
+
+        D_loss = identity(tf.reduce_mean(D_real_loss + D_gen_loss), 'D_loss')
+        G_loss = identity(tf.reduce_mean(tf.abs(D_gen - 1.)), 'G_loss')
+
+        return D_real_loss, D_gen_loss, D_loss, G_loss
 
     def _build_GAN_loss(self, D_real, D_gen, loss_type='GAN'):
         D_real_loss, D_gen_loss, D_loss, G_loss = self._loss_builder_funcs[loss_type](D_real, D_gen)

@@ -64,3 +64,10 @@ def test_GAN_LSGAN_loss():
         'loss_type': 'LSGAN'
     }
     GAN_common_titanic(GAN, params)
+
+
+def test_GAN_L1GAN_loss():
+    params = {
+        'loss_type': 'L1_GAN'
+    }
+    GAN_common_titanic(GAN, params)
