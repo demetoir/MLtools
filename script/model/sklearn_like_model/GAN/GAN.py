@@ -1,9 +1,10 @@
+from script.model.sklearn_like_model.GAN.GAN_MixIn import GAN_loss_builder_MixIn
 from script.model.sklearn_like_model.Mixin import Xs_MixIn, zs_MixIn
 from script.model.sklearn_like_model.BaseModel import BaseModel
 from script.util.Stacker import Stacker
+from script.util.tensor_ops import *
 from tqdm import trange
 import numpy as np
-from script.util.tensor_ops import *
 
 
 class TrainFailError(BaseException):
@@ -74,7 +75,7 @@ def basicDiscriminator(X, net_shapes, reuse=False, name='discriminator'):
     return layer.last_layer
 
 
-class GAN(BaseModel, basicGANPropertyMixIN):
+class GAN(BaseModel, basicGANPropertyMixIN, GAN_loss_builder_MixIn):
     _params_keys = [
         'n_noise',
         'batch_size',
@@ -89,6 +90,7 @@ class GAN(BaseModel, basicGANPropertyMixIN):
                  G_net_shape=(256, 256,), loss_type='GAN', with_clipping=False, clipping=0.01, **kwargs):
         BaseModel.__init__(self, verbose, **kwargs)
         basicGANPropertyMixIN.__init__(self)
+        GAN_loss_builder_MixIn.__init__(self)
 
         self.n_noise = n_noise
         self.batch_size = batch_size
@@ -121,11 +123,9 @@ class GAN(BaseModel, basicGANPropertyMixIN):
         self.D_vals = collect_vars(join_scope(get_scope(), 'discriminator'))
 
     def _build_loss_function(self):
-        self.D_real_loss = tf.identity(self.D_real, 'loss_D_real')
-        self.D_gen_loss = tf.identity(self.D_gen, 'loss_D_gen')
+        self.D_real_loss, self.D_gen_loss, self.D_loss, self.G_loss = \
+            self._build_GAN_loss(self.D_real, self.D_gen, self.loss_type)
 
-        self.D_loss = tf.identity(-tf.log(self.D_real) - tf.log(1. - self.D_gen), name='loss_D')
-        self.G_loss = tf.identity(-tf.log(self.D_gen), name='loss_G')
         self.D_loss_mean = tf.reduce_mean(self.D_loss)
         self.G_loss_mean = tf.reduce_mean(self.G_loss)
 

@@ -1,4 +1,5 @@
 from tqdm import trange
+from script.model.sklearn_like_model.GAN.GAN_MixIn import GAN_loss_builder_MixIn
 from script.model.sklearn_like_model.BaseModel import BaseModel
 from script.model.sklearn_like_model.Mixin import Xs_MixIn, zs_MixIn, Ys_MixIn
 from script.util.tensor_ops import *
@@ -82,7 +83,7 @@ class basicC_GANPropertyMixIN(Xs_MixIn, Ys_MixIn, zs_MixIn):
         return getattr(self, 'Xs_gen', None)
 
 
-class C_GAN(BaseModel, basicC_GANPropertyMixIN):
+class C_GAN(BaseModel, basicC_GANPropertyMixIN, GAN_loss_builder_MixIn):
     _params_keys = [
         'n_noise',
         'batch_size',
@@ -97,6 +98,7 @@ class C_GAN(BaseModel, basicC_GANPropertyMixIN):
                  G_net_shape=(256, 256,), loss_type='GAN', with_clipping=False, clipping=0.01, verbose=10):
         BaseModel.__init__(self, verbose)
         basicC_GANPropertyMixIN.__init__(self)
+        GAN_loss_builder_MixIn.__init__(self)
 
         self.n_noise = n_noise
         self.batch_size = batch_size
@@ -132,23 +134,8 @@ class C_GAN(BaseModel, basicC_GANPropertyMixIN):
         self.D_vals = collect_vars(join_scope(get_scope(), 'discriminator'))
 
     def _build_loss_function(self):
-        if self.loss_type == 'WGAN':
-            self.D_real_loss = -tf.reduce_mean(self.D_real, axis=1)
-            self.D_gen_loss = tf.reduce_mean(self.D_gen, axis=1)
-            self.D_loss = self.D_real_loss + self.D_gen_loss
-            self.G_loss = -self.D_gen_loss
-        elif self.loss_type == 'GAN':
-            self.D_real_loss = tf.reduce_mean(self.D_real, name='loss_D_real')
-            self.D_gen_loss = tf.reduce_mean(self.D_gen, name='loss_D_gen')
-            self.D_loss = tf.reduce_mean(-tf.log(self.D_real) - tf.log(1. - self.D_gen), name='loss_D')
-            self.G_loss = tf.reduce_mean(-tf.log(self.D_gen), name='loss_G')
-        elif self.loss_type == 'LSGAN':
-            self.D_real_loss = tf.reduce_mean(self.D_real)
-            self.D_gen_loss = tf.reduce_mean(self.D_gen)
-
-            square_sum = tf.add(tf.square(tf.subtract(self.D_real, 1)), tf.square(self.D_gen))
-            self.D_loss = tf.multiply(0.5, tf.reduce_mean(square_sum))
-            self.G_loss = tf.multiply(0.5, tf.reduce_mean(tf.square(tf.subtract(self.D_gen, 1))))
+        self.D_real_loss, self.D_gen_loss, self.D_loss, self.G_loss = \
+            self._build_GAN_loss(self.D_real, self.D_gen, self.loss_type)
 
         self.D_loss_mean = tf.reduce_mean(self.D_loss)
         self.G_loss_mean = tf.reduce_mean(self.G_loss)
