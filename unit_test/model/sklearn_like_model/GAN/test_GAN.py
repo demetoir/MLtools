@@ -1,34 +1,66 @@
-from script.data_handler.DatasetPackLoader import DatasetPackLoader
 from script.model.sklearn_like_model.GAN.GAN import GAN
+from script.data_handler.DatasetPackLoader import DatasetPackLoader
 
 
-def test_GAN():
-    class_ = GAN
-    data_pack = DatasetPackLoader().load_dataset("titanic")
-    dataset = data_pack['train']
-    Xs, Ys = dataset.full_batch(['Xs', 'Ys'])
-    sample_X = Xs[:2]
-    # sample_Y = Ys[:2]
+def to_zero_one_encoding(x):
+    x[x >= 0.5] = 1.0
+    x[x < 0.5] = 0.0
+    return x
 
-    model = class_()
-    model.train(Xs, epoch=1)
 
-    metric = model.metric(sample_X)
-    # print(metric)
+def load_dataset():
+    datapack = DatasetPackLoader().load_dataset('titanic')
+    train_set = datapack['train']
+    train_set.shuffle()
+    train_Xs, train_Ys = train_set.full_batch(['Xs', 'Ys'])
+    return train_Xs
 
-    gen = model.generate(size=2)
-    # print(gen)
 
-    path = model.save()
+def GAN_common_titanic(gan_cls, params):
+    train_Xs = load_dataset()
 
-    model = class_()
-    model.load(path)
-    # print('model reloaded')
+    gan = gan_cls(**params)
 
-    for i in range(1):
-        model.train(Xs, epoch=1)
+    gan.train(train_Xs, epoch=1)
 
-    metric = model.metric(sample_X)
-    # print(metric)
+    metric = gan.metric(train_Xs)
+    # pprint(metric)
 
-    model.save()
+    gen = gan.generate(2)
+
+    gen = to_zero_one_encoding(gen)
+    # pprint(gen)
+
+    path = gan.save()
+
+    gan = gan_cls()
+    gan.load(path)
+    gan.train(train_Xs, epoch=1)
+
+    metric = gan.metric(train_Xs)
+    # pprint(metric)
+
+    gen = gan.generate(2)
+    gen = to_zero_one_encoding(gen)
+    # pprint(gen)
+
+
+def test_GAN_GAN_loss():
+    params = {
+        'loss_type': 'GAN'
+    }
+    GAN_common_titanic(GAN, params)
+
+
+def test_GAN_WGAN_loss():
+    params = {
+        'loss_type': 'WGAN'
+    }
+    GAN_common_titanic(GAN, params)
+
+
+def test_GAN_LSGAN_loss():
+    params = {
+        'loss_type': 'LSGAN'
+    }
+    GAN_common_titanic(GAN, params)
