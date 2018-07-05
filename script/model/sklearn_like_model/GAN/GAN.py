@@ -165,7 +165,7 @@ class GAN(BaseModel, basicGANPropertyMixIN, GAN_loss_builder_MixIn):
                     self.log.error('loss is nan D loss={}, G loss={}'.format(loss_D, loss_G))
                     raise TrainFailError('loss is nan D loss={}, G loss={}'.format(loss_D, loss_G))
 
-                # self.log.info("D={} G={}".format(loss_D, loss_G))
+                self.log.info("D={} G={}".format(loss_D, loss_G))
                 total_D += loss_D / iter_per_epoch
                 total_G += loss_G / iter_per_epoch
 
