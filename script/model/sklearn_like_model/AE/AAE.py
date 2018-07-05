@@ -79,8 +79,8 @@ class AAE(BaseModel, basicAAEPropertyMixIn):
     ]
 
     def __init__(self, batch_size=100, learning_rate=0.01, beta1=0.5, L1_norm_lambda=0.001, latent_code_size=32,
-                 z_size=32, encoder_net_shapes=None, decoder_net_shapes=None, D_gauss_net_shapes=None,
-                 D_cate_net_shapes=None, with_noise=False, noise_intensity=1.,
+                 z_size=32, encoder_net_shapes=(512,), decoder_net_shapes=(512,), D_gauss_net_shapes=(512,),
+                 D_cate_net_shapes=(512,), with_noise=False, noise_intensity=1.,
                  verbose=10):
         BaseModel.__init__(self, verbose)
         basicAAEPropertyMixIn.__init__(self)
@@ -92,22 +92,10 @@ class AAE(BaseModel, basicAAEPropertyMixIn):
         self.latent_code_size = latent_code_size
         self.z_size = z_size
 
-        if encoder_net_shapes is None:
-            self.encoder_net_shapes = [512, 256, 128]
-        else:
-            self.encoder_net_shapes = decoder_net_shapes
-        if decoder_net_shapes is None:
-            self.decoder_net_shapes = [128, 256, 512]
-        else:
-            self.decoder_net_shapes = decoder_net_shapes
-        if D_cate_net_shapes is None:
-            self.D_cate_net_shapes = [512, 512]
-        else:
-            self.D_cate_net_shapes = D_cate_net_shapes
-        if D_gauss_net_shapes is None:
-            self.D_gauss_net_shapes = [512, 512]
-        else:
-            self.D_gauss_net_shapes = D_cate_net_shapes
+        self.encoder_net_shapes = encoder_net_shapes
+        self.decoder_net_shapes = decoder_net_shapes
+        self.D_cate_net_shapes = D_cate_net_shapes
+        self.D_gauss_net_shapes = D_gauss_net_shapes
 
         self.with_noise = with_noise
         self.noise_intensity = noise_intensity
@@ -205,8 +193,6 @@ class AAE(BaseModel, basicAAEPropertyMixIn):
         self.vars_decoder = collect_vars(join_scope(head, 'decoder'))
         self.vars_discriminator_gauss = collect_vars(join_scope(head, 'discriminator_gauss'))
         self.vars_discriminator_cate = collect_vars(join_scope(head, 'discriminator_cate'))
-
-        # self.predict = tf.equal(tf.argmax(self.hs, 1), tf.argmax(self.Ys, 1), name='predict')
 
         self.predict_index = tf.cast(tf.argmax(self.hs, 1), tf.float32, name="predict_index")
         self.label_index = onehot_to_index(self.Ys)

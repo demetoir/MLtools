@@ -2,7 +2,6 @@ from pprint import pprint
 import seaborn as sns
 import numpy as np
 from script.util.PlotTools import PlotTools
-from util.deco import deco_timeit
 
 
 def test_plot_tools_pair_plot():
@@ -69,7 +68,7 @@ def test_plt_line():
 
 
 def test_plt_scatter_2d():
-    xys = [(np.random.uniform(10, -10, [1000]), np.random.normal(k, 1, [1000])) for k in range(1, 20)]
+    xys = [(np.random.uniform(10, -10, [100]), np.random.normal(k, 1, [100])) for k in range(1, 20)]
 
     plt_tools = PlotTools()
     plt_tools.scatter_2d(xys)
@@ -81,17 +80,15 @@ def test_plt_dist():
     plt_tools.dist(rand_x_1d)
 
 
-@deco_timeit
 def test_plot_tool_timeit():
-    rand_x_1d = np.random.normal(3, 5, [10000])
+    rand_x_1d = np.random.normal(3, 5, [100])
     tool = PlotTools()
     for i in range(10):
         tool.dist(rand_x_1d)
 
 
-@deco_timeit
 def test_plot_tool_async_timeit():
-    rand_x_1d = np.random.normal(3, 5, [10000])
+    rand_x_1d = np.random.normal(3, 5, [100])
     tool = PlotTools()
 
     from multiprocessing_on_dill.pool import Pool

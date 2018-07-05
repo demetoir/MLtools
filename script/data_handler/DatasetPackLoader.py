@@ -10,7 +10,6 @@ class DatasetPackLoader:
         self.root_path = root_path
         self.logger = Logger(self.__class__.__name__, self.root_path, level=verbose)
         self.log = self.logger
-        self.dataset_class = {}
 
     def __repr__(self):
         return self.__class__.__name__
@@ -29,10 +28,7 @@ class DatasetPackLoader:
         invalid dataset_name
         """
         try:
-            if dataset_name not in self.dataset_class:
-                self.import_dataset_class(dataset_name=dataset_name)
-
-            dataset_class = self.dataset_class[dataset_name]
+            dataset_class = self.import_dataset_class(dataset_name=dataset_name)
             path = os.path.join(DATA_PATH, dataset_class.__name__)
             dataset = dataset_class(**kwargs)
             dataset.load(path=path, limit=limit)
@@ -63,16 +59,16 @@ class DatasetPackLoader:
             raise ModuleNotFoundError("dataset %s not found" % dataset_name)
 
         module_ = import_module_from_module_path(dataset_path)
-        dataset = None
+        dataset_cls = None
         for key in module_.__dict__:
             value = module_.__dict__[key]
             try:
                 if issubclass(value, BaseDatasetPack):
-                    dataset = value
+                    dataset_cls = value
             except TypeError:
                 pass
 
-        if dataset is None:
+        if dataset_cls is None:
             raise ModuleNotFoundError("dataset class %s not found" % dataset_name)
 
-        self.dataset_class[dataset_name] = dataset
+        return dataset_cls
