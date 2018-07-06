@@ -1,4 +1,4 @@
-from script.model.sklearn_like_model.Mixin import input_shapesMixIN, metadataMixIN, paramsMixIn
+from script.model.sklearn_like_model.Mixin import input_shapesMixIN, metadataMixIN, paramsMixIn, loss_packMixIn
 from script.data_handler.DummyDataset import DummyDataset
 from script.util.MixIn import LoggerMixIn
 from script.util.misc_util import time_stamp, path_join, log_error_trace
@@ -25,7 +25,7 @@ input_shapes_json = 'input_shapes.json'
 INSTANCE_FOLDER = 'instance'
 
 
-class BaseModel(LoggerMixIn, input_shapesMixIN, metadataMixIN, paramsMixIn):
+class BaseModel(LoggerMixIn, input_shapesMixIN, metadataMixIN, paramsMixIn, loss_packMixIn):
     """Abstract class of model for tensorflow graph"""
     AUTHOR = 'demetoir'
 
@@ -41,6 +41,7 @@ class BaseModel(LoggerMixIn, input_shapesMixIN, metadataMixIN, paramsMixIn):
         input_shapesMixIN.__init__(self)
         metadataMixIN.__init__(self)
         paramsMixIn.__init__(self)
+        loss_packMixIn.__init__(self)
 
         self.verbose = verbose
         self.sess = None
