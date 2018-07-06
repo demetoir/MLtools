@@ -252,3 +252,26 @@ class paramsMixIn:
 
     def _save_params(self, path):
         dump_json(self.params, path)
+
+
+class loss_packMixIn:
+    @staticmethod
+    def format_loss_pack(pack):
+        return " ".join([f"{key}={val:.4f}" for key, val in pack.items()])
+
+    @staticmethod
+    def add_loss_pack(a, b):
+        if a.keys() != b.keys():
+            raise TypeError('add_loss_pack fail, a.keys() and b.keys() different')
+
+        news_pack = {}
+        for key in a:
+            news_pack[key] = a[key] + b[key]
+
+        return news_pack
+
+    @staticmethod
+    def div_loss_pack(pack, val):
+        for key in pack:
+            pack[key] /= val
+        return pack
