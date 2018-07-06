@@ -16,12 +16,12 @@ def load_dataset():
     return train_Xs, train_Ys
 
 
-def common_info_GAN(gan_cls, params):
+def common_info_GAN(gan_cls, params, epoch=1):
     train_Xs, train_Ys = load_dataset()
 
     gan = gan_cls(**params)
 
-    gan.train(train_Xs, train_Ys, epoch=1)
+    gan.train(train_Xs, train_Ys, epoch=epoch)
 
     metric = gan.metric(train_Xs, train_Ys)
     pprint(metric)
@@ -35,7 +35,7 @@ def common_info_GAN(gan_cls, params):
 
     gan = gan_cls()
     gan.load(path)
-    gan.train(train_Xs, train_Ys, epoch=1)
+    gan.train(train_Xs, train_Ys, epoch=epoch)
 
     metric = gan.metric(train_Xs, train_Ys)
     pprint(metric)
@@ -45,8 +45,37 @@ def common_info_GAN(gan_cls, params):
     pprint(gen)
 
 
-def test_Info_GAN():
+def test_Info_GAN_loss_GAN():
     gan = InfoGAN
     params = {
+        'loss_type': 'GAN'
     }
-    common_info_GAN(gan, params)
+    epoch = 1
+    common_info_GAN(gan, params, epoch=epoch)
+
+
+def test_Info_GAN_loss_WGAN():
+    gan = InfoGAN
+    params = {
+        'loss_type': 'WGAN'
+    }
+    epoch = 1
+    common_info_GAN(gan, params, epoch=epoch)
+
+
+def test_Info_GAN_loss_LSGAN():
+    gan = InfoGAN
+    params = {
+        'loss_type': 'LSGAN'
+    }
+    epoch = 1
+    common_info_GAN(gan, params, epoch=epoch)
+
+
+def test_Info_GAN_loss_L1_GAN():
+    gan = InfoGAN
+    params = {
+        'loss_type': 'L1_GAN'
+    }
+    epoch = 1
+    common_info_GAN(gan, params, epoch=epoch)
