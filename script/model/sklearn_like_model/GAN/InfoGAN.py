@@ -112,10 +112,10 @@ class InfoGAN(BaseModel, InfoGANPropertyMixIN, GAN_loss_builder_MixIn):
             code_logit = layer.linear(discrete_code_size + continuous_code_size)
             code = layer.softmax()
 
-            continuous_code_logit = code_logit[:, :discrete_code_size]
-            discrete_code_logit = code_logit[:, discrete_code_size:]
-            continuous_code = code[:, :discrete_code_size]
-            discrete_code = code[:, discrete_code_size:]
+            discrete_code = code[:, :discrete_code_size]
+            continuous_code = code[:, discrete_code_size:]
+            discrete_code_logit = code_logit[:, :discrete_code_size]
+            continuous_code_logit = code_logit[:, discrete_code_size:]
 
         return discrete_code, discrete_code_logit, continuous_code, continuous_code_logit
 
