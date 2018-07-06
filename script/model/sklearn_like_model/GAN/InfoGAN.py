@@ -235,13 +235,10 @@ class InfoGAN(BaseModel, InfoGANPropertyMixIN, GAN_loss_builder_MixIn):
                 self.run_ops(self._train_ops, {self._Xs: Xs, self._Ys: Ys, self._zs: zs, self._cs: cs})
 
                 loss_pack = self.metric(Xs, Ys, zs, cs)
-
                 if check_loss:
                     self._loss_check(loss_pack)
-
-                self.log.info(self.format_loss_pack(loss_pack))
-
                 total_loss = self.add_loss_pack(total_loss, loss_pack)
+                self.log.info(self.format_loss_pack(loss_pack))
 
             total_loss = self.div_loss_pack(total_loss, iter_per_epoch)
             self.log.info(self.format_loss_pack(total_loss))
