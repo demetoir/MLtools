@@ -1,54 +1,10 @@
 from script.model.sklearn_like_model.BaseModel import BaseModel
-from script.model.sklearn_like_model.Mixin import Xs_MixIn, Ys_MixIn, zs_MixIn
+from script.model.sklearn_like_model.Mixin import Xs_MixIn, Ys_MixIn, zs_MixIn, cs_MixIn
 from script.util.Stacker import Stacker
 from script.util.tensor_ops import *
-from functools import reduce
 from tqdm import trange
 import numpy as np
 import tensorflow as tf
-
-
-class cs_MixIn:
-    _cs_shapes_key = 'cs'
-    _cs_input_shape_keys = [
-        'c_shape',
-        'cs_shape',
-    ]
-
-    def __init__(self):
-        if not hasattr(self, '_input_shape_keys'):
-            self._input_shape_keys = []
-
-        self._input_shape_keys += self._cs_input_shape_keys
-
-        self.c_shape = None
-        self.cs_shape = None
-
-    @property
-    def _cs(self):
-        return getattr(self, self._cs_shapes_key, None)
-
-    def _build_cs_input_shape(self, shapes):
-        shape = shapes[self._cs_shapes_key]
-        c_shape = shape[1:]
-        cs_shape = [None] + list(c_shape)
-
-        return {
-            'c_shape': c_shape,
-            'cs_shape': cs_shape
-        }
-
-    @staticmethod
-    def _flatten_shape(x):
-        return reduce(lambda a, b: a * b, x)
-
-    @staticmethod
-    def get_c_rand_uniform(shape):
-        return np.random.uniform(-1.0, 1.0, size=shape)
-
-    @staticmethod
-    def get_c_rand_normal(shape):
-        return np.random.normal(size=shape)
 
 
 class InfoGANPropertyMixIN(Xs_MixIn, Ys_MixIn, zs_MixIn, cs_MixIn):
