@@ -1,4 +1,4 @@
-from script.model.sklearn_like_model.Mixin import input_shapesMixIN, metadataMixIN, paramsMixIn
+from script.model.sklearn_like_model.Mixin import input_shapesMixIN, metadataMixIN, paramsMixIn, loss_packMixIn
 from script.data_handler.DummyDataset import DummyDataset
 from script.util.MixIn import LoggerMixIn
 from script.util.misc_util import time_stamp, path_join, log_error_trace
@@ -14,6 +14,10 @@ class ModelBuildFailError(BaseException):
     pass
 
 
+class TrainFailError(BaseException):
+    pass
+
+
 META_DATA_FILE_NAME = 'instance.meta'
 meta_json = 'meta.json'
 params_json = 'params.json'
@@ -21,7 +25,7 @@ input_shapes_json = 'input_shapes.json'
 INSTANCE_FOLDER = 'instance'
 
 
-class BaseModel(LoggerMixIn, input_shapesMixIN, metadataMixIN, paramsMixIn):
+class BaseModel(LoggerMixIn, input_shapesMixIN, metadataMixIN, paramsMixIn, loss_packMixIn):
     """Abstract class of model for tensorflow graph"""
     AUTHOR = 'demetoir'
 
@@ -37,6 +41,7 @@ class BaseModel(LoggerMixIn, input_shapesMixIN, metadataMixIN, paramsMixIn):
         input_shapesMixIN.__init__(self)
         metadataMixIN.__init__(self)
         paramsMixIn.__init__(self)
+        loss_packMixIn.__init__(self)
 
         self.verbose = verbose
         self.sess = None
@@ -240,3 +245,12 @@ class BaseModel(LoggerMixIn, input_shapesMixIN, metadataMixIN, paramsMixIn):
     def run_ops(self, ops, feed_dict):
         for op in ops:
             self.sess.run(op, feed_dict=feed_dict)
+
+    def _loss_check(self, loss_pack):
+        for key, item, in loss_pack.items():
+            if any(np.isnan(item)):
+                self.log.error(f'{key} is nan')
+                raise TrainFailError(f'{key} is nan')
+            if any(np.isinf(item)):
+                self.log.error(f'{key} is inf')
+                raise TrainFailError(f'{key} is inf')
