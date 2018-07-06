@@ -14,6 +14,10 @@ class ModelBuildFailError(BaseException):
     pass
 
 
+class TrainFailError(BaseException):
+    pass
+
+
 META_DATA_FILE_NAME = 'instance.meta'
 meta_json = 'meta.json'
 params_json = 'params.json'

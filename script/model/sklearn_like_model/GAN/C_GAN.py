@@ -1,4 +1,5 @@
 from tqdm import trange
+from model.sklearn_like_model.GAN.GAN import TrainFailError
 from script.model.sklearn_like_model.GAN.GAN_MixIn import GAN_loss_builder_MixIn
 from script.model.sklearn_like_model.BaseModel import BaseModel
 from script.model.sklearn_like_model.Mixin import Xs_MixIn, zs_MixIn, Ys_MixIn
@@ -7,12 +8,9 @@ from script.util.Stacker import Stacker
 import numpy as np
 
 
-class TrainFailError(BaseException):
-    pass
 
 
-class InputShapeError(BaseException):
-    pass
+
 
 
 def generator(z, Y, net_shape, flatten_size, output_shape, reuse=False, name='generator'):
