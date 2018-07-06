@@ -211,49 +211,44 @@ class InfoGAN(BaseModel, InfoGANPropertyMixIN):
         self.train_Q = tf.train.AdamOptimizer(learning_rate=self.learning_rate) \
             .minimize(self.Q_loss, var_list=var_list)
 
-    def train(self, Xs, Ys, epoch=1, save_interval=None, batch_size=None):
+    def train(self, Xs, Ys, epoch=1, save_interval=None, batch_size=None, check_loss=True):
         self._prepare_train(Xs=Xs, Ys=Ys)
         dataset = self.to_dummyDataset(Xs=Xs, Ys=Ys)
 
         if batch_size is None:
             batch_size = self.batch_size
 
-        iter_num = 0
         iter_per_epoch = dataset.size // batch_size
         self.log.info("train epoch {}, iter/epoch {}".format(epoch, iter_per_epoch))
         for e in trange(epoch):
             dataset.shuffle()
 
-            total_G = 0
-            total_D = 0
-            total_Q = 0
-            total_Q_discrete = 0
-            total_Q_continuous = 0
-            for i in range(iter_per_epoch):
-                iter_num += 1
+            total_loss = {
+                'D': 0.,
+                'G': 0.,
+                'Q_continuous': 0.,
+                'Q_discrete': 0.,
+                'Q': 0.
+            }
 
+            for _ in range(iter_per_epoch):
                 Xs, Ys = dataset.next_batch(batch_size)
                 zs = self.get_z_rand_normal([batch_size, self.n_noise])
                 cs = self.get_z_rand_normal([batch_size, self.n_c])
                 self.run_ops(self._train_ops, {self._Xs: Xs, self._Ys: Ys, self._zs: zs, self._cs: cs})
 
-                loss_D, loss_G, loss_Q, loss_Q_discrete, loss_Q_continuous = self.sess.run(
-                    self._metric_ops, feed_dict={self._Xs: Xs, self._Ys: Ys, self._zs: zs, self._cs: cs})
+                loss_pack = self.metric(Xs, Ys, zs, cs)
 
                 # if np.isnan(loss_D) or np.isnan(loss_G):
                 #     self.log.error('loss is nan D loss={}, G loss={}'.format(loss_D, loss_G))
                 #     raise TrainFailError('loss is nan D loss={}, G loss={}'.format(loss_D, loss_G))
 
-                self.log.info(f"D={loss_D:.4f}, G={loss_G:.4f}, Q={loss_Q:.4f},"
-                              f" Q_discrete={loss_Q_discrete:.4f}, loss_Q_continuous={loss_Q_continuous:.4f}")
-                total_D += loss_D / iter_per_epoch
-                total_G += loss_G / iter_per_epoch
-                total_Q += loss_Q / iter_per_epoch
-                total_Q_discrete += loss_Q_discrete / iter_per_epoch
-                total_Q_continuous += loss_Q_continuous / iter_per_epoch
+                self.log.info(self.format_loss_pack(loss_pack))
 
-            self.log.info(f"e:{e}  D={total_D:.4f}, G={total_G:.4f}, Q={total_Q:.4f}"
-                          f" Q_discrete={total_Q_discrete:.4f}, loss_Q_continuous={total_Q_continuous:.4f}")
+                total_loss = self.add_loss_pack(total_loss, loss_pack)
+
+            total_loss = self.div_loss_pack(total_loss, iter_per_epoch)
+            self.log.info(self.format_loss_pack(total_loss))
 
             if save_interval is not None and e % save_interval == 0:
                 self.save()
@@ -284,6 +279,6 @@ class InfoGAN(BaseModel, InfoGANPropertyMixIN):
             self._metric_ops,
             {self._Xs: Xs, self._zs: zs, self._Ys: Ys, self._cs: cs})
         return {
-            'D_loss': D_loss, 'G_loss': G_loss, 'Q_loss': Q_loss,
-            'Q_discrete_loss': Q_discrete_loss,
-            'Q_continuous_loss': Q_continuous_loss}
+            'D': D_loss, 'G': G_loss, 'Q': Q_loss,
+            'Q_discrete': Q_discrete_loss,
+            'Q_continuous': Q_continuous_loss}
