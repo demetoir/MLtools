@@ -1,3 +1,4 @@
+from script.model.sklearn_like_model.GAN.GAN_MixIn import GAN_loss_builder_MixIn
 from script.model.sklearn_like_model.BaseModel import BaseModel
 from script.model.sklearn_like_model.Mixin import Xs_MixIn, Ys_MixIn, zs_MixIn, cs_MixIn
 from script.util.Stacker import Stacker
@@ -65,12 +66,13 @@ class InfoGANPropertyMixIN(Xs_MixIn, Ys_MixIn, zs_MixIn, cs_MixIn):
         return getattr(self, 'Xs_gen', None)
 
 
-class InfoGAN(BaseModel, InfoGANPropertyMixIN):
+class InfoGAN(BaseModel, InfoGANPropertyMixIN, GAN_loss_builder_MixIn):
 
     def __init__(self, batch_size=64, learning_rate=0.0002, n_noise=256, n_c=2, with_D_clip=True, D_clipping=0.1,
                  D_net_shapes=(512, 512), G_net_shapes=(512, 512), Q_net_shape=(512, 512), loss_type='GAN', verbose=10):
         BaseModel.__init__(self, verbose)
         InfoGANPropertyMixIN.__init__(self)
+        GAN_loss_builder_MixIn.__init__(self)
 
         self.n_noise = n_noise
         self.n_c = n_c
@@ -81,6 +83,7 @@ class InfoGAN(BaseModel, InfoGANPropertyMixIN):
         self.D_net_shapes = D_net_shapes
         self.G_net_shapes = G_net_shapes
         self.Q_net_shapes = Q_net_shape
+        self.loss_type = loss_type
 
         # self.len_discrete_code = self.Y_flatten_size  # categorical distribution (i.e. label)
         # self.len_continuous_code = self.n_c  # gaussian distribution (e.g. rotation, thickness)
@@ -165,31 +168,20 @@ class InfoGAN(BaseModel, InfoGANPropertyMixIN):
         self.Q_vals = collect_vars(join_scope(get_scope(), 'Q_function'))
 
     def _build_loss_function(self):
-        # # get loss for discriminator
-        # d_loss_real = tf.reduce_mean(
-        #     tf.nn.sigmoid_cross_entropy_with_logits(logits=D_real_logits, labels=tf.ones_like(D_real)))
-        # d_loss_fake = tf.reduce_mean(
-        #     tf.nn.sigmoid_cross_entropy_with_logits(logits=D_fake_logits, labels=tf.zeros_like(D_fake)))
 
-        self.D_real_loss = tf.reduce_mean(self.D_real, name='D_real_loss')
-
-        self.D_gen_loss = tf.reduce_mean(self.D_gen, name='D_gen_loss')
-
-        self.D_loss = - tf.reduce_mean(tf.log(self.D_real)) - tf.reduce_mean(tf.log(1. - self.D_gen), name='D_loss')
-
-        self.G_loss = - tf.reduce_mean(tf.log(self.D_gen), name='G_loss')
+        self.D_real_loss, self.D_gen_loss, self.D_loss, self.G_loss = \
+            self._build_GAN_loss(self.D_real, self.D_gen, self.loss_type)
 
         # discrete code : categorical
         disc_code_est = self.discrete_code_logit
         disc_code_tg = self.Ys
-        Q_disc_loss = tf.reduce_mean(
-            tf.nn.softmax_cross_entropy_with_logits_v2(logits=disc_code_est, labels=disc_code_tg))
+        Q_disc_loss = tf.nn.softmax_cross_entropy_with_logits_v2(logits=disc_code_est, labels=disc_code_tg)
         self.Q_discrete_loss = identity(Q_disc_loss, 'Q_discrete_loss')
 
         # continuous code : gaussian
         cont_code_est = self.continuous_code_logit
         cont_code_tg = self.cs
-        Q_cont_loss = tf.reduce_mean(tf.reduce_sum(tf.square(cont_code_tg - cont_code_est), axis=1))
+        Q_cont_loss = tf.reduce_sum(tf.square(cont_code_tg - cont_code_est), axis=1)
         self.Q_continuous_loss = identity(Q_cont_loss, 'Q_continuous_loss')
 
         # get information loss
