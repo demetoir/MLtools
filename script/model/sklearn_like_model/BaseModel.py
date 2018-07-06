@@ -245,3 +245,9 @@ class BaseModel(LoggerMixIn, input_shapesMixIN, metadataMixIN, paramsMixIn, loss
     def run_ops(self, ops, feed_dict):
         for op in ops:
             self.sess.run(op, feed_dict=feed_dict)
+
+    def _loss_check(self, loss_pack):
+        for key, item, in loss_pack.items():
+            if np.isnan(item) or np.isinf(item):
+                self.log.error(f'{key} is item')
+                raise TrainFailError(f'{key} is item')
