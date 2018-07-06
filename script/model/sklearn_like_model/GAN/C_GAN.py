@@ -8,11 +8,6 @@ from script.util.Stacker import Stacker
 import numpy as np
 
 
-
-
-
-
-
 def generator(z, Y, net_shape, flatten_size, output_shape, reuse=False, name='generator'):
     with tf.variable_scope(name, reuse=reuse):
         layer = Stacker(concat((z, Y), axis=1))
