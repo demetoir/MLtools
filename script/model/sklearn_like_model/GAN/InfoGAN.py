@@ -67,8 +67,8 @@ class InfoGANPropertyMixIN(Xs_MixIn, Ys_MixIn, zs_MixIn, cs_MixIn):
 
 class InfoGAN(BaseModel, InfoGANPropertyMixIN):
 
-    def __init__(self, batch_size=64, learning_rate=0.0002, n_noise=256, n_c=2, with_D_clip=False, D_clip=0.1,
-                 D_net_shapes=(512, 512), G_net_shapes=(512, 512), Q_net_shape=(512, 512), verbose=10):
+    def __init__(self, batch_size=64, learning_rate=0.0002, n_noise=256, n_c=2, with_D_clip=True, D_clipping=0.1,
+                 D_net_shapes=(512, 512), G_net_shapes=(512, 512), Q_net_shape=(512, 512), loss_type='GAN', verbose=10):
         BaseModel.__init__(self, verbose)
         InfoGANPropertyMixIN.__init__(self)
 
@@ -77,7 +77,7 @@ class InfoGAN(BaseModel, InfoGANPropertyMixIN):
         self.batch_size = batch_size
         self.learning_rate = learning_rate
         self.with_clipping = with_D_clip
-        self.D_clip = D_clip
+        self.clipping = D_clipping
         self.D_net_shapes = D_net_shapes
         self.G_net_shapes = G_net_shapes
         self.Q_net_shapes = Q_net_shape
@@ -210,6 +210,11 @@ class InfoGAN(BaseModel, InfoGANPropertyMixIN):
         var_list = self.D_vals + self.G_vals + self.Q_vals
         self.train_Q = tf.train.AdamOptimizer(learning_rate=self.learning_rate) \
             .minimize(self.Q_loss, var_list=var_list)
+
+        if self.with_clipping:
+            self.clip_D_op = [var.assign(tf.clip_by_value(var, -self.clipping, self.clipping)) for var in self.D_vals]
+        else:
+            self.clip_D_op = None
 
     def train(self, Xs, Ys, epoch=1, save_interval=None, batch_size=None, check_loss=True):
         self._prepare_train(Xs=Xs, Ys=Ys)
