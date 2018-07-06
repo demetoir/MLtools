@@ -248,6 +248,9 @@ class BaseModel(LoggerMixIn, input_shapesMixIN, metadataMixIN, paramsMixIn, loss
 
     def _loss_check(self, loss_pack):
         for key, item, in loss_pack.items():
-            if np.isnan(item) or np.isinf(item):
-                self.log.error(f'{key} is item')
-                raise TrainFailError(f'{key} is item')
+            if any(np.isnan(item)):
+                self.log.error(f'{key} is nan')
+                raise TrainFailError(f'{key} is nan')
+            if any(np.isinf(item)):
+                self.log.error(f'{key} is inf')
+                raise TrainFailError(f'{key} is inf')
