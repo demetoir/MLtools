@@ -9,15 +9,15 @@ def to_zero_one_encoding(x):
     return x
 
 
-def load_dataset():
-    data_pack = DatasetPackLoader().load_dataset('titanic')
+def load_dataset(dataset_name):
+    data_pack = DatasetPackLoader().load_dataset(dataset_name)
     train_set = data_pack['train']
     train_Xs, train_Ys = train_set.full_batch(['Xs', 'Ys'])
     return train_Xs, train_Ys
 
 
-def common_info_GAN(gan_cls, params, epoch=1):
-    train_Xs, train_Ys = load_dataset()
+def common_info_GAN(gan_cls, params, epoch=1, dataset_name='titanic'):
+    train_Xs, train_Ys = load_dataset(dataset_name)
 
     gan = gan_cls(**params)
 
@@ -79,3 +79,10 @@ def test_Info_GAN_loss_L1_GAN():
     }
     epoch = 1
     common_info_GAN(gan, params, epoch=epoch)
+
+
+def test_Info_GAN_MNIST():
+    gan = InfoGAN
+    params = {}
+    epoch = 1
+    common_info_GAN(gan, params, epoch=epoch, dataset_name='MNIST')
