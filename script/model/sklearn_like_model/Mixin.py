@@ -257,7 +257,7 @@ class paramsMixIn:
 class loss_packMixIn:
     @staticmethod
     def format_loss_pack(pack):
-        return " ".join([f"{key}={val:.4f}" for key, val in pack.items()])
+        return " ".join([f"{key}={np.mean(val):.4f}" for key, val in pack.items()])
 
     @staticmethod
     def add_loss_pack(a, b):
