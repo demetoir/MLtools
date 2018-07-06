@@ -239,9 +239,8 @@ class InfoGAN(BaseModel, InfoGANPropertyMixIN):
 
                 loss_pack = self.metric(Xs, Ys, zs, cs)
 
-                # if np.isnan(loss_D) or np.isnan(loss_G):
-                #     self.log.error('loss is nan D loss={}, G loss={}'.format(loss_D, loss_G))
-                #     raise TrainFailError('loss is nan D loss={}, G loss={}'.format(loss_D, loss_G))
+                if check_loss:
+                    self._loss_check(loss_pack)
 
                 self.log.info(self.format_loss_pack(loss_pack))
 
