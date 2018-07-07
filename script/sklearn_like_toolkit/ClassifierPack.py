@@ -16,7 +16,7 @@ from script.sklearn_like_toolkit.warpper.sklearn_wrapper import skSGDClf
 from script.sklearn_like_toolkit.warpper.sklearn_wrapper import skGaussian_NBClf
 from script.sklearn_like_toolkit.warpper.sklearn_wrapper import skBernoulli_NBClf
 from script.sklearn_like_toolkit.warpper.sklearn_wrapper import skMultinomial_NBClf
-from script.sklearn_like_toolkit.warpper.sklearn_wrapper import skDecisionTreeClf
+from script.sklearn_like_toolkit.warpper.skClf_wrapper.skDecisionTreeClf import skDecisionTreeClf
 from script.sklearn_like_toolkit.warpper.sklearn_wrapper import skRandomForestClf
 from script.sklearn_like_toolkit.warpper.sklearn_wrapper import skExtraTreesClf
 from script.sklearn_like_toolkit.warpper.sklearn_wrapper import skAdaBoostClf
