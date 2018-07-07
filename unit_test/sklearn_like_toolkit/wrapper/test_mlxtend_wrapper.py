@@ -1,6 +1,6 @@
 from script.sklearn_like_toolkit.warpper.mlxtend_wrapper import mlxLinearReg, mlxStackingCVReg, mlxStackingReg
-from script.sklearn_like_toolkit.warpper.sklearn_wrapper import skBayesianRidgeReg, skDecisionTreeReg, skLassoReg, \
-    skMLPReg
+from script.sklearn_like_toolkit.warpper.sklearn_wrapper import skBayesianRidgeReg, skDecisionTreeReg, skMLPReg
+from script.sklearn_like_toolkit.warpper.skReg_wrapper.skLassoReg import skLassoReg
 from unit_test.sklearn_like_toolkit.wrapper.helper import wrapper_reg_common
 
 

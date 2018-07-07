@@ -1,5 +1,3 @@
-from sklearn.linear_model import Lasso as _LassoReg
-from sklearn.linear_model import LassoCV as _LassoCVReg
 from sklearn.linear_model import LassoLars as _LassoLars
 from sklearn.linear_model import LassoLarsCV as _LassoLarsCV
 from sklearn.linear_model import ElasticNet as _ElasticNetReg
@@ -12,8 +10,6 @@ from sklearn.linear_model import RANSACRegressor as _RANSACRegressor
 from sklearn.linear_model import TheilSenRegressor as _TheilSenRegressor
 from sklearn.linear_model import SGDRegressor as _SGDRegressor
 from sklearn.linear_model.passive_aggressive import PassiveAggressiveRegressor as _PassiveAggressiveRegressor
-from sklearn.linear_model.ridge import Ridge as _RidgeReg
-from sklearn.linear_model.ridge import RidgeCV as _RidgeCVReg
 from sklearn.linear_model.stochastic_gradient import DEFAULT_EPSILON
 from sklearn.neighbors import RadiusNeighborsRegressor as _RadiusNeighborsRegressor
 from sklearn.neighbors import KNeighborsRegressor as _KNeighborsRegressor
@@ -39,96 +35,6 @@ import numpy as np
 # RationalQuadratic
 # Dotproduct
 # ExpSineSquared
-
-
-class skRidgeReg(_RidgeReg, BaseWrapperReg, metaclass=meta_BaseWrapperReg_with_ABC):
-    def __init__(self, alpha=1.0, fit_intercept=True, normalize=False, copy_X=True, max_iter=None, tol=1e-3,
-                 solver="auto", random_state=None):
-        _RidgeReg.__init__(self, alpha, fit_intercept, normalize, copy_X, max_iter, tol, solver, random_state)
-        BaseWrapperReg.__init__(self)
-
-    tuning_grid = {
-        'alpha': 1.0,
-        'tol': 1e-3,
-
-        # 'fit_intercept': True,
-        # 'normalize': False,
-        # 'max_iter': None,
-
-        # 'copy_X': True,
-        # 'solver': "auto",
-        # 'random_state': None,
-    }
-
-
-class skRidgeCVReg(_RidgeCVReg, BaseWrapperReg, metaclass=meta_BaseWrapperReg_with_ABC):
-    def __init__(self, alphas=(0.1, 1.0, 10.0), fit_intercept=True, normalize=False, scoring=None, cv=None,
-                 gcv_mode=None, store_cv_values=False):
-        _RidgeCVReg.__init__(self, alphas, fit_intercept, normalize, scoring, cv, gcv_mode, store_cv_values)
-        BaseWrapperReg.__init__(self)
-
-    tuning_grid = {
-        # shape positive float
-        'alphas': (0.1, 1.0, 10.0),
-        # 'fit_intercept': True,
-        # 'normalize': False,
-        # 'scoring': None,
-        # 'cv': None,
-        # 'class_weight': None
-    }
-
-
-class skLassoReg(_LassoReg, BaseWrapperReg, metaclass=meta_BaseWrapperReg_with_ABC):
-
-    def __init__(self, alpha=1.0, fit_intercept=True, normalize=False, precompute=False, copy_X=True, max_iter=1000,
-                 tol=1e-4, warm_start=False, positive=False, random_state=None, selection='cyclic'):
-        _LassoReg.__init__(
-            self, alpha, fit_intercept, normalize, precompute, copy_X, max_iter, tol, warm_start, positive,
-            random_state, selection)
-        BaseWrapperReg.__init__(self)
-
-    tuning_grid = {
-        'alpha': 1.0,
-        'fit_intercept': True,
-        'normalize': False,
-        'precompute': False,
-        'copy_X': True,
-        'max_iter': 1000,
-        'tol': 1e-4,
-        'warm_start': False,
-        'positive': False,
-        'random_state': None,
-        'selection': 'cyclic',
-    }
-
-
-class skLassoCVReg(_LassoCVReg, BaseWrapperReg, metaclass=meta_BaseWrapperReg_with_ABC):
-
-    def __init__(self, eps=1e-3, n_alphas=100, alphas=None, fit_intercept=True, normalize=False, precompute='auto',
-                 max_iter=1000, tol=1e-4, copy_X=True, cv=None, verbose=False, n_jobs=1, positive=False,
-                 random_state=None, selection='cyclic'):
-        _LassoCVReg.__init__(
-            self, eps, n_alphas, alphas, fit_intercept, normalize, precompute, max_iter, tol, copy_X, cv,
-            verbose, n_jobs, positive, random_state, selection)
-        BaseWrapperReg.__init__(self)
-
-    tuning_grid = {
-        'eps': 1e-3,
-        'n_alphas': 100,
-        'alphas': None,
-        'fit_intercept': True,
-        'normalize': False,
-        'precompute': 'auto',
-        'max_iter': 1000,
-        'tol': 1e-4,
-        'copy_X': True,
-        'cv': None,
-        'verbose': False,
-        'n_jobs': 1,
-        'positive': False,
-        'random_state': None,
-        'selection': 'cyclic',
-    }
 
 
 class skLassoLarsReg(_LassoLars, BaseWrapperReg, metaclass=meta_BaseWrapperReg_with_ABC):

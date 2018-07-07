@@ -3,11 +3,14 @@ from script.sklearn_like_toolkit.warpper.catboost_wrapper import CatBoostReg
 from script.sklearn_like_toolkit.warpper.lightGBM_wrapper import LightGBMReg
 from script.sklearn_like_toolkit.warpper.xgboost_wrapper import XGBoostReg
 from script.sklearn_like_toolkit.warpper.mlxtend_wrapper import mlxLinearReg, mlxStackingReg, mlxStackingCVReg
-from script.sklearn_like_toolkit.warpper.sklearn_wrapper import skRidgeReg, skMLPReg, skGradientBoostingReg, \
+from script.sklearn_like_toolkit.warpper.sklearn_wrapper import skMLPReg, skGradientBoostingReg, \
     skBaggingReg, skRandomForestReg, skAdaBoostReg, skExtraTreeReg, skGaussianProcessReg, skDecisionTreeReg, skHuberReg, \
     skRadiusNeighborsReg, skKNeighborsReg, skPassiveAggressiveReg, skRANSACReg, skKernelRidgeReg, skTheilSenReg, \
     skElasticNetCvReg, skBayesianRidgeReg, skARDReg, skLogisticReg, skSGDReg, skLassoLarsCVReg, skLassoLarsReg, \
-    skLassoCVReg, skLassoReg, skElasticNetReg
+    skElasticNetReg
+from script.sklearn_like_toolkit.warpper.skReg_wrapper.skLassoCVReg import skLassoCVReg
+from script.sklearn_like_toolkit.warpper.skReg_wrapper.skLassoReg import skLassoReg
+from script.sklearn_like_toolkit.warpper.skReg_wrapper.skRidgeReg import skRidgeReg
 
 
 class RegressionPack(BaseWrapperRegPack):

@@ -1,8 +1,10 @@
 from script.sklearn_like_toolkit.warpper.sklearn_wrapper import skGradientBoostingReg, skMLPReg, skAdaBoostReg, \
     skRandomForestReg, skBaggingReg, skGaussianProcessReg, skDecisionTreeReg, skExtraTreeReg, skHuberReg, \
     skRadiusNeighborsReg, skKNeighborsReg, skPassiveAggressiveReg, skRANSACReg, skTheilSenReg, skKernelRidgeReg, \
-    skElasticNetCvReg, skBayesianRidgeReg, skARDReg, skLogisticReg, skSGDReg, skRidgeReg, skLassoReg, skLassoCVReg, \
-    skLassoLarsReg, skLassoLarsCVReg, skElasticNetReg, skIsotonicReg
+    skElasticNetCvReg, skBayesianRidgeReg, skARDReg, skLogisticReg, skSGDReg, skLassoLarsReg, skLassoLarsCVReg, skElasticNetReg, skIsotonicReg
+from script.sklearn_like_toolkit.warpper.skReg_wrapper.skLassoCVReg import skLassoCVReg
+from script.sklearn_like_toolkit.warpper.skReg_wrapper.skLassoReg import skLassoReg
+from script.sklearn_like_toolkit.warpper.skReg_wrapper.skRidgeReg import skRidgeReg
 from script.sklearn_like_toolkit.warpper.skClf_wrapper.skNearestCentroidClf import skNearestCentroidClf
 from script.sklearn_like_toolkit.warpper.skClf_wrapper.skRadiusNeighborsClf import skRadiusNeighborsClf
 from script.sklearn_like_toolkit.warpper.skClf_wrapper.skPassiveAggressiveClf import skPassiveAggressiveClf
