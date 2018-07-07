@@ -11,6 +11,9 @@ from script.sklearn_like_toolkit.warpper.mlxtend_wrapper import mlxSoftmaxRegres
 from script.sklearn_like_toolkit.warpper.mlxtend_wrapper import mlxStackingCVClf
 from script.sklearn_like_toolkit.warpper.mlxtend_wrapper import mlxStackingClf
 from script.sklearn_like_toolkit.warpper.skClf_wrapper.skMLPClf import skMLPClf
+from script.sklearn_like_toolkit.warpper.skClf_wrapper.skNearestCentroidClf import skNearestCentroidClf
+from script.sklearn_like_toolkit.warpper.skClf_wrapper.skPassiveAggressiveClf import skPassiveAggressiveClf
+from script.sklearn_like_toolkit.warpper.skClf_wrapper.skRadiusNeighborsClf import skRadiusNeighborsClf
 from script.sklearn_like_toolkit.warpper.skClf_wrapper.skRidgeCVClf import skRidgeCVClf
 from script.sklearn_like_toolkit.warpper.skClf_wrapper.skRidgeClf import skRidgeClf
 from script.sklearn_like_toolkit.warpper.skClf_wrapper.skLinear_SVCClf import skLinear_SVCClf
@@ -58,7 +61,10 @@ class ClassifierPack(BaseWrapperClfPack):
         mlxPerceptronClf.__name__: mlxPerceptronClf,
         mlxSoftmaxRegressionClf.__name__: mlxSoftmaxRegressionClf,
         skRidgeClf.__name__:skRidgeClf,
-        skRidgeCVClf.__name__:skRidgeCVClf
+        skRidgeCVClf.__name__:skRidgeCVClf,
+        skNearestCentroidClf.__name__:skNearestCentroidClf,
+        skRadiusNeighborsClf.__name__:skRadiusNeighborsClf,
+        skPassiveAggressiveClf.__name__:skPassiveAggressiveClf,
     }
 
     def to_FoldingHardVote(self):

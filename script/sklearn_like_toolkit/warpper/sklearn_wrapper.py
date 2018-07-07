@@ -11,15 +11,12 @@ from sklearn.linear_model import HuberRegressor as _HuberRegressor
 from sklearn.linear_model import RANSACRegressor as _RANSACRegressor
 from sklearn.linear_model import TheilSenRegressor as _TheilSenRegressor
 from sklearn.linear_model import SGDRegressor as _SGDRegressor
-from sklearn.linear_model.passive_aggressive import PassiveAggressiveClassifier as _PassiveAggressiveClassifier
 from sklearn.linear_model.passive_aggressive import PassiveAggressiveRegressor as _PassiveAggressiveRegressor
 from sklearn.linear_model.ridge import Ridge as _RidgeReg
 from sklearn.linear_model.ridge import RidgeCV as _RidgeCVReg
 from sklearn.linear_model.stochastic_gradient import DEFAULT_EPSILON
-from sklearn.neighbors import RadiusNeighborsClassifier as _RadiusNeighborsClassifier
 from sklearn.neighbors import RadiusNeighborsRegressor as _RadiusNeighborsRegressor
 from sklearn.neighbors import KNeighborsRegressor as _KNeighborsRegressor
-from sklearn.neighbors import NearestCentroid as _NearestCentroid
 from sklearn.neural_network import MLPRegressor as _MLPRegressor
 from sklearn.ensemble import AdaBoostRegressor as _AdaBoostRegressor
 from sklearn.ensemble import RandomForestRegressor as _RandomForestRegressor
@@ -30,10 +27,8 @@ from sklearn.tree import DecisionTreeRegressor as _DecisionTreeRegressor
 from sklearn.isotonic import IsotonicRegression as _IsotonicRegression
 from sklearn.kernel_ridge import KernelRidge as _KernelRidge
 from sklearn.gaussian_process import GaussianProcessRegressor as _GaussianProcessRegressor
-from script.sklearn_like_toolkit.base.BaseWrapperClf import BaseWrapperClf
 from script.sklearn_like_toolkit.base.BaseWrapperReg import BaseWrapperReg
-from script.sklearn_like_toolkit.base.MixIn import meta_BaseWrapperClf_with_ABC, \
-    meta_BaseWrapperReg_with_ABC
+from script.sklearn_like_toolkit.base.MixIn import meta_BaseWrapperReg_with_ABC
 import numpy as np
 
 
@@ -44,64 +39,6 @@ import numpy as np
 # RationalQuadratic
 # Dotproduct
 # ExpSineSquared
-
-
-class skPassiveAggressiveClf(_PassiveAggressiveClassifier, BaseWrapperClf, metaclass=meta_BaseWrapperClf_with_ABC):
-
-    def __init__(self, C=1.0, fit_intercept=True, max_iter=1000, tol=None, shuffle=True, verbose=0, loss="hinge",
-                 n_jobs=1, random_state=None, warm_start=False, class_weight=None, average=False, n_iter=None):
-        _PassiveAggressiveClassifier.__init__(
-            self, C, fit_intercept, max_iter, tol, shuffle, verbose, loss, n_jobs, random_state, warm_start,
-            class_weight, average, n_iter)
-        BaseWrapperClf.__init__(self)
-
-    tuning_grid = {
-        'C': 1.0,
-        'fit_intercept': True,
-        'max_iter': None,
-        'tol': None,
-        'shuffle': True,
-        'verbose': 0,
-        'loss': "hinge",
-        'n_jobs': 1,
-        'random_state': None,
-        'warm_start': False,
-        'class_weight': None,
-        'average': False,
-        'n_iter': None,
-    }
-
-
-class skRadiusNeighborsClf(_RadiusNeighborsClassifier, BaseWrapperClf, metaclass=meta_BaseWrapperClf_with_ABC):
-
-    def __init__(self, radius=1.0, weights='uniform', algorithm='auto', leaf_size=30, p=2, metric='minkowski',
-                 outlier_label=None, metric_params=None, **kwargs):
-        _RadiusNeighborsClassifier.__init__(
-            self, radius, weights, algorithm, leaf_size, p, metric, outlier_label, metric_params, **kwargs)
-        BaseWrapperClf.__init__(self)
-
-    tuning_grid = {
-        'radius': 1.0,
-        'weights': 'uniform',
-        'algorithm': 'auto',
-        'leaf_size': 30,
-        'p': 2,
-        'metric': 'minkowski',
-        'outlier_label': None,
-        'metric_params': None,
-    }
-
-
-class skNearestCentroidClf(_NearestCentroid, BaseWrapperClf, metaclass=meta_BaseWrapperClf_with_ABC):
-
-    def __init__(self, metric='euclidean', shrink_threshold=None):
-        _NearestCentroid.__init__(self, metric, shrink_threshold)
-        BaseWrapperClf.__init__(self)
-
-    tuning_grid = {
-        'metric': 'euclidean',
-        'shrink_threshold': None,
-    }
 
 
 class skRidgeReg(_RidgeReg, BaseWrapperReg, metaclass=meta_BaseWrapperReg_with_ABC):
