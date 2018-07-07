@@ -14,7 +14,7 @@ from script.sklearn_like_toolkit.warpper.skClf_wrapper.skMLPClf import skMLPClf
 from script.sklearn_like_toolkit.warpper.skClf_wrapper.skRidgeCVClf import skRidgeCVClf
 from script.sklearn_like_toolkit.warpper.skClf_wrapper.skRidgeClf import skRidgeClf
 from script.sklearn_like_toolkit.warpper.sklearn_wrapper import skLinear_SVCClf
-from script.sklearn_like_toolkit.warpper.sklearn_wrapper import skSGDClf
+from script.sklearn_like_toolkit.warpper.skClf_wrapper.skSGDClf import skSGDClf
 from script.sklearn_like_toolkit.warpper.skClf_wrapper.skGaussian_NBClf import skGaussian_NBClf
 from script.sklearn_like_toolkit.warpper.skClf_wrapper.skBernoulli_NBClf import skBernoulli_NBClf
 from script.sklearn_like_toolkit.warpper.skClf_wrapper.skMultinomial_NBClf import skMultinomial_NBClf

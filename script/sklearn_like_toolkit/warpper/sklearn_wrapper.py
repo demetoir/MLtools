@@ -11,7 +11,6 @@ from sklearn.linear_model import HuberRegressor as _HuberRegressor
 from sklearn.linear_model import RANSACRegressor as _RANSACRegressor
 from sklearn.linear_model import TheilSenRegressor as _TheilSenRegressor
 from sklearn.linear_model import SGDRegressor as _SGDRegressor
-from sklearn.linear_model import SGDClassifier as _skSGDClassifier
 from sklearn.linear_model.passive_aggressive import PassiveAggressiveClassifier as _PassiveAggressiveClassifier
 from sklearn.linear_model.passive_aggressive import PassiveAggressiveRegressor as _PassiveAggressiveRegressor
 from sklearn.linear_model.ridge import Ridge as _RidgeReg
@@ -101,54 +100,6 @@ class skGaussianProcessClf(BaseWrapperClf, _skGaussianProcessClassifier, metacla
         'random_state': None,
         'warm_start': False,
         'copy_X_train': True,
-    }
-
-
-class skSGDClf(BaseWrapperClf, _skSGDClassifier, metaclass=meta_BaseWrapperClf_with_ABC):
-    # todo wtf?
-    # http://scikit-learn.org/stable/modules/generated/sklearn.linear_model.SGDClassifier.html#sklearn.linear_model.SGDClassifier
-    def __init__(self, loss="hinge", penalty='l2', alpha=0.0001, l1_ratio=0.15, fit_intercept=True, max_iter=1000,
-                 tol=None, shuffle=True, verbose=0, epsilon=DEFAULT_EPSILON, n_jobs=1, random_state=None,
-                 learning_rate="optimal", eta0=0.0, power_t=0.5, class_weight=None, warm_start=False, average=False,
-                 n_iter=None):
-        _skSGDClassifier.__init__(
-            self, loss, penalty, alpha, l1_ratio, fit_intercept, max_iter, tol, shuffle, verbose, epsilon, n_jobs,
-            random_state, learning_rate, eta0, power_t, class_weight, warm_start, average, n_iter)
-        BaseWrapperClf.__init__(self)
-
-    tuning_grid = {
-        # todo random..
-        'alpha': [0.0001, 0.001, 0.01, 0.1, 1, 1.0],
-
-    }
-
-    remain_param = {
-        # TODO
-        'tol': None,
-        'learning_rate': ['optimal', 'constant', 'invscaling'],
-
-        'alpha': 0.0001,
-
-        'average': False,
-        'class_weight': None,
-        'epsilon': 0.1,
-        'eta0': 0.0,
-        'fit_intercept': True,
-        'l1_ratio': 0.15,
-        'loss': 'hinge',
-        'max_iter': None,
-        'n_iter': None,
-
-        'penalty': ['none', 'l1', 'l2', 'elasticnet'],
-
-        'power_t': 0.5,
-
-        # etc
-        'n_jobs': 1,
-        'random_state': None,
-        'verbose': 0,
-        'warm_start': False,
-        'shuffle': True,
     }
 
 
