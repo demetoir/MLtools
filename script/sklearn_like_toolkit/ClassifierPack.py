@@ -22,7 +22,7 @@ from script.sklearn_like_toolkit.warpper.skClf_wrapper.skExtraTreesClf import sk
 from script.sklearn_like_toolkit.warpper.skClf_wrapper.skAdaBoostClf import skAdaBoostClf
 from script.sklearn_like_toolkit.warpper.skClf_wrapper.skGradientBoostingClf import skGradientBoostingClf
 from script.sklearn_like_toolkit.warpper.sklearn_wrapper import skQDAClf
-from script.sklearn_like_toolkit.warpper.sklearn_wrapper import skKNeighborsClf
+from script.sklearn_like_toolkit.warpper.skClf_wrapper.skKNeighborsClf import skKNeighborsClf
 from script.sklearn_like_toolkit.warpper.sklearn_wrapper import skGaussianProcessClf
 from script.sklearn_like_toolkit.warpper.sklearn_wrapper import skRBF_SVMClf
 from script.sklearn_like_toolkit.warpper.sklearn_wrapper import skBaggingClf

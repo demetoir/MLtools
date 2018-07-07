@@ -21,7 +21,6 @@ from sklearn.linear_model.ridge import RidgeCV as _RidgeCVReg
 from sklearn.linear_model.stochastic_gradient import DEFAULT_EPSILON
 from sklearn.neighbors import RadiusNeighborsClassifier as _RadiusNeighborsClassifier
 from sklearn.neighbors import RadiusNeighborsRegressor as _RadiusNeighborsRegressor
-from sklearn.neighbors import KNeighborsClassifier as _KNeighborsClassifier
 from sklearn.neighbors import KNeighborsRegressor as _KNeighborsRegressor
 from sklearn.neighbors import NearestCentroid as _NearestCentroid
 from sklearn.neural_network import MLPRegressor as _MLPRegressor
@@ -114,26 +113,6 @@ class skQDAClf(BaseWrapperClf, _skQDA, metaclass=meta_BaseWrapperClf):
         'store_covariance': False,
         'store_covariances': None,
         'tol': 0.0001
-    }
-
-
-class skKNeighborsClf(_KNeighborsClassifier, BaseWrapperClf, metaclass=meta_BaseWrapperClf_with_ABC):
-
-    def __init__(self, n_neighbors=5, weights='uniform', algorithm='auto', leaf_size=30, p=2, metric='minkowski',
-                 metric_params=None, n_jobs=1, **kwargs):
-        _KNeighborsClassifier.__init__(
-            self, n_neighbors, weights, algorithm, leaf_size, p, metric, metric_params, n_jobs, **kwargs)
-        BaseWrapperClf.__init__(self)
-
-    tuning_grid = {
-        'n_neighbors': 5,
-        'weights': 'uniform',
-        'algorithm': 'auto',
-        'leaf_size': 30,
-        'p': 2,
-        'metric': 'minkowski',
-        'metric_params': None,
-        'n_jobs': 1,
     }
 
 
