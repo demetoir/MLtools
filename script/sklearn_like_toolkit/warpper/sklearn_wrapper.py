@@ -21,26 +21,20 @@ from sklearn.neighbors import RadiusNeighborsRegressor as _RadiusNeighborsRegres
 from sklearn.neighbors import KNeighborsRegressor as _KNeighborsRegressor
 from sklearn.neighbors import NearestCentroid as _NearestCentroid
 from sklearn.neural_network import MLPRegressor as _MLPRegressor
-from sklearn.gaussian_process import GaussianProcessClassifier as _skGaussianProcessClassifier
 from sklearn.ensemble import AdaBoostRegressor as _AdaBoostRegressor
 from sklearn.ensemble import RandomForestRegressor as _RandomForestRegressor
 from sklearn.ensemble import GradientBoostingRegressor as _GradientBoostingRegressor
 from sklearn.ensemble import BaggingRegressor as _BaggingRegressor
 from sklearn.tree import ExtraTreeRegressor as _ExtraTreeRegressor
 from sklearn.tree import DecisionTreeRegressor as _DecisionTreeRegressor
-from sklearn.discriminant_analysis import QuadraticDiscriminantAnalysis as _skQDA
-from sklearn.svm import LinearSVC as _skLinearSVC
-from sklearn.svm import SVC as _SVC
 from sklearn.isotonic import IsotonicRegression as _IsotonicRegression
 from sklearn.kernel_ridge import KernelRidge as _KernelRidge
 from sklearn.gaussian_process import GaussianProcessRegressor as _GaussianProcessRegressor
-from sklearn.gaussian_process.kernels import RBF as _RBF
 from script.sklearn_like_toolkit.base.BaseWrapperClf import BaseWrapperClf
 from script.sklearn_like_toolkit.base.BaseWrapperReg import BaseWrapperReg
-from script.sklearn_like_toolkit.base.MixIn import meta_BaseWrapperClf, meta_BaseWrapperClf_with_ABC, \
+from script.sklearn_like_toolkit.base.MixIn import meta_BaseWrapperClf_with_ABC, \
     meta_BaseWrapperReg_with_ABC
 import numpy as np
-import warnings
 
 
 # TODO
@@ -50,120 +44,6 @@ import warnings
 # RationalQuadratic
 # Dotproduct
 # ExpSineSquared
-
-
-class skQDAClf(BaseWrapperClf, _skQDA, metaclass=meta_BaseWrapperClf):
-    def __init__(self, priors=None, reg_param=0., store_covariance=False, tol=1.0e-4, store_covariances=None):
-        warnings.filterwarnings(module='sklearn*', action='ignore', category=Warning)
-
-        BaseWrapperClf.__init__(self)
-        _skQDA.__init__(self, priors, reg_param, store_covariance, tol, store_covariances)
-
-    tuning_grid = {
-    }
-    remain_param = {
-        # TODO
-        # ? ..
-        'priors': None,
-        'reg_param': 0.0,
-        'store_covariance': False,
-        'store_covariances': None,
-        'tol': 0.0001
-    }
-
-
-class skGaussianProcessClf(BaseWrapperClf, _skGaussianProcessClassifier, metaclass=meta_BaseWrapperClf_with_ABC):
-    def __init__(self, kernel=None, optimizer="fmin_l_bfgs_b", n_restarts_optimizer=0, max_iter_predict=100,
-                 warm_start=False, copy_X_train=True, random_state=None, multi_class="one_vs_rest", n_jobs=1):
-        _skGaussianProcessClassifier.__init__(
-            self, kernel, optimizer, n_restarts_optimizer, max_iter_predict, warm_start, copy_X_train, random_state,
-            multi_class, n_jobs)
-        BaseWrapperClf.__init__(self, )
-
-    tuning_grid = {
-
-    }
-    remain_param = {
-        'kernel': 1 ** 2 * _RBF(length_scale=1),
-        'kernel__k1': 1 ** 2,
-        'kernel__k1__constant_value': 1.0,
-        'kernel__k1__constant_value_bounds': (1e-05, 100000.0),
-        'kernel__k2': _RBF(length_scale=1),
-        'kernel__k2__length_scale': 1.0,
-        'kernel__k2__length_scale_bounds': (1e-05, 100000.0),
-        'max_iter_predict': 100,
-
-        'multi_class': 'one_vs_rest',
-        'n_jobs': 1,
-        'n_restarts_optimizer': 0,
-        'optimizer': 'fmin_l_bfgs_b',
-        'random_state': None,
-        'warm_start': False,
-        'copy_X_train': True,
-    }
-
-
-class skLinear_SVCClf(BaseWrapperClf, _skLinearSVC, metaclass=meta_BaseWrapperClf_with_ABC):
-    def __init__(self, penalty='l2', loss='squared_hinge', dual=True, tol=1e-4, C=1.0, multi_class='ovr',
-                 fit_intercept=True, intercept_scaling=1, class_weight=None, verbose=0, random_state=None,
-                 max_iter=1000):
-        _skLinearSVC.__init__(
-            self, penalty, loss, dual, tol, C, multi_class, fit_intercept, intercept_scaling, class_weight, verbose,
-            random_state, max_iter)
-
-        BaseWrapperClf.__init__(self)
-
-    tuning_grid = {
-        'C': [0.00001, 0.0001, 0.001, 0.01, 0.1, 1.0, 10],
-        'max_iter': [2 ** i for i in range(6, 13)],
-    }
-    only_default_params = {
-        'fit_intercept': True,
-        'intercept_scaling': 1,
-
-        # todo ???
-        'multi_class': ['ovr', 'crammer_singer'],
-        'loss': ['squared_hinge', 'hinge'],
-        'penalty': ['l2', 'l1'],
-        'class_weight': None,
-        'dual': True,
-
-    }
-    etc_param = {
-        'random_state': None,
-        'tol': 0.0001,
-        'verbose': 1e-4,
-    }
-
-
-class skRBF_SVMClf(BaseWrapperClf, _SVC, metaclass=meta_BaseWrapperClf_with_ABC):
-    def __init__(self, C=1.0, kernel='rbf', degree=3, gamma='auto', coef0=0.0, shrinking=True, probability=True,
-                 tol=1e-3, cache_size=200, class_weight=None, verbose=False, max_iter=-1, decision_function_shape='ovr',
-                 random_state=None):
-        _SVC.__init__(
-            self, C, kernel, degree, gamma, coef0, shrinking, probability, tol, cache_size, class_weight, verbose,
-            max_iter, decision_function_shape, random_state)
-        BaseWrapperClf.__init__(self)
-
-    tuning_grid = {
-        'C': [1 ** i for i in range(-5, 5)],
-        'gamma': [1 ** i for i in range(-5, 5)],
-    }
-    # todo
-    remain_param = {
-        'cache_size': 200,
-        'class_weight': None,
-        'coef0': 0.0,
-        'decision_function_shape': 'ovr',
-        'degree': 3,
-        'kernel': 'rbf',
-        'max_iter': -1,
-        'probability': False,
-        'random_state': None,
-        'shrinking': True,
-        'tol': 0.001,
-        'verbose': False
-    }
 
 
 class skPassiveAggressiveClf(_PassiveAggressiveClassifier, BaseWrapperClf, metaclass=meta_BaseWrapperClf_with_ABC):

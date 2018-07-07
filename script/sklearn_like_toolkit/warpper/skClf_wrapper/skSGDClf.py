@@ -18,15 +18,16 @@ class skSGDClf(BaseWrapperClf, _skSGDClassifier, metaclass=meta_BaseWrapperClf_w
             random_state, learning_rate, eta0, power_t, class_weight, warm_start, average, n_iter)
         BaseWrapperClf.__init__(self)
 
-    HyperOpt_space = hp.choice('classifier_type', [{
-        'alpha': hp.loguniform('alpha', -6, 3),
-        'learning_rate': hp.choice('learning_rate', ['constant', 'invscaling', 'optimal']),
-        'tol': 0.0001,
-        'max_iter': 1000,
-        'penalty': hp.choice('penalty', ['none', 'l1', 'l2', 'elasticnet']),
-        'loss': hp.choice('loss', ['hinge', 'log', 'modified_huber', 'squared_hinge', 'perceptron']),
-        'eta0': hp.loguniform('eta0', -4, 1),
-    }
+    HyperOpt_space = hp.choice('classifier_type', [
+        {
+            'alpha': hp.loguniform('alpha', -6, 3),
+            'learning_rate': hp.choice('learning_rate', ['constant', 'invscaling', 'optimal']),
+            'tol': 0.0001,
+            'max_iter': 1000,
+            'penalty': hp.choice('penalty', ['none', 'l1', 'l2', 'elasticnet']),
+            'loss': hp.choice('loss', ['hinge', 'log', 'modified_huber', 'squared_hinge', 'perceptron']),
+            'eta0': hp.loguniform('eta0', -4, 1),
+        }
     ])
     tuning_grid = {
         # todo random..
@@ -35,7 +36,6 @@ class skSGDClf(BaseWrapperClf, _skSGDClassifier, metaclass=meta_BaseWrapperClf_w
         'max_iter': 1000,
         'learning_rate': ['optimal', 'constant', 'invscaling'],
         'penalty': ['none', 'l1', 'l2', 'elasticnet'],
-
     }
 
     remain_param = {

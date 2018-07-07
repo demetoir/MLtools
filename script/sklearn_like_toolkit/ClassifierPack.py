@@ -13,7 +13,7 @@ from script.sklearn_like_toolkit.warpper.mlxtend_wrapper import mlxStackingClf
 from script.sklearn_like_toolkit.warpper.skClf_wrapper.skMLPClf import skMLPClf
 from script.sklearn_like_toolkit.warpper.skClf_wrapper.skRidgeCVClf import skRidgeCVClf
 from script.sklearn_like_toolkit.warpper.skClf_wrapper.skRidgeClf import skRidgeClf
-from script.sklearn_like_toolkit.warpper.sklearn_wrapper import skLinear_SVCClf
+from script.sklearn_like_toolkit.warpper.skClf_wrapper.skLinear_SVCClf import skLinear_SVCClf
 from script.sklearn_like_toolkit.warpper.skClf_wrapper.skSGDClf import skSGDClf
 from script.sklearn_like_toolkit.warpper.skClf_wrapper.skGaussian_NBClf import skGaussian_NBClf
 from script.sklearn_like_toolkit.warpper.skClf_wrapper.skBernoulli_NBClf import skBernoulli_NBClf
@@ -23,10 +23,10 @@ from script.sklearn_like_toolkit.warpper.skClf_wrapper.skRandomForestClf import 
 from script.sklearn_like_toolkit.warpper.skClf_wrapper.skExtraTreesClf import skExtraTreesClf
 from script.sklearn_like_toolkit.warpper.skClf_wrapper.skAdaBoostClf import skAdaBoostClf
 from script.sklearn_like_toolkit.warpper.skClf_wrapper.skGradientBoostingClf import skGradientBoostingClf
-from script.sklearn_like_toolkit.warpper.sklearn_wrapper import skQDAClf
+from script.sklearn_like_toolkit.warpper.skClf_wrapper.skQDAClf import skQDAClf
 from script.sklearn_like_toolkit.warpper.skClf_wrapper.skKNeighborsClf import skKNeighborsClf
-from script.sklearn_like_toolkit.warpper.sklearn_wrapper import skGaussianProcessClf
-from script.sklearn_like_toolkit.warpper.sklearn_wrapper import skRBF_SVMClf
+from script.sklearn_like_toolkit.warpper.skClf_wrapper.skGaussianProcessClf import skGaussianProcessClf
+from script.sklearn_like_toolkit.warpper.skClf_wrapper.skRBF_SVMClf import skRBF_SVMClf
 from script.sklearn_like_toolkit.warpper.skClf_wrapper.skBaggingClf import skBaggingClf
 from script.sklearn_like_toolkit.warpper.xgboost_wrapper import XGBoostClf
 
