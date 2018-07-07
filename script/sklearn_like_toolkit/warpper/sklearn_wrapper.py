@@ -8,15 +8,8 @@ from sklearn.linear_model import LogisticRegression as _LogisticRegression
 from sklearn.linear_model import HuberRegressor as _HuberRegressor
 from sklearn.linear_model import RANSACRegressor as _RANSACRegressor
 from sklearn.linear_model import TheilSenRegressor as _TheilSenRegressor
-from sklearn.neighbors import RadiusNeighborsRegressor as _RadiusNeighborsRegressor
-from sklearn.neighbors import KNeighborsRegressor as _KNeighborsRegressor
-from sklearn.ensemble import AdaBoostRegressor as _AdaBoostRegressor
-from sklearn.ensemble import BaggingRegressor as _BaggingRegressor
-from sklearn.tree import ExtraTreeRegressor as _ExtraTreeRegressor
-from sklearn.tree import DecisionTreeRegressor as _DecisionTreeRegressor
 from sklearn.isotonic import IsotonicRegression as _IsotonicRegression
 from sklearn.kernel_ridge import KernelRidge as _KernelRidge
-from sklearn.gaussian_process import GaussianProcessRegressor as _GaussianProcessRegressor
 from script.sklearn_like_toolkit.base.BaseWrapperReg import BaseWrapperReg
 from script.sklearn_like_toolkit.base.MixIn import meta_BaseWrapperReg_with_ABC
 import numpy as np
@@ -289,26 +282,6 @@ class skHuberReg(_HuberRegressor, BaseWrapperReg, metaclass=meta_BaseWrapperReg_
     }
 
 
-class skRadiusNeighborsReg(_RadiusNeighborsRegressor, BaseWrapperReg, metaclass=meta_BaseWrapperReg_with_ABC):
-
-    def __init__(self, radius=1.0, weights='uniform', algorithm='auto', leaf_size=30, p=2, metric='minkowski',
-                 metric_params=None, **kwargs):
-        _RadiusNeighborsRegressor.__init__(
-            self, radius, weights, algorithm, leaf_size, p, metric, metric_params, **kwargs)
-        BaseWrapperReg.__init__(self)
-
-    tuning_grid = {
-        'radius': 1.0,
-        'weights': 'uniform',
-        'algorithm': 'auto',
-        'leaf_size': 30,
-        'p': 2,
-        'metric': 'minkowski',
-        'outlier_label': None,
-        'metric_params': None,
-    }
-
-
 class skIsotonicReg(_IsotonicRegression, BaseWrapperReg, metaclass=meta_BaseWrapperReg_with_ABC):
 
     def __init__(self, y_min=None, y_max=None, increasing=True, out_of_bounds='nan'):
@@ -321,134 +294,3 @@ class skIsotonicReg(_IsotonicRegression, BaseWrapperReg, metaclass=meta_BaseWrap
         'increasing': True,
         'out_of_bounds': 'nan',
     }
-
-
-class skKNeighborsReg(_KNeighborsRegressor, BaseWrapperReg, metaclass=meta_BaseWrapperReg_with_ABC):
-
-    def __init__(self, n_neighbors=5, weights='uniform', algorithm='auto', leaf_size=30, p=2, metric='minkowski',
-                 metric_params=None, n_jobs=1, **kwargs):
-        _KNeighborsRegressor.__init__(
-            self, n_neighbors, weights, algorithm, leaf_size, p, metric, metric_params, n_jobs, **kwargs)
-        BaseWrapperReg.__init__(self)
-
-    tuning_grid = {
-        'n_neighbors': 5,
-        'weights': 'uniform',
-        'algorithm': 'auto',
-        'leaf_size': 30,
-        'p': 2,
-        'metric': 'minkowski',
-        'metric_params': None,
-        'n_jobs': 1,
-    }
-
-
-class skGaussianProcessReg(_GaussianProcessRegressor, BaseWrapperReg, metaclass=meta_BaseWrapperReg_with_ABC):
-
-    def __init__(self, kernel=None, alpha=1e-10, optimizer="fmin_l_bfgs_b", n_restarts_optimizer=0,
-                 normalize_y=False, copy_X_train=True, random_state=None):
-        _GaussianProcessRegressor.__init__(
-            self, kernel, alpha, optimizer, n_restarts_optimizer, normalize_y, copy_X_train, random_state)
-        BaseWrapperReg.__init__(self)
-
-    tuning_grid = {
-        'kernel': None,
-        'alpha': 1e-10,
-        'optimizer': "fmin_l_bfgs_b",
-        'n_restarts_optimizer': 0,
-        'normalize_y': False,
-        'copy_X_train': True,
-        'random_state': None,
-    }
-
-
-class skDecisionTreeReg(_DecisionTreeRegressor, BaseWrapperReg, metaclass=meta_BaseWrapperReg_with_ABC):
-
-    def __init__(self, criterion="mse", splitter="best", max_depth=None, min_samples_split=2, min_samples_leaf=1,
-                 min_weight_fraction_leaf=0., max_features=None, random_state=None, max_leaf_nodes=None,
-                 min_impurity_decrease=0., min_impurity_split=None, presort=False):
-        _DecisionTreeRegressor.__init__(
-            self, criterion, splitter, max_depth, min_samples_split, min_samples_leaf, min_weight_fraction_leaf,
-            max_features, random_state, max_leaf_nodes, min_impurity_decrease, min_impurity_split, presort)
-        BaseWrapperReg.__init__(self)
-
-    tuning_grid = {
-        'criterion': "mse",
-        'splitter': "best",
-        'max_depth': None,
-        'min_samples_split': 2,
-        'min_samples_leaf': 1,
-        'min_weight_fraction_leaf': 0.,
-        'max_features': None,
-        'random_state': None,
-        'max_leaf_nodes': None,
-        'min_impurity_decrease': 0.,
-        'min_impurity_split': None,
-        'presort': False,
-    }
-
-
-class skExtraTreeReg(_ExtraTreeRegressor, BaseWrapperReg, metaclass=meta_BaseWrapperReg_with_ABC):
-
-    def __init__(self, criterion="mse", splitter="random", max_depth=None, min_samples_split=2, min_samples_leaf=1,
-                 min_weight_fraction_leaf=0., max_features="auto", random_state=None, min_impurity_decrease=0.,
-                 min_impurity_split=None, max_leaf_nodes=None):
-        _ExtraTreeRegressor.__init__(
-            self, criterion, splitter, max_depth, min_samples_split, min_samples_leaf, min_weight_fraction_leaf,
-            max_features, random_state, min_impurity_decrease, min_impurity_split, max_leaf_nodes)
-        BaseWrapperReg.__init__(self)
-
-    tuning_grid = {
-        'criterion': "mse",
-        'splitter': "random",
-        'max_depth': None,
-        'min_samples_split': 2,
-        'min_samples_leaf': 1,
-        'min_weight_fraction_leaf': 0.,
-        'max_features': "auto",
-        'random_state': None,
-        'min_impurity_decrease': 0.,
-        'min_impurity_split': None,
-        'max_leaf_nodes': None,
-    }
-
-
-class skAdaBoostReg(_AdaBoostRegressor, BaseWrapperReg, metaclass=meta_BaseWrapperReg_with_ABC):
-
-    def __init__(self, base_estimator=None, n_estimators=50, learning_rate=1., loss='linear', random_state=None):
-        _AdaBoostRegressor.__init__(self, base_estimator, n_estimators, learning_rate, loss, random_state)
-
-    tuning_grid = {
-        'base_estimator': None,
-        'n_estimators': 50,
-        'learning_rate': 1.,
-        'loss': 'linear',
-        'random_state': None,
-    }
-
-
-class skBaggingReg(_BaggingRegressor, BaseWrapperReg, metaclass=meta_BaseWrapperReg_with_ABC):
-
-    def __init__(self, base_estimator=None, n_estimators=10, max_samples=1.0, max_features=1.0, bootstrap=True,
-                 bootstrap_features=False, oob_score=False, warm_start=False, n_jobs=1, random_state=None,
-                 verbose=0):
-        _BaggingRegressor.__init__(
-            self, base_estimator, n_estimators, max_samples, max_features, bootstrap, bootstrap_features,
-            oob_score, warm_start, n_jobs, random_state, verbose)
-        BaseWrapperReg.__init__(self)
-
-    tuning_grid = {
-        'base_estimator': None,
-        'n_estimators': 10,
-        'max_samples': 1.0,
-        'max_features': 1.0,
-        'bootstrap': True,
-        'bootstrap_features': False,
-        'oob_score': False,
-        'warm_start': False,
-        'n_jobs': 1,
-        'random_state': None,
-        'verbose': 0,
-    }
-
-

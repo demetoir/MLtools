@@ -1,7 +1,13 @@
-from script.sklearn_like_toolkit.warpper.sklearn_wrapper import skAdaBoostReg, \
-    skBaggingReg, skGaussianProcessReg, skDecisionTreeReg, skExtraTreeReg, skHuberReg, \
-    skRadiusNeighborsReg, skKNeighborsReg, skRANSACReg, skTheilSenReg, skKernelRidgeReg, \
+from script.sklearn_like_toolkit.warpper.sklearn_wrapper import skHuberReg, \
+    skRANSACReg, skTheilSenReg, skKernelRidgeReg, \
     skElasticNetCvReg, skBayesianRidgeReg, skARDReg, skLogisticReg, skLassoLarsReg, skLassoLarsCVReg, skElasticNetReg, skIsotonicReg
+from script.sklearn_like_toolkit.warpper.skReg_wrapper.skRadiusNeighborsReg import skRadiusNeighborsReg
+from script.sklearn_like_toolkit.warpper.skReg_wrapper.skKNeighborsReg import skKNeighborsReg
+from script.sklearn_like_toolkit.warpper.skReg_wrapper.skGaussianProcessReg import skGaussianProcessReg
+from script.sklearn_like_toolkit.warpper.skReg_wrapper.skDecisionTreeReg import skDecisionTreeReg
+from script.sklearn_like_toolkit.warpper.skReg_wrapper.skExtraTreeReg import skExtraTreeReg
+from script.sklearn_like_toolkit.warpper.skReg_wrapper.skAdaBoostReg import skAdaBoostReg
+from script.sklearn_like_toolkit.warpper.skReg_wrapper.skBaggingReg import skBaggingReg
 from script.sklearn_like_toolkit.warpper.skReg_wrapper.skRandomForestReg import skRandomForestReg
 from script.sklearn_like_toolkit.warpper.skReg_wrapper.skGradientBoostingReg import skGradientBoostingReg
 from script.sklearn_like_toolkit.warpper.skReg_wrapper.skSGDReg import skSGDReg
