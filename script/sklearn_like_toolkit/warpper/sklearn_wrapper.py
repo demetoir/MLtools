@@ -14,8 +14,6 @@ from sklearn.linear_model import SGDRegressor as _SGDRegressor
 from sklearn.linear_model import SGDClassifier as _skSGDClassifier
 from sklearn.linear_model.passive_aggressive import PassiveAggressiveClassifier as _PassiveAggressiveClassifier
 from sklearn.linear_model.passive_aggressive import PassiveAggressiveRegressor as _PassiveAggressiveRegressor
-from sklearn.linear_model.ridge import RidgeClassifier as _RidgeClassifier
-from sklearn.linear_model.ridge import RidgeClassifierCV as _RidgeClassifierCV
 from sklearn.linear_model.ridge import Ridge as _RidgeReg
 from sklearn.linear_model.ridge import RidgeCV as _RidgeCVReg
 from sklearn.linear_model.stochastic_gradient import DEFAULT_EPSILON
@@ -214,49 +212,6 @@ class skRBF_SVMClf(BaseWrapperClf, _SVC, metaclass=meta_BaseWrapperClf_with_ABC)
         'shrinking': True,
         'tol': 0.001,
         'verbose': False
-    }
-
-
-class skRidgeClf(_RidgeClassifier, BaseWrapperClf, metaclass=meta_BaseWrapperClf_with_ABC):
-
-    def __init__(self, alpha=1.0, fit_intercept=True, normalize=False, copy_X=True, max_iter=None, tol=1e-3,
-                 class_weight=None, solver="auto", random_state=None):
-        _RidgeClassifier.__init__(
-            self, alpha, fit_intercept, normalize, copy_X, max_iter, tol, class_weight, solver, random_state)
-        BaseWrapperClf.__init__(self)
-
-    tuning_grid = {
-        #  positive
-        'alpha': [1.0],
-
-        'tol': 1e-3,
-
-        # 'fit_intercept': True,
-        # 'normalize': False,
-        # 'max_iter': None,
-
-        # 'copy_X': True,
-        # 'class_weight': None,
-        # 'solver': ['auto', 'svd', 'cholesky', 'lsqr', 'sparse_cg', 'sag', 'saga'],
-        # 'random_state': None,
-    }
-
-
-class skRidgeCVClf(_RidgeClassifierCV, BaseWrapperClf, metaclass=meta_BaseWrapperClf_with_ABC):
-
-    def __init__(self, alphas=(0.1, 1.0, 10.0), fit_intercept=True, normalize=False, scoring=None, cv=None,
-                 class_weight=None):
-        _RidgeClassifierCV.__init__(self, alphas, fit_intercept, normalize, scoring, cv, class_weight)
-        BaseWrapperClf.__init__(self)
-
-    tuning_grid = {
-        # shape positive float
-        'alphas': (0.1, 1.0, 10.0),
-        # 'cv': None,
-        # 'scoring': None,
-        # 'class_weight': None
-        # 'fit_intercept': True,
-        # 'normalize': False,
     }
 
 
