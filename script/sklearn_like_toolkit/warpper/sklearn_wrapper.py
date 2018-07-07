@@ -33,7 +33,6 @@ from sklearn.ensemble import RandomForestRegressor as _RandomForestRegressor
 from sklearn.ensemble import GradientBoostingRegressor as _GradientBoostingRegressor
 from sklearn.ensemble import BaggingClassifier as _BaggingClassifier
 from sklearn.ensemble import BaggingRegressor as _BaggingRegressor
-from sklearn.ensemble import VotingClassifier as _skVotingClassifier
 from sklearn.tree import ExtraTreeRegressor as _ExtraTreeRegressor
 from sklearn.tree import DecisionTreeRegressor as _DecisionTreeRegressor
 from sklearn.discriminant_analysis import QuadraticDiscriminantAnalysis as _skQDA
@@ -255,18 +254,6 @@ class skRBF_SVMClf(BaseWrapperClf, _SVC, metaclass=meta_BaseWrapperClf_with_ABC)
         'shrinking': True,
         'tol': 0.001,
         'verbose': False
-    }
-
-
-class skVotingClf(BaseWrapperClf, _skVotingClassifier, metaclass=meta_BaseWrapperClf_with_ABC):
-    def __init__(self, estimators, voting='hard', weights=None, n_jobs=1, flatten_transform=None):
-        _skVotingClassifier.__init__(self, estimators, voting, weights, n_jobs, flatten_transform)
-        BaseWrapperClf.__init__(self)
-
-    tuning_grid = {
-    }
-
-    tuning_params = {
     }
 
 
