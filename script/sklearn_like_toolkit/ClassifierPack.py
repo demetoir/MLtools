@@ -13,9 +13,9 @@ from script.sklearn_like_toolkit.warpper.mlxtend_wrapper import mlxStackingClf
 from script.sklearn_like_toolkit.warpper.skClf_wrapper.skMLPClf import skMLPClf
 from script.sklearn_like_toolkit.warpper.sklearn_wrapper import skLinear_SVCClf
 from script.sklearn_like_toolkit.warpper.sklearn_wrapper import skSGDClf
-from script.sklearn_like_toolkit.warpper.sklearn_wrapper import skGaussian_NBClf
-from script.sklearn_like_toolkit.warpper.sklearn_wrapper import skBernoulli_NBClf
-from script.sklearn_like_toolkit.warpper.sklearn_wrapper import skMultinomial_NBClf
+from script.sklearn_like_toolkit.warpper.skClf_wrapper.skGaussian_NBClf import skGaussian_NBClf
+from script.sklearn_like_toolkit.warpper.skClf_wrapper.skBernoulli_NBClf import skBernoulli_NBClf
+from script.sklearn_like_toolkit.warpper.skClf_wrapper.skMultinomial_NBClf import skMultinomial_NBClf
 from script.sklearn_like_toolkit.warpper.skClf_wrapper.skDecisionTreeClf import skDecisionTreeClf
 from script.sklearn_like_toolkit.warpper.skClf_wrapper.skRandomForestClf import skRandomForestClf
 from script.sklearn_like_toolkit.warpper.skClf_wrapper.skExtraTreesClf import skExtraTreesClf

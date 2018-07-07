@@ -1,4 +1,4 @@
-from script.sklearn_like_toolkit.warpper.sklearn_wrapper import skBernoulli_NBClf
+from script.sklearn_like_toolkit.warpper.skClf_wrapper.skBernoulli_NBClf import skBernoulli_NBClf
 from script.sklearn_like_toolkit.wrapperGridSearchCV import wrapperGridSearchCV
 from script.data_handler.DatasetPackLoader import DatasetPackLoader
 from script.sklearn_like_toolkit.ClassifierPack import ClassifierPack

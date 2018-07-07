@@ -24,9 +24,6 @@ from sklearn.neighbors import RadiusNeighborsRegressor as _RadiusNeighborsRegres
 from sklearn.neighbors import KNeighborsRegressor as _KNeighborsRegressor
 from sklearn.neighbors import NearestCentroid as _NearestCentroid
 from sklearn.neural_network import MLPRegressor as _MLPRegressor
-from sklearn.naive_bayes import GaussianNB as _skGaussianNB
-from sklearn.naive_bayes import BernoulliNB as _skBernoulliNB
-from sklearn.naive_bayes import MultinomialNB as _skMultinomialNB
 from sklearn.gaussian_process import GaussianProcessClassifier as _skGaussianProcessClassifier
 from sklearn.ensemble import AdaBoostRegressor as _AdaBoostRegressor
 from sklearn.ensemble import RandomForestRegressor as _RandomForestRegressor
@@ -56,42 +53,6 @@ import warnings
 # RationalQuadratic
 # Dotproduct
 # ExpSineSquared
-
-
-class skGaussian_NBClf(BaseWrapperClf, _skGaussianNB, metaclass=meta_BaseWrapperClf_with_ABC):
-    def __init__(self, priors=None):
-        _skGaussianNB.__init__(self, priors)
-        BaseWrapperClf.__init__(self)
-
-    tuning_grid = {}
-    tuning_params = {
-        'priors': None
-    }
-
-
-class skBernoulli_NBClf(BaseWrapperClf, _skBernoulliNB, metaclass=meta_BaseWrapperClf_with_ABC):
-    def __init__(self, alpha=1.0, binarize=.0, fit_prior=True, class_prior=None):
-        _skBernoulliNB.__init__(self, alpha, binarize, fit_prior, class_prior)
-        BaseWrapperClf.__init__(self)
-
-    tuning_grid = {
-        'alpha': [0.00001, 0.0001, 0.001, 0.01, 0.1, 1.0, 10.0],
-        'binarize': [i / 10.0 for i in range(0, 10)],
-        # 'class_prior': None,
-        # 'fit_prior': True
-    }
-
-
-class skMultinomial_NBClf(BaseWrapperClf, _skMultinomialNB, metaclass=meta_BaseWrapperClf_with_ABC):
-    def __init__(self, alpha=1.0, fit_prior=True, class_prior=None):
-        _skMultinomialNB.__init__(self, alpha, fit_prior, class_prior)
-        BaseWrapperClf.__init__(self)
-
-    tuning_grid = {
-        'alpha': [0.00001, 0.0001, 0.001, 0.01, 0.1, 1.0, 10.0],
-        # 'class_prior': None,
-        # 'fit_prior': True
-    }
 
 
 class skQDAClf(BaseWrapperClf, _skQDA, metaclass=meta_BaseWrapperClf):
