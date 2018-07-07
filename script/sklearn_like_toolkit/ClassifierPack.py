@@ -34,6 +34,15 @@ from script.sklearn_like_toolkit.warpper.skClf_wrapper.skBaggingClf import skBag
 from script.sklearn_like_toolkit.warpper.xgboost_wrapper import XGBoostClf
 
 
+# TODO
+# kernel
+# RBF
+# martern
+# RationalQuadratic
+# Dotproduct
+# ExpSineSquared
+
+
 class ClassifierPack(BaseWrapperClfPack):
     class_pack = {
         skMLPClf.__name__: skMLPClf,
@@ -60,11 +69,11 @@ class ClassifierPack(BaseWrapperClfPack):
         mlxMLPClf.__name__: mlxMLPClf,
         mlxPerceptronClf.__name__: mlxPerceptronClf,
         mlxSoftmaxRegressionClf.__name__: mlxSoftmaxRegressionClf,
-        skRidgeClf.__name__:skRidgeClf,
-        skRidgeCVClf.__name__:skRidgeCVClf,
-        skNearestCentroidClf.__name__:skNearestCentroidClf,
-        skRadiusNeighborsClf.__name__:skRadiusNeighborsClf,
-        skPassiveAggressiveClf.__name__:skPassiveAggressiveClf,
+        skRidgeClf.__name__: skRidgeClf,
+        skRidgeCVClf.__name__: skRidgeCVClf,
+        skNearestCentroidClf.__name__: skNearestCentroidClf,
+        skRadiusNeighborsClf.__name__: skRadiusNeighborsClf,
+        skPassiveAggressiveClf.__name__: skPassiveAggressiveClf,
     }
 
     def to_FoldingHardVote(self):
