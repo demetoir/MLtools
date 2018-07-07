@@ -31,7 +31,6 @@ from sklearn.gaussian_process import GaussianProcessClassifier as _skGaussianPro
 from sklearn.ensemble import AdaBoostRegressor as _AdaBoostRegressor
 from sklearn.ensemble import RandomForestRegressor as _RandomForestRegressor
 from sklearn.ensemble import GradientBoostingRegressor as _GradientBoostingRegressor
-from sklearn.ensemble import BaggingClassifier as _BaggingClassifier
 from sklearn.ensemble import BaggingRegressor as _BaggingRegressor
 from sklearn.tree import ExtraTreeRegressor as _ExtraTreeRegressor
 from sklearn.tree import DecisionTreeRegressor as _DecisionTreeRegressor
@@ -254,21 +253,6 @@ class skRBF_SVMClf(BaseWrapperClf, _SVC, metaclass=meta_BaseWrapperClf_with_ABC)
         'shrinking': True,
         'tol': 0.001,
         'verbose': False
-    }
-
-
-class skBaggingClf(BaseWrapperClf, _BaggingClassifier, metaclass=meta_BaseWrapperClf_with_ABC):
-    def __init__(self, base_estimator=None, n_estimators=10, max_samples=1.0, max_features=1.0, bootstrap=True,
-                 bootstrap_features=False, oob_score=False, warm_start=False, n_jobs=1, random_state=None, verbose=0):
-        _BaggingClassifier.__init__(
-            self, base_estimator, n_estimators, max_samples, max_features, bootstrap, bootstrap_features, oob_score,
-            warm_start, n_jobs, random_state, verbose)
-        BaseWrapperClf.__init__(self)
-
-    tuning_grid = {
-    }
-
-    tuning_params = {
     }
 
 

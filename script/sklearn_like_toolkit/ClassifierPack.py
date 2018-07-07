@@ -25,7 +25,7 @@ from script.sklearn_like_toolkit.warpper.sklearn_wrapper import skQDAClf
 from script.sklearn_like_toolkit.warpper.skClf_wrapper.skKNeighborsClf import skKNeighborsClf
 from script.sklearn_like_toolkit.warpper.sklearn_wrapper import skGaussianProcessClf
 from script.sklearn_like_toolkit.warpper.sklearn_wrapper import skRBF_SVMClf
-from script.sklearn_like_toolkit.warpper.sklearn_wrapper import skBaggingClf
+from script.sklearn_like_toolkit.warpper.skClf_wrapper.skBaggingClf import skBaggingClf
 from script.sklearn_like_toolkit.warpper.xgboost_wrapper import XGBoostClf
 
 
