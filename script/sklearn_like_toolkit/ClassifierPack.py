@@ -10,7 +10,7 @@ from script.sklearn_like_toolkit.warpper.mlxtend_wrapper import mlxPerceptronClf
 from script.sklearn_like_toolkit.warpper.mlxtend_wrapper import mlxSoftmaxRegressionClf
 from script.sklearn_like_toolkit.warpper.mlxtend_wrapper import mlxStackingCVClf
 from script.sklearn_like_toolkit.warpper.mlxtend_wrapper import mlxStackingClf
-from script.sklearn_like_toolkit.warpper.sklearn_wrapper import skMLPClf
+from script.sklearn_like_toolkit.warpper.skClf_wrapper.skMLPClf import skMLPClf
 from script.sklearn_like_toolkit.warpper.sklearn_wrapper import skLinear_SVCClf
 from script.sklearn_like_toolkit.warpper.sklearn_wrapper import skSGDClf
 from script.sklearn_like_toolkit.warpper.sklearn_wrapper import skGaussian_NBClf
