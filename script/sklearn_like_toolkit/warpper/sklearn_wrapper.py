@@ -8,15 +8,9 @@ from sklearn.linear_model import LogisticRegression as _LogisticRegression
 from sklearn.linear_model import HuberRegressor as _HuberRegressor
 from sklearn.linear_model import RANSACRegressor as _RANSACRegressor
 from sklearn.linear_model import TheilSenRegressor as _TheilSenRegressor
-from sklearn.linear_model import SGDRegressor as _SGDRegressor
-from sklearn.linear_model.passive_aggressive import PassiveAggressiveRegressor as _PassiveAggressiveRegressor
-from sklearn.linear_model.stochastic_gradient import DEFAULT_EPSILON
 from sklearn.neighbors import RadiusNeighborsRegressor as _RadiusNeighborsRegressor
 from sklearn.neighbors import KNeighborsRegressor as _KNeighborsRegressor
-from sklearn.neural_network import MLPRegressor as _MLPRegressor
 from sklearn.ensemble import AdaBoostRegressor as _AdaBoostRegressor
-from sklearn.ensemble import RandomForestRegressor as _RandomForestRegressor
-from sklearn.ensemble import GradientBoostingRegressor as _GradientBoostingRegressor
 from sklearn.ensemble import BaggingRegressor as _BaggingRegressor
 from sklearn.tree import ExtraTreeRegressor as _ExtraTreeRegressor
 from sklearn.tree import DecisionTreeRegressor as _DecisionTreeRegressor
@@ -214,63 +208,6 @@ class skLogisticReg(_LogisticRegression, BaseWrapperReg, metaclass=meta_BaseWrap
     }
 
 
-class skSGDReg(_SGDRegressor, BaseWrapperReg, metaclass=meta_BaseWrapperReg_with_ABC):
-
-    def __init__(self, loss="squared_loss", penalty="l2", alpha=0.0001, l1_ratio=0.15, fit_intercept=True,
-                 max_iter=1000, tol=None, shuffle=True, verbose=0, epsilon=DEFAULT_EPSILON, random_state=None,
-                 learning_rate="invscaling", eta0=0.01, power_t=0.25, warm_start=False, average=False, n_iter=None):
-        _SGDRegressor.__init__(
-            self, loss, penalty, alpha, l1_ratio, fit_intercept, max_iter, tol, shuffle, verbose, epsilon,
-            random_state, learning_rate, eta0, power_t, warm_start, average, n_iter)
-        BaseWrapperReg.__init__(self)
-
-    tuning_grid = {
-        'loss': "squared_loss",
-        'penalty': "l2",
-        'alpha': 0.0001,
-        'l1_ratio': 0.15,
-        'fit_intercept': True,
-        'max_iter': None,
-        'tol': None,
-        'shuffle': True,
-        'verbose': 0,
-        'epsilon': DEFAULT_EPSILON,
-        'random_state': None,
-        'learning_rate': "invscaling",
-        'eta0': 0.01,
-        'power_t': 0.25,
-        'warm_start': False,
-        'average': False,
-        'n_iter': None,
-    }
-
-
-class skPassiveAggressiveReg(_PassiveAggressiveRegressor, BaseWrapperReg, metaclass=meta_BaseWrapperReg_with_ABC):
-
-    def __init__(self, C=1.0, fit_intercept=True, max_iter=1000, tol=None, shuffle=True, verbose=0,
-                 loss="epsilon_insensitive", epsilon=DEFAULT_EPSILON, random_state=None, warm_start=False,
-                 average=False, n_iter=None):
-        _PassiveAggressiveRegressor.__init__(
-            self, C, fit_intercept, max_iter, tol, shuffle, verbose, loss, epsilon, random_state, warm_start,
-            average, n_iter)
-        BaseWrapperReg.__init__(self)
-
-    tuning_grid = {
-        'C': 1.0,
-        'fit_intercept': True,
-        'max_iter': None,
-        'tol': None,
-        'shuffle': True,
-        'verbose': 0,
-        'loss': "epsilon_insensitive",
-        'epsilon': DEFAULT_EPSILON,
-        'random_state': None,
-        'warm_start': False,
-        'average': False,
-        'n_iter': None,
-    }
-
-
 class skRANSACReg(_RANSACRegressor, BaseWrapperReg, metaclass=meta_BaseWrapperReg_with_ABC):
 
     def __init__(self, base_estimator=None, min_samples=None, residual_threshold=None, is_data_valid=None,
@@ -369,6 +306,20 @@ class skRadiusNeighborsReg(_RadiusNeighborsRegressor, BaseWrapperReg, metaclass=
         'metric': 'minkowski',
         'outlier_label': None,
         'metric_params': None,
+    }
+
+
+class skIsotonicReg(_IsotonicRegression, BaseWrapperReg, metaclass=meta_BaseWrapperReg_with_ABC):
+
+    def __init__(self, y_min=None, y_max=None, increasing=True, out_of_bounds='nan'):
+        _IsotonicRegression.__init__(self, y_min, y_max, increasing, out_of_bounds)
+        BaseWrapperReg.__init__(self)
+
+    tuning_grid = {
+        'y_min': None,
+        'y_max': None,
+        'increasing': True,
+        'out_of_bounds': 'nan',
     }
 
 
@@ -501,122 +452,3 @@ class skBaggingReg(_BaggingRegressor, BaseWrapperReg, metaclass=meta_BaseWrapper
     }
 
 
-class skRandomForestReg(_RandomForestRegressor, BaseWrapperReg, metaclass=meta_BaseWrapperReg_with_ABC):
-
-    def __init__(self, n_estimators=10, criterion="mse", max_depth=None, min_samples_split=2, min_samples_leaf=1,
-                 min_weight_fraction_leaf=0., max_features="auto", max_leaf_nodes=None, min_impurity_decrease=0.,
-                 min_impurity_split=None, bootstrap=True, oob_score=False, n_jobs=1, random_state=None, verbose=0,
-                 warm_start=False):
-        _RandomForestRegressor.__init__(
-            self, n_estimators, criterion, max_depth, min_samples_split, min_samples_leaf, min_weight_fraction_leaf,
-            max_features, max_leaf_nodes, min_impurity_decrease, min_impurity_split, bootstrap, oob_score, n_jobs,
-            random_state, verbose, warm_start)
-        BaseWrapperReg.__init__(self)
-
-    tuning_grid = {
-        'n_estimators': 10,
-        'criterion': "mse",
-        'max_depth': None,
-        'min_samples_split': 2,
-        'min_samples_leaf': 1,
-        'min_weight_fraction_leaf': 0.,
-        'max_features': "auto",
-        'max_leaf_nodes': None,
-        'min_impurity_decrease': 0.,
-        'min_impurity_split': None,
-        'bootstrap': True,
-        'oob_score': False,
-        'n_jobs': 1,
-        'random_state': None,
-        'verbose': 0,
-        'warm_start': False,
-    }
-
-
-class skGradientBoostingReg(_GradientBoostingRegressor, BaseWrapperReg, metaclass=meta_BaseWrapperReg_with_ABC):
-
-    def __init__(self, loss='ls', learning_rate=0.1, n_estimators=100, subsample=1.0, criterion='friedman_mse',
-                 min_samples_split=2, min_samples_leaf=1, min_weight_fraction_leaf=0., max_depth=3,
-                 min_impurity_decrease=0., min_impurity_split=None, init=None, random_state=None, max_features=None,
-                 alpha=0.9, verbose=0, max_leaf_nodes=None, warm_start=False, presort='auto'):
-        _GradientBoostingRegressor.__init__(
-            self, loss, learning_rate, n_estimators, subsample, criterion, min_samples_split, min_samples_leaf,
-            min_weight_fraction_leaf, max_depth, min_impurity_decrease, min_impurity_split, init, random_state,
-            max_features, alpha, verbose, max_leaf_nodes, warm_start, presort)
-        BaseWrapperReg.__init__(self)
-
-    tuning_grid = {
-        'loss': 'ls',
-        'learning_rate': 0.1,
-        'n_estimators': 100,
-        'subsample': 1.0,
-        'criterion': 'friedman_mse',
-        'min_samples_split': 2,
-        'min_samples_leaf': 1,
-        'min_weight_fraction_leaf': 0.,
-        'max_depth': 3,
-        'min_impurity_decrease': 0.,
-        'min_impurity_split': None,
-        'init': None,
-        'random_state': None,
-        'max_features': None,
-        'alpha': 0.9,
-        'verbose': 0,
-        'max_leaf_nodes': None,
-        'warm_start': False,
-        'presort': 'auto',
-    }
-
-    def _make_estimator(self, append=True):
-        pass
-
-
-class skIsotonicReg(_IsotonicRegression, BaseWrapperReg, metaclass=meta_BaseWrapperReg_with_ABC):
-
-    def __init__(self, y_min=None, y_max=None, increasing=True, out_of_bounds='nan'):
-        _IsotonicRegression.__init__(self, y_min, y_max, increasing, out_of_bounds)
-        BaseWrapperReg.__init__(self)
-
-    tuning_grid = {
-        'y_min': None,
-        'y_max': None,
-        'increasing': True,
-        'out_of_bounds': 'nan',
-    }
-
-
-class skMLPReg(_MLPRegressor, BaseWrapperReg, metaclass=meta_BaseWrapperReg_with_ABC):
-
-    def __init__(self, hidden_layer_sizes=(100,), activation="relu", solver='adam', alpha=0.0001, batch_size='auto',
-                 learning_rate="constant", learning_rate_init=0.001, power_t=0.5, max_iter=200, shuffle=True,
-                 random_state=None, tol=1e-4, verbose=False, warm_start=False, momentum=0.9, nesterovs_momentum=True,
-                 early_stopping=False, validation_fraction=0.1, beta_1=0.9, beta_2=0.999, epsilon=1e-8):
-        _MLPRegressor.__init__(
-            self, hidden_layer_sizes, activation, solver, alpha, batch_size, learning_rate, learning_rate_init,
-            power_t, max_iter, shuffle, random_state, tol, verbose, warm_start, momentum,
-            nesterovs_momentum, early_stopping, validation_fraction, beta_1, beta_2, epsilon)
-        BaseWrapperReg.__init__(self)
-
-    tuning_grid = {
-        'hidden_layer_sizes': (100,),
-        'activation': "relu",
-        'solver': 'adam',
-        'alpha': 0.0001,
-        'batch_size': 'auto',
-        'learning_rate': "constant",
-        'learning_rate_init': 0.001,
-        'power_t': 0.5,
-        'max_iter': 200,
-        'shuffle': True,
-        'random_state': None,
-        'tol': 1e-4,
-        'verbose': False,
-        'warm_start': False,
-        'momentum': 0.9,
-        'nesterovs_momentum': True,
-        'early_stopping': False,
-        'validation_fraction': 0.1,
-        'beta_1': 0.9,
-        'beta_2': 0.999,
-        'epsilon': 1e-8,
-    }
