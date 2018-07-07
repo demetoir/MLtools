@@ -29,7 +29,6 @@ from sklearn.naive_bayes import GaussianNB as _skGaussianNB
 from sklearn.naive_bayes import BernoulliNB as _skBernoulliNB
 from sklearn.naive_bayes import MultinomialNB as _skMultinomialNB
 from sklearn.gaussian_process import GaussianProcessClassifier as _skGaussianProcessClassifier
-from sklearn.ensemble import AdaBoostClassifier as _skAdaBoostClassifier
 from sklearn.ensemble import AdaBoostRegressor as _AdaBoostRegressor
 from sklearn.ensemble import RandomForestRegressor as _RandomForestRegressor
 from sklearn.ensemble import GradientBoostingClassifier as _skGradientBoostingClassifier
@@ -116,23 +115,6 @@ class skQDAClf(BaseWrapperClf, _skQDA, metaclass=meta_BaseWrapperClf):
         'store_covariance': False,
         'store_covariances': None,
         'tol': 0.0001
-    }
-
-
-class skAdaBoostClf(BaseWrapperClf, _skAdaBoostClassifier, metaclass=meta_BaseWrapperClf_with_ABC):
-    def __init__(self, base_estimator=None, n_estimators=50, learning_rate=1., algorithm='SAMME.R', random_state=None):
-        _skAdaBoostClassifier.__init__(self, base_estimator, n_estimators, learning_rate, algorithm, random_state)
-        BaseWrapperClf.__init__(self)
-
-    tuning_grid = {
-        'learning_rate': [0.00001, 0.0001, 0.001, 0.01, 0.1, 1.0],
-        'n_estimators': [8, 16, 32, 64, 128, 256],
-        # 'base_estimator': None,
-    }
-    etc_param = {
-        # etc
-        'random_state': None,
-        'algorithm': ['SAMME.R', 'SAMME'],
     }
 
 
