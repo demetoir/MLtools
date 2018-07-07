@@ -11,6 +11,8 @@ from script.sklearn_like_toolkit.warpper.mlxtend_wrapper import mlxSoftmaxRegres
 from script.sklearn_like_toolkit.warpper.mlxtend_wrapper import mlxStackingCVClf
 from script.sklearn_like_toolkit.warpper.mlxtend_wrapper import mlxStackingClf
 from script.sklearn_like_toolkit.warpper.skClf_wrapper.skMLPClf import skMLPClf
+from script.sklearn_like_toolkit.warpper.skClf_wrapper.skRidgeCVClf import skRidgeCVClf
+from script.sklearn_like_toolkit.warpper.skClf_wrapper.skRidgeClf import skRidgeClf
 from script.sklearn_like_toolkit.warpper.sklearn_wrapper import skLinear_SVCClf
 from script.sklearn_like_toolkit.warpper.sklearn_wrapper import skSGDClf
 from script.sklearn_like_toolkit.warpper.skClf_wrapper.skGaussian_NBClf import skGaussian_NBClf
@@ -55,6 +57,8 @@ class ClassifierPack(BaseWrapperClfPack):
         mlxMLPClf.__name__: mlxMLPClf,
         mlxPerceptronClf.__name__: mlxPerceptronClf,
         mlxSoftmaxRegressionClf.__name__: mlxSoftmaxRegressionClf,
+        skRidgeClf.__name__:skRidgeClf,
+        skRidgeCVClf.__name__:skRidgeCVClf
     }
 
     def to_FoldingHardVote(self):
