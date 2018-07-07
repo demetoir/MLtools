@@ -3,7 +3,7 @@ from pprint import pformat
 from env_settting import SKLEARN_PARAMS_SAVE_PATH
 from script.sklearn_like_toolkit.ParamOptimizer import ParamOptimizer
 from script.sklearn_like_toolkit.base.MixIn import ClfWrapperMixIn, meta_BaseWrapperClf
-from script.sklearn_like_toolkit.wrapperGridSearchCV import wrapperGridSearchCV
+from script.sklearn_like_toolkit.warpper.wrapperGridSearchCV import wrapperGridSearchCV
 from script.util.misc_util import time_stamp, dump_pickle, load_pickle, path_join, log_error_trace
 
 
