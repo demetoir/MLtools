@@ -20,7 +20,7 @@ from script.sklearn_like_toolkit.warpper.skClf_wrapper.skDecisionTreeClf import 
 from script.sklearn_like_toolkit.warpper.skClf_wrapper.skRandomForestClf import skRandomForestClf
 from script.sklearn_like_toolkit.warpper.skClf_wrapper.skExtraTreesClf import skExtraTreesClf
 from script.sklearn_like_toolkit.warpper.skClf_wrapper.skAdaBoostClf import skAdaBoostClf
-from script.sklearn_like_toolkit.warpper.sklearn_wrapper import skGradientBoostingClf
+from script.sklearn_like_toolkit.warpper.skClf_wrapper.skGradientBoostingClf import skGradientBoostingClf
 from script.sklearn_like_toolkit.warpper.sklearn_wrapper import skQDAClf
 from script.sklearn_like_toolkit.warpper.sklearn_wrapper import skKNeighborsClf
 from script.sklearn_like_toolkit.warpper.sklearn_wrapper import skGaussianProcessClf
