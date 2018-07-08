@@ -1,4 +1,9 @@
 from pprint import pprint
+from functools import wraps
+import pickle
+import dill
+
+from script.util.misc_util import log_error_trace
 
 
 def test_metaclass_mixIn():
@@ -85,3 +90,54 @@ def test_multi_inherite_super_init_arg():
     pprint(a.__dict__)
     pprint(b.__dict__)
     pprint(c.__dict__)
+
+
+def deco(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        # pprint(args)
+        # pprint(kwargs)
+        ret = func(*args, **kwargs)
+        return ret
+
+    return wrapper
+
+
+@deco
+def define_with_deco(*args, **kwargs):
+    pprint('define_with_deco')
+
+
+def closure(*args, **kwargs):
+    pprint('closure')
+
+
+def dump_and_load(pickler, func):
+    try:
+        path = './pkl'
+        with open(path, 'wb') as f:
+            pickler.dump(func, f)
+        with open(path, 'rb') as f:
+            func = pickler.load(f)
+
+        func()
+    except BaseException as e:
+        log_error_trace(pprint, e)
+
+
+def test_pickle_deco_and_closure():
+    def local_closure():
+        pprint('local closure')
+
+    closure_with_deco = deco(closure)
+
+    local_closure_with_deco = deco(local_closure)
+
+    print('pickle')
+    dump_and_load(pickle, closure_with_deco)
+    dump_and_load(pickle, define_with_deco)
+    dump_and_load(pickle, local_closure_with_deco)
+    print('dill')
+    dump_and_load(dill, closure_with_deco)
+    dump_and_load(dill, define_with_deco)
+    dump_and_load(dill, local_closure_with_deco)
