@@ -10,12 +10,9 @@ class skMultinomial_NBClf(BaseWrapperClf, _skMultinomialNB, metaclass=meta_BaseW
         _skMultinomialNB.__init__(self, alpha, fit_prior, class_prior)
         BaseWrapperClf.__init__(self)
 
-    HyperOpt_space = hp.choice('classifier_type', [
-        {
-            'alpha': hp.loguniform('alpha', -8, 1),
-        },
-    ])
-
+    HyperOpt_space = {
+        'alpha': hp.loguniform('alpha', -8, 1),
+    }
 
     tuning_grid = {
         'alpha': [0.00001, 0.0001, 0.001, 0.01, 0.1, 1.0, 10.0],

@@ -31,43 +31,40 @@ class skMLPClf(BaseWrapperClf, _skMLPClassifier, metaclass=meta_BaseWrapperClf_w
         # 'tol': 0.0001,
     }
 
-    HyperOpt_space = hp.choice('classifier_type', [
-        # # adam solver
-        {
-            'alpha': hp.loguniform('alpha', -4, 3),
-            'learning_rate': hp.choice('learning_rate', ['constant', 'invscaling', 'adaptive']),
-            'activation': hp.choice('activation', ['relu']),
-            # 'hidden_layer_sizes': hp.choice('hidden_layer_sizes', [(100,), (100, 100,)]),
-            'solver': 'adam',
-            'beta_1': hp.loguniform('beta_1', -1, 0),
-            'beta_2': hp.loguniform('beta_2', -1, 0),
-            # 'epsilon': 1e-08,
+    HyperOpt_space = {
+        'alpha': hp.loguniform('alpha', -4, 3),
+        'learning_rate': hp.choice('learning_rate', ['constant', 'invscaling', 'adaptive']),
+        'activation': hp.choice('activation', ['relu']),
+        # 'hidden_layer_sizes': hp.choice('hidden_layer_sizes', [(100,), (100, 100,)]),
+        'solver': 'adam',
+        'beta_1': hp.loguniform('beta_1', -1, 0),
+        'beta_2': hp.loguniform('beta_2', -1, 0),
+        # 'epsilon': 1e-08,
 
-            'tol': 0.0001,
-            'max_iter': 1000,
-            'early_stopping': hp.choice('early_stopping', [True, False]),
-            'batch_size': 'auto',
-            'shuffle': True,
-            'validation_fraction': 0.1,
-        },
+        'tol': 0.0001,
+        'max_iter': 1000,
+        'early_stopping': hp.choice('early_stopping', [True, False]),
+        'batch_size': 'auto',
+        'shuffle': True,
+        'validation_fraction': 0.1,
+    }
 
-        # sgd solver
-        # {
-        #     'alpha': hp.loguniform('alpha', -4, 3),
-        #     'learning_rate': hp.choice('learning_rate', ['constant', 'invscaling', 'adaptive']),
-        #     'activation': hp.choice('activation', ['relu']),
-        #     'hidden_layer_sizes': hp.choice('hidden_layer_sizes', [(100,), (100, 100,)]),
-        #
-        #     'solver': 'sgd',
-        #     'momentum': hp.loguniform('momentum', -1, 0),
-        #     'nesterovs_momentum': hp.choice('nesterovs_momentum', [True, False]),
-        #     'power_t': 0.5,
-        #
-        #     'tol': 0.0001,
-        #     'max_iter': 1000,
-        #     'early_stopping': hp.choice('early_stopping', [True, False]),
-        #     'batch_size': 'auto',
-        #     'shuffle': True,
-        #     'validation_fraction': 0.1,
-        # }
-    ])
+    # sgd solver
+    # {
+    #     'alpha': hp.loguniform('alpha', -4, 3),
+    #     'learning_rate': hp.choice('learning_rate', ['constant', 'invscaling', 'adaptive']),
+    #     'activation': hp.choice('activation', ['relu']),
+    #     'hidden_layer_sizes': hp.choice('hidden_layer_sizes', [(100,), (100, 100,)]),
+    #
+    #     'solver': 'sgd',
+    #     'momentum': hp.loguniform('momentum', -1, 0),
+    #     'nesterovs_momentum': hp.choice('nesterovs_momentum', [True, False]),
+    #     'power_t': 0.5,
+    #
+    #     'tol': 0.0001,
+    #     'max_iter': 1000,
+    #     'early_stopping': hp.choice('early_stopping', [True, False]),
+    #     'batch_size': 'auto',
+    #     'shuffle': True,
+    #     'validation_fraction': 0.1,
+    # }

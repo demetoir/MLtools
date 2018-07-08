@@ -9,7 +9,6 @@ from script.sklearn_like_toolkit.base.MixIn import meta_BaseWrapperClf_with_ABC
 class skGaussianProcessClf(BaseWrapperClf, _skGaussianProcessClassifier, metaclass=meta_BaseWrapperClf_with_ABC):
     def __init__(self, kernel=None, optimizer="fmin_l_bfgs_b", n_restarts_optimizer=0, max_iter_predict=100,
                  warm_start=False, copy_X_train=True, random_state=None, multi_class="one_vs_rest", n_jobs=1):
-
         n_jobs = 4
         _skGaussianProcessClassifier.__init__(
             self, kernel, optimizer, n_restarts_optimizer, max_iter_predict, warm_start, copy_X_train, random_state,

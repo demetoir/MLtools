@@ -13,14 +13,11 @@ class skRidgeClf(_RidgeClassifier, BaseWrapperClf, metaclass=meta_BaseWrapperClf
             self, alpha, fit_intercept, normalize, copy_X, max_iter, tol, class_weight, solver, random_state)
         BaseWrapperClf.__init__(self)
 
-    HyperOpt_space = hp.choice('classifier_type', [
-        {
-            'alpha': hp.loguniform('alpha', -5, 3),
-            'tol': 1e-5,
-            'max_iter': 1000,
-        },
-    ])
-
+    HyperOpt_space = {
+        'alpha': hp.loguniform('alpha', -5, 3),
+        'tol': 1e-5,
+        'max_iter': 1000,
+    }
     tuning_grid = {
         #  positive
         'alpha': [1.0],

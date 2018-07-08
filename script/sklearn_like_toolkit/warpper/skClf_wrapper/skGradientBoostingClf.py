@@ -20,24 +20,20 @@ class skGradientBoostingClf(BaseWrapperClf, _skGradientBoostingClassifier, metac
     def _make_estimator(self, append=True):
         pass
 
-    HyperOpt_space = hp.choice('classifier_type', [
-        {
-            'learning_rate': hp.loguniform('learning_rate', -8, 1),
-            'n_estimators': hp.qloguniform('n_estimators', 2, 5, 1),
-            'max_depth': 1 + hp.randint('max_depth', 10),
-            'min_samples_leaf': 1 + hp.randint('min_samples_leaf', 10),
-            'min_samples_split': 2 + hp.randint('min_samples_split', 10),
-            'loss': hp.choice('loss', ['deviance', 'exponential']),
+    HyperOpt_space = {
+        'learning_rate': hp.loguniform('learning_rate', -8, 1),
+        'n_estimators': hp.qloguniform('n_estimators', 2, 5, 1),
+        'max_depth': 1 + hp.randint('max_depth', 10),
+        'min_samples_leaf': 1 + hp.randint('min_samples_leaf', 10),
+        'min_samples_split': 2 + hp.randint('min_samples_split', 10),
+        'loss': hp.choice('loss', ['deviance', 'exponential']),
 
-            # 'max_leaf_nodes': None,
-            # 'max_features': None,
-            # 'min_impurity_decrease': 0.0,
-            # 'class_weight': None,
-            # 'min_weight_fraction_leaf': 0.0,
-        },
-
-    ])
-
+        # 'max_leaf_nodes': None,
+        # 'max_features': None,
+        # 'min_impurity_decrease': 0.0,
+        # 'class_weight': None,
+        # 'min_weight_fraction_leaf': 0.0,
+    }
     tuning_grid = {
         'learning_rate': [0.001, 0.01, 0.1, 1],
         'max_depth': [i for i in range(1, 10, 2)],

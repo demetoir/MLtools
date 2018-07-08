@@ -11,14 +11,11 @@ class skAdaBoostClf(BaseWrapperClf, _skAdaBoostClassifier, metaclass=meta_BaseWr
         _skAdaBoostClassifier.__init__(self, base_estimator, n_estimators, learning_rate, algorithm, random_state)
         BaseWrapperClf.__init__(self)
 
-    HyperOpt_space = hp.choice('classifier_type', [
-        {
-            'n_estimators': hp.qloguniform('n_estimators', 2, 6, 1),
-            'learning_rate': hp.loguniform('learning_rate', -8, 1),
-            'algorithm': hp.choice('algorithm', ['SAMME.R', 'SAMME']),
-        },
-
-    ])
+    HyperOpt_space = {
+        'n_estimators': hp.qloguniform('n_estimators', 2, 6, 1),
+        'learning_rate': hp.loguniform('learning_rate', -8, 1),
+        'algorithm': hp.choice('algorithm', ['SAMME.R', 'SAMME']),
+    }
 
     tuning_grid = {
         'learning_rate': [0.00001, 0.0001, 0.001, 0.01, 0.1, 1.0],

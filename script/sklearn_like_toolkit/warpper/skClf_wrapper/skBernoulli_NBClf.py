@@ -10,13 +10,10 @@ class skBernoulli_NBClf(BaseWrapperClf, _skBernoulliNB, metaclass=meta_BaseWrapp
         _skBernoulliNB.__init__(self, alpha, binarize, fit_prior, class_prior)
         BaseWrapperClf.__init__(self)
 
-    HyperOpt_space = hp.choice('classifier_type', [
-        {
-            'alpha': hp.loguniform('alpha', -8, 1),
-            'binarize': hp.uniform('binarize', 0, 1)
-        },
-    ])
-
+    HyperOpt_space = {
+        'alpha': hp.loguniform('alpha', -8, 1),
+        'binarize': hp.uniform('binarize', 0, 1)
+    }
     tuning_grid = {
         'alpha': [0.00001, 0.0001, 0.001, 0.01, 0.1, 1.0, 10.0],
         'binarize': [i / 10.0 for i in range(0, 10)],

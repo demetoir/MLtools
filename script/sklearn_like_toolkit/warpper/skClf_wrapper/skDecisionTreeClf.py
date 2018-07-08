@@ -14,22 +14,19 @@ class skDecisionTreeClf(BaseWrapperClf, _skDecisionTreeClassifier, metaclass=met
             presort)
         BaseWrapperClf.__init__(self)
 
-    HyperOpt_space = hp.choice('classifier_type', [
-        {
-            'max_depth': 1 + hp.randint('max_depth', 10),
-            'min_samples_leaf': 1 + hp.randint('min_samples_leaf', 10),
-            'min_samples_split': 2 + hp.randint('min_samples_split', 10),
-            'criterion': hp.choice('criterion', ['gini', 'entropy']),
-            'splitter': hp.choice('splitter', ['best', 'random']),
+    HyperOpt_space = {
+        'max_depth': 1 + hp.randint('max_depth', 10),
+        'min_samples_leaf': 1 + hp.randint('min_samples_leaf', 10),
+        'min_samples_split': 2 + hp.randint('min_samples_split', 10),
+        'criterion': hp.choice('criterion', ['gini', 'entropy']),
+        'splitter': hp.choice('splitter', ['best', 'random']),
 
-            # 'max_leaf_nodes': None,
-            # 'max_features': None,
-            # 'min_impurity_decrease': 0.0,
-            # 'class_weight': None,
-            # 'min_weight_fraction_leaf': 0.0,
-        },
-
-    ])
+        # 'max_leaf_nodes': None,
+        # 'max_features': None,
+        # 'min_impurity_decrease': 0.0,
+        # 'class_weight': None,
+        # 'min_weight_fraction_leaf': 0.0,
+    }
 
     tuning_grid = {
         'max_depth': [i for i in range(1, 10)],

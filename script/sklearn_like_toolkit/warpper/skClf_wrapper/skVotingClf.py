@@ -9,8 +9,8 @@ class skVotingClf(BaseWrapperClf, _skVotingClassifier, metaclass=meta_BaseWrappe
         _skVotingClassifier.__init__(self, estimators, voting, weights, n_jobs, flatten_transform)
         BaseWrapperClf.__init__(self)
 
-    tuning_grid = {
-    }
+    HyperOpt_space = {}
 
-    tuning_params = {
-    }
+    tuning_grid = {}
+
+    tuning_params = {}

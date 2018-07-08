@@ -16,22 +16,19 @@ class skRandomForestClf(BaseWrapperClf, _skRandomForestClassifier, metaclass=met
             random_state, verbose, warm_start, class_weight)
         BaseWrapperClf.__init__(self)
 
-    HyperOpt_space = hp.choice('classifier_type', [
-        {
-            'n_estimators': hp.qloguniform('n_estimators', 2, 5, 1),
-            'max_depth': 1 + hp.randint('max_depth', 10),
-            'min_samples_leaf': 1 + hp.randint('min_samples_leaf', 10),
-            'min_samples_split': 2 + hp.randint('min_samples_split', 10),
-            'criterion': hp.choice('criterion', ['gini', 'entropy']),
+    HyperOpt_space = {
+        'n_estimators': hp.qloguniform('n_estimators', 2, 5, 1),
+        'max_depth': 1 + hp.randint('max_depth', 10),
+        'min_samples_leaf': 1 + hp.randint('min_samples_leaf', 10),
+        'min_samples_split': 2 + hp.randint('min_samples_split', 10),
+        'criterion': hp.choice('criterion', ['gini', 'entropy']),
 
-            # 'max_leaf_nodes': None,
-            # 'max_features': None,
-            # 'min_impurity_decrease': 0.0,
-            # 'class_weight': None,
-            # 'min_weight_fraction_leaf': 0.0,
-        },
-
-    ])
+        # 'max_leaf_nodes': None,
+        # 'max_features': None,
+        # 'min_impurity_decrease': 0.0,
+        # 'class_weight': None,
+        # 'min_weight_fraction_leaf': 0.0,
+    }
 
     tuning_grid = {
 

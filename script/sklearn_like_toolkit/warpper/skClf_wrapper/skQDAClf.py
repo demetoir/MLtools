@@ -13,6 +13,10 @@ class skQDAClf(BaseWrapperClf, _skQDA, metaclass=meta_BaseWrapperClf):
         BaseWrapperClf.__init__(self)
         _skQDA.__init__(self, priors, reg_param, store_covariance, tol, store_covariances)
 
+    HyperOpt_space = {
+
+    }
+
     tuning_grid = {
     }
     remain_param = {

@@ -14,11 +14,9 @@ class skBaggingClf(BaseWrapperClf, _BaggingClassifier, metaclass=meta_BaseWrappe
             warm_start, n_jobs, random_state, verbose)
         BaseWrapperClf.__init__(self)
 
-    HyperOpt_space = hp.choice('classifier_type', [
-        {
-            'n_estimators': hp.qloguniform('n_estimators', 2, 5, 1),
-        },
-    ])
+    HyperOpt_space = {
+        'n_estimators': hp.qloguniform('n_estimators', 2, 5, 1),
+    }
 
     tuning_grid = {
 

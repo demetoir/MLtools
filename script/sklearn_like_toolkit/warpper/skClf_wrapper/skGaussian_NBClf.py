@@ -10,7 +10,7 @@ class skGaussian_NBClf(BaseWrapperClf, _skGaussianNB, metaclass=meta_BaseWrapper
         _skGaussianNB.__init__(self, priors)
         BaseWrapperClf.__init__(self)
 
-    HyperOpt_space = hp.choice('classifier_type', [{}])
+    HyperOpt_space = {}
     tuning_grid = {}
     tuning_params = {
         'priors': None
