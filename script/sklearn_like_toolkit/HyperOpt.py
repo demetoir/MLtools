@@ -1,6 +1,5 @@
 from hyperopt import fmin, tpe, STATUS_OK, STATUS_FAIL, Trials, hp
 from tqdm import tqdm
-# from hyperopt.mongoexp import MongoTrials
 from script.util.misc_util import log_error_trace
 import time
 import numpy as np
@@ -42,7 +41,9 @@ def deco_hyperOpt(func, min_best=True, pbar=None):
 
             if min_best is False:
                 trial['loss'] = -trial['loss']
-            pbar.update(1)
+
+            if pbar is not None:
+                pbar.update(1)
             return trial
 
     wrapper.__name__ = deco_hyperOpt.__name__
@@ -55,6 +56,10 @@ class HyperOpt:
         self.min_best = min_best
         self._trials = None
         self._best_param = None
+
+    @property
+    def outer_trials(self):
+        return self._trials
 
     @property
     def trials(self):
@@ -95,7 +100,34 @@ class HyperOpt:
         }
         return info
 
-    def fit(self, func, data_pack, space, max_eval, algo=tpe.suggest, min_best=None, mongoTrials=False):
+    @staticmethod
+    def _make_feed_space(data_pack, space):
+        return hp.choice(
+            'kwargs', [{
+                'params': space,
+                'data_pack': data_pack
+            }]
+        )
+
+    def fit(self, func, data_pack, space, max_eval, algo=tpe.suggest, trials=None, min_best=None):
+        if min_best is None:
+            min_best = self.min_best
+
+        if trials is None:
+            self._trials = Trials()
+        else:
+            self._trials = trials
+
+        with tqdm(range(max_eval)) as pbar:
+            self._best_param = fmin(
+                fn=deco_hyperOpt(func, min_best, pbar),
+                space=self._make_feed_space(data_pack, space),
+                algo=algo,
+                max_evals=max_eval,
+                trials=self._trials)
+        return self._trials
+
+    def resume_fit(self, func, data_pack, space, max_eval, trials, algo=tpe.suggest, min_best=None):
         if min_best is None:
             min_best = self.min_best
         space = hp.choice(
@@ -104,13 +136,6 @@ class HyperOpt:
                 'data_pack': data_pack
             }]
         )
-
-        if mongoTrials:
-            # todo
-            raise NotImplementedError
-            # self._trials = MongoTrials('mongo://localhost:1234/foo_db/jobs', exp_key='exp1')
-        else:
-            self._trials = Trials()
 
         with tqdm(range(max_eval)) as pbar:
             func = deco_hyperOpt(func, min_best, pbar)
@@ -121,6 +146,7 @@ class HyperOpt:
                 space=space,
                 algo=algo,
                 max_evals=max_eval,
-                trials=self._trials)
+                trials=trials)
 
-        return self._best_param
+        self._trials = trials
+        return trials
