@@ -1,16 +1,15 @@
-from hyperopt import fmin, tpe, STATUS_OK, STATUS_FAIL, Trials, hp
+import time
+from functools import wraps
+import numpy as np
+from hyperopt import fmin, tpe, STATUS_OK, STATUS_FAIL, Trials
+from hyperopt.mongoexp import MongoTrials
 from tqdm import tqdm
 from script.util.misc_util import log_error_trace
-import time
-import numpy as np
-from functools import wraps
 
-
-# import cloud
 
 def deco_hyperOpt(func, min_best=True, pbar=None):
     @wraps(func)
-    def wrapper(kwargs):
+    def deco_hyperOpt_wrapper(kwargs):
         start_time = time.time()
         trial = {
             'loss': None,
@@ -20,7 +19,8 @@ def deco_hyperOpt(func, min_best=True, pbar=None):
             # -- attachments are handled differently
             # 'attachments':
             #     {'time_module': None},
-            'params': kwargs['params']
+            # 'params': kwargs['params']
+            'params': kwargs
         }
 
         try:
@@ -42,12 +42,14 @@ def deco_hyperOpt(func, min_best=True, pbar=None):
             if min_best is False:
                 trial['loss'] = -trial['loss']
 
-            if pbar is not None:
+            try:
                 pbar.update(1)
+            except BaseException:
+                pass
             return trial
 
-    wrapper.__name__ = deco_hyperOpt.__name__
-    return wrapper
+    deco_hyperOpt_wrapper.__name__ = deco_hyperOpt.__name__
+    return deco_hyperOpt_wrapper
 
 
 class HyperOpt:
@@ -102,51 +104,39 @@ class HyperOpt:
 
     @staticmethod
     def _make_feed_space(data_pack, space):
-        return hp.choice(
-            'kwargs', [{
-                'params': space,
-                'data_pack': data_pack
-            }]
-        )
+        return {
+            'params': space,
+            'data_pack': data_pack
+        }
 
-    def fit(self, func, data_pack, space, max_eval, algo=tpe.suggest, trials=None, min_best=None):
+    @staticmethod
+    def _check_Trials(trials):
+        if isinstance(trials, MongoTrials):
+            raise TypeError("MongoTrials not support")
+
+    def fit(self, func, space, n_iter, algo=tpe.suggest, trials=None, min_best=None, pbar=True):
         if min_best is None:
             min_best = self.min_best
+
+        self._check_Trials(trials)
 
         if trials is None:
             self._trials = Trials()
         else:
+            trials.refresh()
             self._trials = trials
 
-        with tqdm(range(max_eval)) as pbar:
-            self._best_param = fmin(
-                fn=deco_hyperOpt(func, min_best, pbar),
-                space=self._make_feed_space(data_pack, space),
-                algo=algo,
-                max_evals=max_eval,
-                trials=self._trials)
-        return self._trials
+        if pbar is True:
+            pbar = tqdm(range(n_iter))
+        else:
+            pbar = None
 
-    def resume_fit(self, func, data_pack, space, max_eval, trials, algo=tpe.suggest, min_best=None):
-        if min_best is None:
-            min_best = self.min_best
-        space = hp.choice(
-            'kwargs', [{
-                'params': space,
-                'data_pack': data_pack
-            }]
+        self._best_param = fmin(
+            fn=deco_hyperOpt(func, min_best, pbar),
+            space=space,
+            algo=algo,
+            max_evals=n_iter + len(trials),
+            trials=self._trials,
         )
 
-        with tqdm(range(max_eval)) as pbar:
-            func = deco_hyperOpt(func, min_best, pbar)
-
-            self._best_param = fmin(
-                # fn=deco_hyperOpt(func, min_best, pbar),
-                fn=func,
-                space=space,
-                algo=algo,
-                max_evals=max_eval,
-                trials=trials)
-
-        self._trials = trials
-        return trials
+        return self._trials
