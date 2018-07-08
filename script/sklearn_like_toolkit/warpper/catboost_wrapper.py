@@ -4,9 +4,18 @@ from catboost import CatBoostRegressor as _CatBoostRegressor
 from script.sklearn_like_toolkit.base.BaseWrapperClf import BaseWrapperClf
 from script.sklearn_like_toolkit.base.MixIn import meta_BaseWrapperClf_with_ABC, meta_BaseWrapperReg_with_ABC
 from script.sklearn_like_toolkit.base.BaseWrapperReg import BaseWrapperReg
+from hyperopt import hp
 
 
-class CatBoostClf(_CatBoostClassifier, BaseWrapperClf, metaclass=meta_BaseWrapperClf_with_ABC):
+class CatBoostClf(BaseWrapperClf, _CatBoostClassifier, metaclass=meta_BaseWrapperClf_with_ABC):
+    HyperOpt_space = {
+        'iterations': 2 + hp.randint('iterations', 10),
+        'depth': 4 + hp.randint('depth', 11),
+        'random_strength': hp.choice('random_strength', [1, 2, 4, 0.5, ]),
+        'bagging_temperature': hp.uniform('bagging_temperature', 0, 1),
+        'learning_rate': hp.uniform('learning_rate', 0, 1),
+        'l2_leaf_reg': hp.uniform('l2_leaf_reg', 0, 1),
+    }
     tuning_grid = {
         'iterations': [2, 4, 8, ],
         'depth': [i for i in range(4, 10 + 1, 2)],
@@ -43,6 +52,8 @@ class CatBoostClf(_CatBoostClassifier, BaseWrapperClf, metaclass=meta_BaseWrappe
             gpu_cat_features_storage=None, data_partition=None, metadata=None):
         # logging_level = 'Silent'
         warnings.filterwarnings(module='sklearn*', action='ignore', category=DeprecationWarning)
+        silent = True
+        BaseWrapperClf.__init__(self)
 
         _CatBoostClassifier.__init__(
             self, iterations, learning_rate, depth, l2_leaf_reg, model_size_reg, rsm, loss_function,
@@ -59,10 +70,17 @@ class CatBoostClf(_CatBoostClassifier, BaseWrapperClf, metaclass=meta_BaseWrappe
             colsample_bylevel, random_state, reg_lambda, objective, eta, max_bin, scale_pos_weight,
             gpu_cat_features_storage, data_partition, metadata)
 
-        BaseWrapperClf.__init__(self)
-
 
 class CatBoostReg(_CatBoostRegressor, BaseWrapperReg, metaclass=meta_BaseWrapperReg_with_ABC):
+    # HyperOpt_space = {
+    #     'iterations': hp.randint('iterations', 2, 10),
+    #     'depth': hp.randint('depth', 4, 11),
+    #     'random_strength': hp.choice('random_strength', [1, 2, 4, 0.5, ]),
+    #     'bagging_temperature': hp.uniform('bagging_temperature', 0, 1),
+    #     'learning_rate': hp.uniform('learning_rate', 0, 1),
+    #     'l2_leaf_reg': hp.uniform('l2_leaf_reg', 0, 1),
+    # }
+
     tuning_grid = {
         # 'iterations': [2, 4, 8, ],
         # 'depth': [i for i in range(4, 10 + 1, 2)],

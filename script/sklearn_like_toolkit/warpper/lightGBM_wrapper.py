@@ -3,17 +3,31 @@ from script.sklearn_like_toolkit.base.BaseWrapperReg import BaseWrapperReg
 from script.sklearn_like_toolkit.base.MixIn import meta_BaseWrapperClf_with_ABC, meta_BaseWrapperReg_with_ABC
 import warnings
 import lightgbm
+from hyperopt import hp
 
 
 class LightGBMClf(lightgbm.LGBMClassifier, BaseWrapperClf, metaclass=meta_BaseWrapperClf_with_ABC):
+
+    HyperOpt_space = {
+        'boosting_type': hp.choice('boosting_type', ['dart', "gbdt"]),
+        'max_depth': 2 + hp.randint('max_depth', 10),
+        'n_estimators': hp.uniform('n_estimators', 100, 300),
+        'subsample': hp.uniform('subsample', 0, 1),
+        'min_child_samples': hp.qloguniform('min_child_samples', 2, 4, 1),
+        'num_leaves': hp.qloguniform('num_leaves', 2, 5, 1),
+        'learning_rate': hp.loguniform('learning_rate', -5, 0),
+        'colsample_bytree': hp.uniform('colsample_bytree', 0, 1),
+
+    }
     tuning_grid = {
         'num_leaves': [4, 8, 16, 32],
         'min_child_samples': [4, 8, 16, 32],
         'max_depth': [2, 4, 6, 8],
         'colsample_bytree': [i / 10.0 for i in range(2, 10 + 1, 2)],
         'subsample': [i / 10.0 for i in range(2, 10 + 1, 2)],
-        # 'max_bin': [64, 128],
+        'max_bin': [64, 128],
         # 'top_k': [8, 16, 32],
+        # 'learning_rate': 0.1,
     }
     remain_param = {
         'learning_rate': 0.1,
@@ -39,8 +53,9 @@ class LightGBMClf(lightgbm.LGBMClassifier, BaseWrapperClf, metaclass=meta_BaseWr
         'min_data_per_group': 100,
 
         # default value
-        'feature_fraction_seed': 2,
+
         'bagging_seed': 3,
+
         # 'early_stopping_round': 0,
         'reg_alpha': 0,
         'reg_lambda': 0,
@@ -58,6 +73,10 @@ class LightGBMClf(lightgbm.LGBMClassifier, BaseWrapperClf, metaclass=meta_BaseWr
             min_child_samples=20, subsample=1., subsample_freq=1, colsample_bytree=1., reg_alpha=0., reg_lambda=0.,
             random_state=None, n_jobs=-1, silent=True, **kwargs):
         kwargs['verbose'] = -1
+
+        num_leaves = int(num_leaves)
+        min_child_samples = int(min_child_samples)
+        n_estimators = int(n_estimators)
         warnings.filterwarnings(module='sklearn*', action='ignore', category=DeprecationWarning)
         lightgbm.LGBMClassifier.__init__(
             self, boosting_type, num_leaves, max_depth, learning_rate, n_estimators, subsample_for_bin, objective,
