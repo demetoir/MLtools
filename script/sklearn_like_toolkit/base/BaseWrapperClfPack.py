@@ -2,6 +2,7 @@ import os
 from pprint import pformat
 from env_settting import SKLEARN_PARAMS_SAVE_PATH
 from script.sklearn_like_toolkit.ParamOptimizer import ParamOptimizer
+from script.sklearn_like_toolkit.base.BaseWrapperClf import BaseWrapperClf
 from script.sklearn_like_toolkit.base.MixIn import ClfWrapperMixIn, meta_BaseWrapperClf
 from script.sklearn_like_toolkit.warpper.wrapperGridSearchCV import wrapperGridSearchCV
 from script.util.misc_util import time_stamp, dump_pickle, load_pickle, path_join, log_error_trace
@@ -27,7 +28,7 @@ class BaseWrapperClfPack(ClfWrapperMixIn, metaclass=meta_BaseWrapperClf):
     def __str__(self):
         return self.__class__.__name__
 
-    def __getitem__(self, item):
+    def __getitem__(self, item)-> BaseWrapperClf:
         return self.pack.__getitem__(item)
 
     def param_search(self, Xs, Ys):
