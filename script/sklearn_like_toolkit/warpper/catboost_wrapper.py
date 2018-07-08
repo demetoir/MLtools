@@ -13,7 +13,7 @@ class CatBoostClf(BaseWrapperClf, _CatBoostClassifier, metaclass=meta_BaseWrappe
         'depth': 4 + hp.randint('depth', 11),
         'random_strength': hp.choice('random_strength', [1, 2, 4, 0.5, ]),
         'bagging_temperature': hp.uniform('bagging_temperature', 0, 1),
-        'learning_rate': hp.uniform('learning_rate', 0, 1),
+        'learning_rate': hp.loguniform('learning_rate', -6, 0),
         'l2_leaf_reg': hp.uniform('l2_leaf_reg', 0, 1),
     }
     tuning_grid = {

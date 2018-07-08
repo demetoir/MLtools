@@ -11,7 +11,7 @@ class LightGBMClf(lightgbm.LGBMClassifier, BaseWrapperClf, metaclass=meta_BaseWr
     HyperOpt_space = {
         'boosting_type': hp.choice('boosting_type', ['dart', "gbdt"]),
         'max_depth': 2 + hp.randint('max_depth', 10),
-        'n_estimators': hp.uniform('n_estimators', 100, 300),
+        'n_estimators': 10 + hp.randint('n_estimators', 400),
         'subsample': hp.uniform('subsample', 0, 1),
         'min_child_samples': hp.qloguniform('min_child_samples', 2, 4, 1),
         'num_leaves': hp.qloguniform('num_leaves', 2, 5, 1),
