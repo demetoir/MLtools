@@ -112,17 +112,23 @@ def closure(*args, **kwargs):
     pprint('closure')
 
 
-def dump_and_load(pickler, func):
+def dump_and_load(pickler, obj):
     try:
         path = './pkl'
         with open(path, 'wb') as f:
-            pickler.dump(func, f)
+            pickler.dump(obj, f)
         with open(path, 'rb') as f:
-            func = pickler.load(f)
+            obj = pickler.load(f)
 
-        func()
     except BaseException as e:
         log_error_trace(pprint, e)
+
+
+def check_pickle_able(obj, pickler=None):
+    if pickler is None:
+        import pickle
+        pickler = pickle
+    dump_and_load(pickler, obj)
 
 
 def test_pickle_deco_and_closure():
