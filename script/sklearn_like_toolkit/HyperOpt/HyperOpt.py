@@ -1,7 +1,7 @@
 import time
 from functools import wraps
 import numpy as np
-from hyperopt import fmin, tpe, STATUS_OK, STATUS_FAIL, Trials, rand, mix, anneal
+from hyperopt import fmin, tpe, STATUS_OK, STATUS_FAIL
 from hyperopt.mongoexp import MongoTrials
 from joblib import Parallel, delayed
 from tqdm import tqdm, trange
@@ -128,10 +128,9 @@ class HyperOpt:
         self._check_Trials(trials)
 
         if trials is None:
-            self._trials = Trials()
+            trials = FreeTrials()
         else:
             trials.refresh()
-            self._trials = trials
 
         if pbar is True:
             pbar = tqdm(range(n_iter))
@@ -143,12 +142,12 @@ class HyperOpt:
             space=space,
             algo=algo,
             max_evals=n_iter + len(trials),
-            trials=self._trials,
+            trials=trials,
         )
-
+        self._trials = trials
         return self._trials
 
-    def fit_parallel(self, func, space, n_iter, algo=rand.suggest, trials=None, min_best=None, pbar=True):
+    def fit_parallel(self, func, space, n_iter, algo=tpe.suggest, trials=None, min_best=None, pbar=True):
         self._check_Trials(trials)
         min_best = self.min_best if min_best is None else min_best
         trials = FreeTrials() if trials is None else trials
