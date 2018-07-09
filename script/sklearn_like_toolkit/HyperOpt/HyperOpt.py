@@ -1,18 +1,18 @@
 import time
-from functools import wraps
-import numpy as np
-from hyperopt import fmin, tpe, STATUS_OK, STATUS_FAIL
-from hyperopt.mongoexp import MongoTrials
-from joblib import Parallel, delayed
-from tqdm import tqdm, trange
 import multiprocessing as mp
+import numpy as np
+from functools import wraps
+from multiprocessing.pool import Pool
+from hyperopt import fmin, tpe, STATUS_OK, STATUS_FAIL, hp
+from hyperopt.mongoexp import MongoTrials
+from tqdm import tqdm, trange
 from script.sklearn_like_toolkit.HyperOpt.FreeTrials import FreeTrials
 from script.util.misc_util import log_error_trace
 
 
-def deco_hyperOpt(func, min_best=True, pbar=None):
+def deco_hyperOpt_fn(func, min_best=True, pbar=None, feed_args=None, feed_kwargs=None):
     @wraps(func)
-    def deco_hyperOpt_wrapper(kwargs):
+    def deco_hyperOpt_fn_wrapper(params):
         start_time = time.time()
         trial = {
             'loss': None,
@@ -23,11 +23,15 @@ def deco_hyperOpt(func, min_best=True, pbar=None):
             # 'attachments':
             #     {'time_module': None},
             # 'params': kwargs['params']
-            'params': kwargs
+            'params': params
         }
 
         try:
-            ret = func(kwargs)
+            if issubclass(func, HyperOpt_fn):
+                ret = func.fn(params, feed_args, feed_kwargs)
+            else:
+                ret = func(params, feed_args, feed_kwargs)
+
             if type(ret) is dict:
                 trial.update(ret)
             else:
@@ -51,8 +55,14 @@ def deco_hyperOpt(func, min_best=True, pbar=None):
                 pass
             return trial
 
-    deco_hyperOpt_wrapper.__name__ = deco_hyperOpt.__name__
-    return deco_hyperOpt_wrapper
+    deco_hyperOpt_fn_wrapper.__name__ = deco_hyperOpt_fn.__name__
+    return deco_hyperOpt_fn_wrapper
+
+
+class HyperOpt_fn:
+    @staticmethod
+    def fn(params, feed_args, feed_kwargs):
+        raise NotImplementedError
 
 
 CPU_COUNT = mp.cpu_count() - 1
@@ -88,7 +98,8 @@ class HyperOpt:
 
     @property
     def best_param(self):
-        return self._best_param
+        idx = np.argmin(self.losses)
+        return self.result[idx]['params']
 
     @property
     def best_loss(self):
@@ -121,7 +132,8 @@ class HyperOpt:
         if isinstance(trials, MongoTrials):
             raise TypeError("MongoTrials not support")
 
-    def fit_serial(self, func, space, n_iter, algo=tpe.suggest, trials=None, min_best=None, pbar=True):
+    def fit_serial(self, func, space, n_iter, feed_args=None, feed_kwargs=None, algo=tpe.suggest, trials=None,
+                   min_best=None, pbar=True):
         if min_best is None:
             min_best = self.min_best
 
@@ -137,8 +149,15 @@ class HyperOpt:
         else:
             pbar = None
 
-        self._best_param = fmin(
-            fn=deco_hyperOpt(func, min_best, pbar),
+        if len(space) == 0:
+            space = hp.choice('dummy', [None])
+
+        fmin(
+            fn=deco_hyperOpt_fn(
+                func, min_best, pbar,
+                feed_args=feed_args,
+                feed_kwargs=feed_kwargs
+            ),
             space=space,
             algo=algo,
             max_evals=n_iter + len(trials),
@@ -147,32 +166,51 @@ class HyperOpt:
         self._trials = trials
         return self._trials
 
-    def fit_parallel(self, func, space, n_iter, algo=tpe.suggest, trials=None, min_best=None, pbar=True):
+    def fit_parallel(self, func, space, n_iter, feed_args=None, feed_kwargs=None, algo=tpe.suggest, trials=None,
+                     min_best=None, pbar=True):
         self._check_Trials(trials)
         min_best = self.min_best if min_best is None else min_best
         trials = FreeTrials() if trials is None else trials
-        range_ = trange if pbar else range
+        # range_ = trange if pbar else range
 
         # current_done = len(trials)
         base_trials = trials
         opt = HyperOpt()
-        ret = Parallel(n_jobs=self.n_job)(
-            delayed(opt.fit_serial)(
-                func, space, 1,
-                algo=algo,
-                trials=base_trials.deepcopy(refresh=False),
-                min_best=min_best,
-                pbar=False
-            ) for _ in range_(n_iter))
+        pool = Pool(processes=self.n_job)
 
-        for trials in ret:
-            # partial = trials.partial_deepcopy(current_done, current_done + 1)
+        childs = []
+        print('fetch job')
+        for _ in trange(n_iter):
+            child = pool.apply_async(
+                opt.fit_serial,
+                args=(func, space, 1),
+                kwds={
+                    'feed_args': feed_args,
+                    'feed_kwargs': feed_kwargs,
+                    'algo': algo,
+                    'trials': base_trials.deepcopy(refresh=False),
+                    'min_best': min_best,
+                    'pbar': False
+                })
+            childs += [child]
+
+        print('collect job')
+        for child in tqdm(childs):
+            trials = child.get()
             base_trials = base_trials.concat(trials, refresh=False)
 
         base_trials.refresh()
+        # base_trials = opt.fit_serial(
+        #     func, {}, 0,
+        #     feed_args=feed_args, feed_kwargs=feed_kwargs, algo=algo,
+        #     trials=base_trials, min_best=min_best, pbar=False
+        # )
+
+        # self._best_param = opt._best_param
         self._trials = base_trials
 
         return base_trials
 
-    def fit_parallel_async(self, func, data_pack, space, max_eval, algo=tpe.suggest, trials=None, min_best=None):
+    def fit_parallel_async(self, func, data_pack, space, n_iter, feed_args=None, feed_kwargs=None, algo=tpe.suggest,
+                           trials=None, min_best=None):
         raise NotImplementedError
