@@ -1,4 +1,3 @@
-from script.util.Logger import Logger
 from script.util.misc_util import *
 import traceback
 import sys
@@ -6,6 +5,7 @@ import numpy as np
 import os
 import sklearn.utils
 import pandas as pd
+from script.util.MixIn import LoggerMixIn
 
 
 class MetaDataset(type):
@@ -61,16 +61,9 @@ class DownloadInfo:
         return self.url, self.is_zipped, self.download_file_name, self.extracted_file_names
 
 
-class BaseDataset(metaclass=MetaDataset):
-    """
-    TODO add docstring
-    """
+class BaseDataset(LoggerMixIn, metaclass=MetaDataset):
 
-    @property
-    def downloadInfos(self):
-        return []
-
-    def __init__(self, verbose='WARN', logger=None, caching=True, **kwargs):
+    def __init__(self, verbose=20, caching=True, **kwargs):
         """create dataset handler class
 
         ***bellow attrs must initiate other value after calling super()***
@@ -78,31 +71,29 @@ class BaseDataset(metaclass=MetaDataset):
         self.batch_keys: (str) feature label of dataset,
             managing batch keys in dict_keys.dataset_batch_keys recommend
         """
+        LoggerMixIn.__init__(self, verbose)
         self.batch_keys = []
-
-        self.verbose = verbose
-        if logger is None:
-            self.logger = Logger(self.__class__.__name__, level=verbose)
-            self.log = self.logger
-            self.external_logger = False
-        else:
-            self.logger = logger
-            self.log = self.logger
-            self.external_logger = True
 
         self.data = {}
         self.cursor = 0
         self.data_size = 0
         self.input_shapes = {}
         self.caching = caching
-
-    def __del__(self):
-        if not self.external_logger:
-            del self.logger
-            del self.log
+        self._downloadInfos = []
 
     def __repr__(self):
         return self.__class__.__name__
+
+    @property
+    def downloadInfos(self):
+        return self._downloadInfos
+
+    @property
+    def size(self):
+        size = 0
+        for key in self.data:
+            size = max(len(self.data[key]), size)
+        return size
 
     def add_data(self, key, data):
         self.data[key] = data
@@ -214,14 +205,20 @@ class BaseDataset(metaclass=MetaDataset):
         :param limit:
         :return: None
         """
-        raise NotImplementedError
+        pass
 
     def save(self):
         """
 
         :return: None
         """
-        raise NotImplementedError
+        pass
+
+    def transform(self):
+        """preprocess for loaded data
+
+        """
+        pass
 
     def _append_data(self, batch_key, data):
         if batch_key not in self.data:
@@ -291,12 +288,6 @@ class BaseDataset(metaclass=MetaDataset):
 
         return batches[0] if len(batches) == 1 else batches
 
-    def transform(self):
-        """preprocess for loaded data
-
-        """
-        raise NotImplementedError
-
     def split(self, ratio=None, shuffle=False):
         """return split part of dataset"""
 
@@ -359,13 +350,6 @@ class BaseDataset(metaclass=MetaDataset):
 
         return batches[0] if len(batches) == 1 else batches
 
-    @property
-    def size(self):
-        size = 0
-        for key in self.data:
-            size = max(len(self.data[key]), size)
-        return size
-
     def sort(self, sort_key=None):
         if sort_key is None:
             sort_key = 'id_'
@@ -382,7 +366,7 @@ class BaseDataset(metaclass=MetaDataset):
         self.data[sort_key] = np.array(sorted(self.data[sort_key]))
 
     def _clone(self):
-        obj = self.__class__(self.verbose, self.logger)
+        obj = self.__class__(self.verbose)
         return obj
 
     def to_DataFrame(self, keys=None):
@@ -405,3 +389,14 @@ class BaseDataset(metaclass=MetaDataset):
                 log_error_trace(self.log.warn, e)
 
         return df
+
+    def to_dummyDataset(self, keys=None):
+        dataset = BaseDataset()
+
+        if keys is None:
+            keys = self.data.keys()
+
+        for key in keys:
+            dataset.add_data(key, self.data[key])
+
+        return dataset
