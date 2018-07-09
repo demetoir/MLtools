@@ -88,43 +88,7 @@ class BaseWrapperClfPack(ClfWrapperMixIn, metaclass=meta_BaseWrapperClf):
     def HyperOpt_opt_info(self):
         return {key: self.optimizers[key].opt_info for key in self.pack}
 
-    def param_search(self, Xs, Ys):
-        result_csv_path = path_join('.', 'param_search_result', time_stamp())
-        Ys = self.np_arr_to_index(Ys)
-        for key in self.pack:
-            cls = self.pack[key].__class__
-            obj = cls()
-
-            optimizer = ParamOptimizer(obj, obj.tuning_grid)
-            self.pack[key] = optimizer.optimize(Xs, Ys)
-            self.optimize_result[key] = optimizer.result
-
-            path = path_join(result_csv_path, cls.__name__ + '.csv')
-            optimizer.result_to_csv(path)
-
-            self.log.info("top 5 result")
-            for result in optimizer.top_k_result():
-                self.log.info(pformat(result))
-
-    def gridSearchCV(self, Xs, Ys, **kwargs):
-        Ys = self.np_arr_to_index(Ys)
-
-        total = len(self.pack)
-        current = 0
-        for key, clf in self.pack.items():
-            current += 1
-            try:
-                self.log.info(f'gridSearchCV at {key} {current}/{total}')
-                optimizer = wrapperGridSearchCV(clf, clf.tuning_grid, **kwargs)
-                optimizer.fit(Xs, Ys)
-                self.pack[key] = optimizer.best_estimator_
-                self.optimize_result = optimizer.cv_results_
-                # self.optimizers[key] = optimizer
-            except BaseException as e:
-                log_error_trace(self.log.warn, e, head=f'while GridSearchCV at {key}')
-                self.log.warn(f'while, GridSearchCV at {key}, raise ')
-
-    def HyperOpt(self, Xs, Ys, n_iter, min_best=True, parallel=False, **kwargs):
+    def HyperOptSearch(self, Xs, Ys, n_iter, min_best=False, parallel=False, **kwargs):
         Ys = self.np_arr_to_index(Ys)
 
         dataset = DummyDataset()
@@ -182,6 +146,42 @@ class BaseWrapperClfPack(ClfWrapperMixIn, metaclass=meta_BaseWrapperClf):
             except BaseException as e:
                 log_error_trace(self.log.warn, e, head=f'while HyperOpt at {key}')
                 self.log.warn(f'while, HyperOpt at {key}, raise ')
+
+    def param_search(self, Xs, Ys):
+        result_csv_path = path_join('.', 'param_search_result', time_stamp())
+        Ys = self.np_arr_to_index(Ys)
+        for key in self.pack:
+            cls = self.pack[key].__class__
+            obj = cls()
+
+            optimizer = ParamOptimizer(obj, obj.tuning_grid)
+            self.pack[key] = optimizer.optimize(Xs, Ys)
+            self.optimize_result[key] = optimizer.result
+
+            path = path_join(result_csv_path, cls.__name__ + '.csv')
+            optimizer.result_to_csv(path)
+
+            self.log.info("top 5 result")
+            for result in optimizer.top_k_result():
+                self.log.info(pformat(result))
+
+    def gridSearchCV(self, Xs, Ys, **kwargs):
+        Ys = self.np_arr_to_index(Ys)
+
+        total = len(self.pack)
+        current = 0
+        for key, clf in self.pack.items():
+            current += 1
+            try:
+                self.log.info(f'gridSearchCV at {key} {current}/{total}')
+                optimizer = wrapperGridSearchCV(clf, clf.tuning_grid, **kwargs)
+                optimizer.fit(Xs, Ys)
+                self.pack[key] = optimizer.best_estimator_
+                self.optimize_result = optimizer.cv_results_
+                # self.optimizers[key] = optimizer
+            except BaseException as e:
+                log_error_trace(self.log.warn, e, head=f'while GridSearchCV at {key}')
+                self.log.warn(f'while, GridSearchCV at {key}, raise ')
 
     def fit(self, Xs, Ys):
         Ys = self.np_arr_to_index(Ys)

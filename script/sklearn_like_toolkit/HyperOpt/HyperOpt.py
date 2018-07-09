@@ -46,7 +46,7 @@ def deco_hyperOpt_fn(func, min_best=True, pbar=None, feed_args=None, feed_kwargs
         finally:
             trial['eval_time'] = time.time() - start_time
 
-            if min_best is True:
+            if min_best is False:
                 trial['loss'] = -trial['loss']
 
             try:
