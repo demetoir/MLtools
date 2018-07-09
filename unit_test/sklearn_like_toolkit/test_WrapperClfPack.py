@@ -1,3 +1,5 @@
+from pprint import pprint
+
 from script.sklearn_like_toolkit.warpper.skClf_wrapper.skBernoulli_NBClf import skBernoulli_NBClf
 from script.sklearn_like_toolkit.warpper.wrapperGridSearchCV import wrapperGridSearchCV
 from script.data_handler.DatasetPackLoader import DatasetPackLoader
@@ -159,7 +161,7 @@ def test_wrapperclfpack_HyperOpt():
     train_Xs, train_Ys = train_set.full_batch(['Xs', 'Ys'])
     valid_Xs, valid_Ys = valid_set.full_batch(['Xs', 'Ys'])
 
-    clf_pack.HyperOpt(train_Xs, train_Ys, n_iter=3, parallel=False)
+    clf_pack.HyperOptSearch(train_Xs, train_Ys, n_iter=3, parallel=False)
     pprint(clf_pack.optimize_result)
     pprint(clf_pack.HyperOpt_best_loss)
     pprint(clf_pack.HyperOpt_best_params)
