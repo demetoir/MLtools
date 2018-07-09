@@ -140,6 +140,7 @@ class LightGBMReg(lightgbm.LGBMRegressor, BaseWrapperReg, metaclass=meta_BaseWra
             random_state=None, n_jobs=-1, silent=True, **kwargs):
         kwargs['verbose'] = -1
         warnings.filterwarnings(module='sklearn*', action='ignore', category=DeprecationWarning)
+        warnings.filterwarnings(module='lightgbm*', action='ignore', category=UserWarning)
 
         lightgbm.LGBMRegressor.__init__(
             self, boosting_type, num_leaves, max_depth, learning_rate, n_estimators, subsample_for_bin, objective,
