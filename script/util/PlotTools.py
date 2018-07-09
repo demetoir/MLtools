@@ -50,7 +50,6 @@ line_marker = list(itertools.product(line_set, color_set))
 line_marker = map(lambda x: "".join(x), line_marker)
 
 
-
 class PlotTools:
 
     def __init__(self, dpi=300):
@@ -64,7 +63,6 @@ class PlotTools:
         import matplotlib.pyplot as _plt
         self.plt = _plt
         del _plt
-
 
     @staticmethod
     def to_2d_square(np_arr_1d, padding=None):
@@ -155,9 +153,9 @@ class PlotTools:
         self.sns_setup()
 
         sns_plot = self.sns.distplot(np_x, bins=bins, rug=True, hist=True, ax=ax, axlabel=axlabel,
-                                         rug_kws={"color": "g", 'label': 'rug'},
-                                         kde_kws={"color": "r", "label": "KDE"},
-                                         hist_kws={"color": "b", "label": 'hist'})
+                                     rug_kws={"color": "g", 'label': 'rug'},
+                                     kde_kws={"color": "r", "label": "KDE"},
+                                     hist_kws={"color": "b", "label": 'hist'})
         fig = sns_plot.figure
 
         self.plt_common_teardown(fig, path=path, show=show, title=title, extend=extend)

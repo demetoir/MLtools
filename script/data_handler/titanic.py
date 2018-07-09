@@ -445,11 +445,11 @@ class titanic_test(BaseDataset):
 class titanic(BaseDatasetPack):
     LABEL_SIZE = 2
 
-    def __init__(self, caching=True, **kwargs):
-        super().__init__(caching, **kwargs)
+    def __init__(self, caching=True, verbose=20, **kwargs):
+        super().__init__(caching, verbose=verbose, **kwargs)
 
-        self.train_set = titanic_train(caching=caching)
-        self.test_set = titanic_test(caching=caching)
+        self.train_set = titanic_train(caching=caching, verbose=verbose)
+        self.test_set = titanic_test(caching=caching, verbose=verbose)
         self.pack['train'] = self.train_set
         self.pack['test'] = self.test_set
 

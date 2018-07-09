@@ -1,3 +1,5 @@
+from hyperopt import hp
+
 from script.sklearn_like_toolkit.base.BaseWrapperClf import BaseWrapperClf
 from script.sklearn_like_toolkit.base.MixIn import meta_BaseWrapperClf_with_ABC, meta_BaseWrapperReg_with_ABC
 from script.sklearn_like_toolkit.base.BaseWrapperReg import BaseWrapperReg
@@ -6,6 +8,16 @@ import xgboost as xgb
 
 
 class XGBoostClf(xgb.XGBClassifier, BaseWrapperClf, metaclass=meta_BaseWrapperClf_with_ABC):
+    HyperOpt_space = {
+        'n_estimators': 10 + hp.randint('n_estimators', 400),
+        'max_depth': 4 + hp.randint('max_depth', 11),
+        'min_child_weight': 1 + hp.randint('min_child_weight', 3),
+        'gamma': hp.uniform('gamma', 0, 1),
+        'subsample': hp.uniform('subsample', 0, 1),
+        'colsample_bytree': hp.uniform('colsample_bytree', 0, 1),
+        'learning_rate': hp.loguniform('learning_rate', -6, 0),
+    }
+
     tuning_grid = {
         'max_depth': [4, 6, 8],
         # 'n_estimators': [128, 256],

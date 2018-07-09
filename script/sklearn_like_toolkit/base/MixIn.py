@@ -165,6 +165,8 @@ class etc_MixIn:
 
 
 class ClfWrapperMixIn(clf_score_pack_MixIn, PickleMixIn, LoggerMixIn, ClfConfidenceMixIn, etc_MixIn):
+    HyperOpt_space = None
+
     def __init__(self):
         clf_score_pack_MixIn.__init__(self)
         PickleMixIn.__init__(self)
@@ -174,6 +176,8 @@ class ClfWrapperMixIn(clf_score_pack_MixIn, PickleMixIn, LoggerMixIn, ClfConfide
 
 
 class RegWrapperMixIn(reg_score_pack_MixIn, PickleMixIn, LoggerMixIn, etc_MixIn):
+    HyperOpt_space = None
+
     def __init__(self):
         reg_score_pack_MixIn.__init__(self)
         PickleMixIn.__init__(self)

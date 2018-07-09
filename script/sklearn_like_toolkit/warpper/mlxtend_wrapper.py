@@ -11,7 +11,7 @@ from mlxtend.classifier import StackingClassifier as _StackingClassifier
 from mlxtend.regressor.linear_regression import LinearRegression as _LinearRegression
 from script.sklearn_like_toolkit.base.BaseWrapperReg import BaseWrapperReg
 from script.sklearn_like_toolkit.base.BaseWrapperClf import BaseWrapperClf
-from script.sklearn_like_toolkit.warpper.sklearn_wrapper import skBernoulli_NBClf
+from script.sklearn_like_toolkit.warpper.skClf_wrapper.skBernoulli_NBClf import skBernoulli_NBClf
 from script.sklearn_like_toolkit.base.MixIn import meta_BaseWrapperClf
 from script.sklearn_like_toolkit.base.MixIn import meta_BaseWrapperClf_with_ABC
 from script.sklearn_like_toolkit.base.MixIn import meta_BaseWrapperReg_with_ABC

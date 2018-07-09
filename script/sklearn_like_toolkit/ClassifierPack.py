@@ -8,25 +8,39 @@ from script.sklearn_like_toolkit.warpper.mlxtend_wrapper import mlxLogisticRegre
 from script.sklearn_like_toolkit.warpper.mlxtend_wrapper import mlxMLPClf
 from script.sklearn_like_toolkit.warpper.mlxtend_wrapper import mlxPerceptronClf
 from script.sklearn_like_toolkit.warpper.mlxtend_wrapper import mlxSoftmaxRegressionClf
+from script.sklearn_like_toolkit.warpper.skClf_wrapper.skRadiusNeighborsClf import skRadiusNeighborsClf
 from script.sklearn_like_toolkit.warpper.mlxtend_wrapper import mlxStackingCVClf
 from script.sklearn_like_toolkit.warpper.mlxtend_wrapper import mlxStackingClf
-from script.sklearn_like_toolkit.warpper.sklearn_wrapper import skMLPClf
-from script.sklearn_like_toolkit.warpper.sklearn_wrapper import skLinear_SVCClf
-from script.sklearn_like_toolkit.warpper.sklearn_wrapper import skSGDClf
-from script.sklearn_like_toolkit.warpper.sklearn_wrapper import skGaussian_NBClf
-from script.sklearn_like_toolkit.warpper.sklearn_wrapper import skBernoulli_NBClf
-from script.sklearn_like_toolkit.warpper.sklearn_wrapper import skMultinomial_NBClf
-from script.sklearn_like_toolkit.warpper.sklearn_wrapper import skDecisionTreeClf
-from script.sklearn_like_toolkit.warpper.sklearn_wrapper import skRandomForestClf
-from script.sklearn_like_toolkit.warpper.sklearn_wrapper import skExtraTreesClf
-from script.sklearn_like_toolkit.warpper.sklearn_wrapper import skAdaBoostClf
-from script.sklearn_like_toolkit.warpper.sklearn_wrapper import skGradientBoostingClf
-from script.sklearn_like_toolkit.warpper.sklearn_wrapper import skQDAClf
-from script.sklearn_like_toolkit.warpper.sklearn_wrapper import skKNeighborsClf
-from script.sklearn_like_toolkit.warpper.sklearn_wrapper import skGaussianProcessClf
-from script.sklearn_like_toolkit.warpper.sklearn_wrapper import skRBF_SVMClf
-from script.sklearn_like_toolkit.warpper.sklearn_wrapper import skBaggingClf
+from script.sklearn_like_toolkit.warpper.skClf_wrapper.skMLPClf import skMLPClf
+from script.sklearn_like_toolkit.warpper.skClf_wrapper.skNearestCentroidClf import skNearestCentroidClf
+from script.sklearn_like_toolkit.warpper.skClf_wrapper.skPassiveAggressiveClf import skPassiveAggressiveClf
+from script.sklearn_like_toolkit.warpper.skClf_wrapper.skRidgeCVClf import skRidgeCVClf
+from script.sklearn_like_toolkit.warpper.skClf_wrapper.skRidgeClf import skRidgeClf
+from script.sklearn_like_toolkit.warpper.skClf_wrapper.skLinear_SVCClf import skLinear_SVCClf
+from script.sklearn_like_toolkit.warpper.skClf_wrapper.skSGDClf import skSGDClf
+from script.sklearn_like_toolkit.warpper.skClf_wrapper.skGaussian_NBClf import skGaussian_NBClf
+from script.sklearn_like_toolkit.warpper.skClf_wrapper.skBernoulli_NBClf import skBernoulli_NBClf
+from script.sklearn_like_toolkit.warpper.skClf_wrapper.skMultinomial_NBClf import skMultinomial_NBClf
+from script.sklearn_like_toolkit.warpper.skClf_wrapper.skDecisionTreeClf import skDecisionTreeClf
+from script.sklearn_like_toolkit.warpper.skClf_wrapper.skRandomForestClf import skRandomForestClf
+from script.sklearn_like_toolkit.warpper.skClf_wrapper.skExtraTreesClf import skExtraTreesClf
+from script.sklearn_like_toolkit.warpper.skClf_wrapper.skAdaBoostClf import skAdaBoostClf
+from script.sklearn_like_toolkit.warpper.skClf_wrapper.skGradientBoostingClf import skGradientBoostingClf
+from script.sklearn_like_toolkit.warpper.skClf_wrapper.skQDAClf import skQDAClf
+from script.sklearn_like_toolkit.warpper.skClf_wrapper.skKNeighborsClf import skKNeighborsClf
+from script.sklearn_like_toolkit.warpper.skClf_wrapper.skGaussianProcessClf import skGaussianProcessClf
+from script.sklearn_like_toolkit.warpper.skClf_wrapper.skRBF_SVMClf import skRBF_SVMClf
+from script.sklearn_like_toolkit.warpper.skClf_wrapper.skBaggingClf import skBaggingClf
 from script.sklearn_like_toolkit.warpper.xgboost_wrapper import XGBoostClf
+
+
+# TODO
+# kernel
+# RBF
+# martern
+# RationalQuadratic
+# Dotproduct
+# ExpSineSquared
 
 
 class ClassifierPack(BaseWrapperClfPack):
@@ -50,11 +64,16 @@ class ClassifierPack(BaseWrapperClfPack):
         XGBoostClf.__name__: XGBoostClf,
         LightGBMClf.__name__: LightGBMClf,
         CatBoostClf.__name__: CatBoostClf,
-        mlxAdalineClf.__name__: mlxAdalineClf,
-        mlxLogisticRegressionClf.__name__: mlxLogisticRegressionClf,
-        mlxMLPClf.__name__: mlxMLPClf,
-        mlxPerceptronClf.__name__: mlxPerceptronClf,
-        mlxSoftmaxRegressionClf.__name__: mlxSoftmaxRegressionClf,
+        skPassiveAggressiveClf.__name__: skPassiveAggressiveClf,
+        skRidgeClf.__name__: skRidgeClf,
+        skRidgeCVClf.__name__: skRidgeCVClf,
+        skNearestCentroidClf.__name__: skNearestCentroidClf,
+        # skRadiusNeighborsClf.__name__: skRadiusNeighborsClf,
+        # mlxAdalineClf.__name__: mlxAdalineClf,
+        # mlxLogisticRegressionClf.__name__: mlxLogisticRegressionClf,
+        # mlxMLPClf.__name__: mlxMLPClf,
+        # mlxPerceptronClf.__name__: mlxPerceptronClf,
+        # mlxSoftmaxRegressionClf.__name__: mlxSoftmaxRegressionClf,
     }
 
     def to_FoldingHardVote(self):

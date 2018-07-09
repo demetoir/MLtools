@@ -3,11 +3,32 @@ from script.sklearn_like_toolkit.warpper.catboost_wrapper import CatBoostReg
 from script.sklearn_like_toolkit.warpper.lightGBM_wrapper import LightGBMReg
 from script.sklearn_like_toolkit.warpper.xgboost_wrapper import XGBoostReg
 from script.sklearn_like_toolkit.warpper.mlxtend_wrapper import mlxLinearReg, mlxStackingReg, mlxStackingCVReg
-from script.sklearn_like_toolkit.warpper.sklearn_wrapper import skRidgeReg, skMLPReg, skGradientBoostingReg, \
-    skBaggingReg, skRandomForestReg, skAdaBoostReg, skExtraTreeReg, skGaussianProcessReg, skDecisionTreeReg, skHuberReg, \
-    skRadiusNeighborsReg, skKNeighborsReg, skPassiveAggressiveReg, skRANSACReg, skKernelRidgeReg, skTheilSenReg, \
-    skElasticNetCvReg, skBayesianRidgeReg, skARDReg, skLogisticReg, skSGDReg, skLassoLarsCVReg, skLassoLarsReg, \
-    skLassoCVReg, skLassoReg, skElasticNetReg
+from script.sklearn_like_toolkit.warpper.skReg_wrapper.skHuberReg import skHuberReg
+from script.sklearn_like_toolkit.warpper.skReg_wrapper.skKernelRidgeReg import skKernelRidgeReg
+from script.sklearn_like_toolkit.warpper.skReg_wrapper.skTheilSenReg import skTheilSenReg
+from script.sklearn_like_toolkit.warpper.skReg_wrapper.skRANSACReg import skRANSACReg
+from script.sklearn_like_toolkit.warpper.skReg_wrapper.skLogisticReg import skLogisticReg
+from script.sklearn_like_toolkit.warpper.skReg_wrapper.skARDReg import skARDReg
+from script.sklearn_like_toolkit.warpper.skReg_wrapper.skBayesianRidgeReg import skBayesianRidgeReg
+from script.sklearn_like_toolkit.warpper.skReg_wrapper.skElasticNetCvReg import skElasticNetCvReg
+from script.sklearn_like_toolkit.warpper.skReg_wrapper.skElasticNetReg import skElasticNetReg
+from script.sklearn_like_toolkit.warpper.skReg_wrapper.skLassoLarsCVReg import skLassoLarsCVReg
+from script.sklearn_like_toolkit.warpper.skReg_wrapper.skLassoLarsReg import skLassoLarsReg
+from script.sklearn_like_toolkit.warpper.skReg_wrapper.skRadiusNeighborsReg import skRadiusNeighborsReg
+from script.sklearn_like_toolkit.warpper.skReg_wrapper.skKNeighborsReg import skKNeighborsReg
+from script.sklearn_like_toolkit.warpper.skReg_wrapper.skGaussianProcessReg import skGaussianProcessReg
+from script.sklearn_like_toolkit.warpper.skReg_wrapper.skDecisionTreeReg import skDecisionTreeReg
+from script.sklearn_like_toolkit.warpper.skReg_wrapper.skExtraTreeReg import skExtraTreeReg
+from script.sklearn_like_toolkit.warpper.skReg_wrapper.skAdaBoostReg import skAdaBoostReg
+from script.sklearn_like_toolkit.warpper.skReg_wrapper.skBaggingReg import skBaggingReg
+from script.sklearn_like_toolkit.warpper.skReg_wrapper.skRandomForestReg import skRandomForestReg
+from script.sklearn_like_toolkit.warpper.skReg_wrapper.skGradientBoostingReg import skGradientBoostingReg
+from script.sklearn_like_toolkit.warpper.skReg_wrapper.skSGDReg import skSGDReg
+from script.sklearn_like_toolkit.warpper.skReg_wrapper.skPassiveAggressiveReg import skPassiveAggressiveReg
+from script.sklearn_like_toolkit.warpper.skReg_wrapper.skMLPReg import skMLPReg
+from script.sklearn_like_toolkit.warpper.skReg_wrapper.skLassoCVReg import skLassoCVReg
+from script.sklearn_like_toolkit.warpper.skReg_wrapper.skLassoReg import skLassoReg
+from script.sklearn_like_toolkit.warpper.skReg_wrapper.skRidgeReg import skRidgeReg
 
 
 class RegressionPack(BaseWrapperRegPack):

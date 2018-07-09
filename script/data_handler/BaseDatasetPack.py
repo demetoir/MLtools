@@ -1,12 +1,15 @@
-from script.util.Logger import Logger
+from script.util.MixIn import LoggerMixIn
 
 
-class BaseDatasetPack:
-    def __init__(self, caching=True, **kwargs):
-        self.logger = Logger(self.__class__.__name__)
-        self.log = self.logger.get_log()
-        self.pack = {}
+class BaseDatasetPack(LoggerMixIn):
+    def __init__(self, caching=True, verbose=0, **kwargs):
+        LoggerMixIn.__init__(self, verbose)
+
         self.caching = caching
+        self.pack = {}
+
+    def __getitem__(self, item):
+        return self.pack.__getitem__(item)
 
     def load(self, path, **kwargs):
         for k in self.pack:
@@ -50,5 +53,13 @@ class BaseDatasetPack:
         for key in self.pack:
             self.pack[key].sort(sort_key)
 
-    def __getitem__(self, item):
-        return self.pack.__getitem__(item)
+    def to_DummyDatasetPack(self, keys=None):
+        dummy = BaseDatasetPack()
+
+        if keys is None:
+            keys = self.pack.keys()
+
+        for key in keys:
+            dummy.pack[key] = self.pack[key].to_dummyDataset()
+
+        return dummy
