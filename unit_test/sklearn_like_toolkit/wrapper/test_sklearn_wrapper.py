@@ -1,4 +1,5 @@
-from script.sklearn_like_toolkit.warpper.skReg_wrapper.skHuberReg import skHuberReg, skIsotonicReg
+from script.sklearn_like_toolkit.warpper.skReg_wrapper.skHuberReg import skHuberReg
+from script.sklearn_like_toolkit.warpper.skReg_wrapper.skIsotonicReg import skIsotonicReg
 from script.sklearn_like_toolkit.warpper.skReg_wrapper.skKernelRidgeReg import skKernelRidgeReg
 from script.sklearn_like_toolkit.warpper.skReg_wrapper.skTheilSenReg import skTheilSenReg
 from script.sklearn_like_toolkit.warpper.skReg_wrapper.skRANSACReg import skRANSACReg
