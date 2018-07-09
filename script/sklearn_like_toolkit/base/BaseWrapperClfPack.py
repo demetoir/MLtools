@@ -1,6 +1,8 @@
 import os
 from pprint import pformat
 from env_settting import SKLEARN_PARAMS_SAVE_PATH
+from script.data_handler.DummyDataset import DummyDataset
+from script.sklearn_like_toolkit.HyperOpt.HyperOpt import HyperOpt, HyperOpt_fn
 from script.sklearn_like_toolkit.ParamOptimizer import ParamOptimizer
 from script.sklearn_like_toolkit.base.BaseWrapperClf import BaseWrapperClf
 from script.sklearn_like_toolkit.base.MixIn import ClfWrapperMixIn, meta_BaseWrapperClf
@@ -8,15 +10,42 @@ from script.sklearn_like_toolkit.warpper.wrapperGridSearchCV import wrapperGridS
 from script.util.misc_util import time_stamp, dump_pickle, load_pickle, path_join, log_error_trace
 
 
+class clfpack_HyperOpt_fn(HyperOpt_fn):
+    @staticmethod
+    def fn(params, feed_args, feed_kwargs):
+        clf_cls = feed_kwargs['clf_cls']
+        dataset = feed_kwargs['dataset']
+
+        dataset.shuffle()
+        train_set, test_set = dataset.split()
+        train_Xs, train_Ys = train_set.full_batch(['Xs', 'Ys'])
+        test_Xs, test_Ys = test_set.full_batch(['Xs', 'Ys'])
+
+        clf = clf_cls(**params)
+        clf.fit(train_Xs, train_Ys)
+        score = clf.score(test_Xs, test_Ys)
+
+        return score
+
+
 class BaseWrapperClfPack(ClfWrapperMixIn, metaclass=meta_BaseWrapperClf):
     class_pack = {}
 
     def __init__(self, pack_keys=None):
         super().__init__()
+
         self.pack = {}
         self.optimizers = {}
         self.optimize_result = {}
         self.params_save_path = SKLEARN_PARAMS_SAVE_PATH
+
+        self._HyperOpt_trials = {}
+        self._HyperOpt_losses = {}
+        self._HyperOpt_results = {}
+
+        self._HyperOpt_best_result = {}
+        self._HyperOpt_best_loss = {}
+        self._HyperOpt_best_params = {}
 
         if pack_keys is None:
             pack_keys = self.class_pack.keys()
@@ -28,8 +57,36 @@ class BaseWrapperClfPack(ClfWrapperMixIn, metaclass=meta_BaseWrapperClf):
     def __str__(self):
         return self.__class__.__name__
 
-    def __getitem__(self, item)-> BaseWrapperClf:
+    def __getitem__(self, item) -> BaseWrapperClf:
         return self.pack.__getitem__(item)
+
+    @property
+    def HyperOpt_results(self):
+        return self._HyperOpt_results
+
+    @property
+    def HyperOpt_Trials(self):
+        return self._HyperOpt_trials
+
+    @property
+    def HyperOpt_losses(self):
+        return self._HyperOpt_losses
+
+    @property
+    def HyperOpt_best_loss(self):
+        return self._HyperOpt_best_loss
+
+    @property
+    def HyperOpt_best_params(self):
+        return self._HyperOpt_best_params
+
+    @property
+    def HyperOpt_best_result(self):
+        return self._HyperOpt_best_result
+
+    @property
+    def HyperOpt_opt_info(self):
+        return {key: self.optimizers[key].opt_info for key in self.pack}
 
     def param_search(self, Xs, Ys):
         result_csv_path = path_join('.', 'param_search_result', time_stamp())
@@ -66,6 +123,65 @@ class BaseWrapperClfPack(ClfWrapperMixIn, metaclass=meta_BaseWrapperClf):
             except BaseException as e:
                 log_error_trace(self.log.warn, e, head=f'while GridSearchCV at {key}')
                 self.log.warn(f'while, GridSearchCV at {key}, raise ')
+
+    def HyperOpt(self, Xs, Ys, n_iter, min_best=True, parallel=False, **kwargs):
+        Ys = self.np_arr_to_index(Ys)
+
+        dataset = DummyDataset()
+        dataset.add_data('Xs', Xs)
+        dataset.add_data('Ys', Ys)
+
+        total = len(self.pack)
+        current = 0
+        for key, clf in self.pack.items():
+            current += 1
+            try:
+                self.log.info(f'HyperOpt at {key} {current}/{total}')
+                opt = HyperOpt()
+
+                if parallel:
+                    trials = opt.fit_parallel(
+                        clfpack_HyperOpt_fn,
+                        clf.HyperOpt_space,
+                        n_iter,
+                        feed_args=(),
+                        feed_kwargs={
+                            'clf_cls': clf.__class__,
+                            'dataset': dataset
+                        },
+                        min_best=min_best
+                    )
+
+                else:
+                    trials = opt.fit_serial(
+                        clfpack_HyperOpt_fn,
+                        clf.HyperOpt_space,
+                        n_iter,
+                        feed_args=(),
+                        feed_kwargs={
+                            'clf_cls': clf.__class__,
+                            'dataset': dataset
+                        },
+                        min_best=min_best
+                    )
+
+                self.optimizers[key] = opt
+                self._HyperOpt_trials[key] = trials
+                self._HyperOpt_results[key] = trials.results
+                self._HyperOpt_losses[key] = trials.losses
+                self._HyperOpt_best_params[key] = opt.best_param
+                self._HyperOpt_best_loss[key] = opt.best_loss
+                self._HyperOpt_best_result[key] = opt.best_result
+                self.optimize_result[key] = opt.result
+
+                if opt.best_param is not None:
+                    clf = clf.__class__(**opt.best_param)
+                    clf.fit(Xs, Ys)
+                    self.pack[key] = clf
+
+            except BaseException as e:
+                log_error_trace(self.log.warn, e, head=f'while HyperOpt at {key}')
+                self.log.warn(f'while, HyperOpt at {key}, raise ')
 
     def fit(self, Xs, Ys):
         Ys = self.np_arr_to_index(Ys)
