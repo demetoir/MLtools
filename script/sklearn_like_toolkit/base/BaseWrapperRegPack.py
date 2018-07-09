@@ -1,10 +1,31 @@
 import os
 from pprint import pformat
 from env_settting import SKLEARN_PARAMS_SAVE_PATH
+from script.data_handler.DummyDataset import DummyDataset
+from script.sklearn_like_toolkit.HyperOpt.HyperOpt import HyperOpt, HyperOpt_fn
 from script.sklearn_like_toolkit.ParamOptimizer import ParamOptimizer
 from script.sklearn_like_toolkit.base.MixIn import RegWrapperMixIn, meta_BaseWrapperReg
 from script.sklearn_like_toolkit.warpper.wrapperGridSearchCV import wrapperGridSearchCV
 from script.util.misc_util import time_stamp, dump_pickle, load_pickle, path_join, log_error_trace
+
+
+class regpack_HyperOpt_fn(HyperOpt_fn):
+
+    @staticmethod
+    def fn(params, feed_args, feed_kwargs):
+        reg_cls = feed_kwargs['reg_cls']
+        dataset = feed_kwargs['dataset']
+
+        dataset.shuffle()
+        train_set, test_set = dataset.split()
+        train_Xs, train_Ys = train_set.full_batch(['Xs', 'Ys'])
+        test_Xs, test_Ys = test_set.full_batch(['Xs', 'Ys'])
+
+        reg = reg_cls(**params)
+        reg.fit(train_Xs, train_Ys)
+        score = reg.score(test_Xs, test_Ys)
+
+        return score
 
 
 class BaseWrapperRegPack(RegWrapperMixIn, metaclass=meta_BaseWrapperReg):
@@ -16,6 +37,14 @@ class BaseWrapperRegPack(RegWrapperMixIn, metaclass=meta_BaseWrapperReg):
         self.optimizers = {}
         self.optimize_result = {}
         self.params_save_path = SKLEARN_PARAMS_SAVE_PATH
+
+        self._HyperOpt_trials = {}
+        self._HyperOpt_losses = {}
+        self._HyperOpt_results = {}
+
+        self._HyperOpt_best_result = {}
+        self._HyperOpt_best_loss = {}
+        self._HyperOpt_best_params = {}
 
         if pack_keys is None:
             pack_keys = self.class_pack.keys()
@@ -29,6 +58,82 @@ class BaseWrapperRegPack(RegWrapperMixIn, metaclass=meta_BaseWrapperReg):
 
     def __getitem__(self, item):
         return self.pack.__getitem__(item)
+
+    @property
+    def HyperOpt_results(self):
+        return self._HyperOpt_results
+
+    @property
+    def HyperOpt_Trials(self):
+        return self._HyperOpt_trials
+
+    @property
+    def HyperOpt_losses(self):
+        return self._HyperOpt_losses
+
+    @property
+    def HyperOpt_best_loss(self):
+        return self._HyperOpt_best_loss
+
+    @property
+    def HyperOpt_best_params(self):
+        return self._HyperOpt_best_params
+
+    @property
+    def HyperOpt_best_result(self):
+        return self._HyperOpt_best_result
+
+    @property
+    def HyperOpt_opt_info(self):
+        return {key: self.optimizers[key].opt_info for key in self.pack}
+
+    def HyperOptSearch(self, Xs, Ys, n_iter, min_best=True, parallel=False, **kwargs):
+        dataset = DummyDataset()
+        dataset.add_data('Xs', Xs)
+        dataset.add_data('Ys', Ys)
+
+        total = len(self.pack)
+        current = 0
+        for key, clf in self.pack.items():
+            current += 1
+            try:
+                self.log.info(f'HyperOpt at {key} {current}/{total}')
+                opt = HyperOpt()
+
+                if parallel:
+                    opt_func = opt.fit_parallel
+                else:
+                    opt_func = opt.fit_serial
+
+                trials = opt_func(
+                    regpack_HyperOpt_fn,
+                    clf.HyperOpt_space,
+                    n_iter,
+                    feed_args=(),
+                    feed_kwargs={
+                        'reg_cls': clf.__class__,
+                        'dataset': dataset
+                    },
+                    min_best=min_best
+                )
+
+                self.optimizers[key] = opt
+                self._HyperOpt_trials[key] = trials
+                self._HyperOpt_results[key] = trials.results
+                self._HyperOpt_losses[key] = trials.losses
+                self._HyperOpt_best_params[key] = opt.best_param
+                self._HyperOpt_best_loss[key] = opt.best_loss
+                self._HyperOpt_best_result[key] = opt.best_result
+                self.optimize_result[key] = opt.result
+
+                if opt.best_param is not None:
+                    clf = clf.__class__(**opt.best_param)
+                    clf.fit(Xs, Ys)
+                    self.pack[key] = clf
+
+            except BaseException as e:
+                log_error_trace(self.log.warn, e, head=f'while HyperOpt at {key}')
+                self.log.warn(f'while, HyperOpt at {key}, raise ')
 
     def param_search(self, Xs, Ys):
         result_csv_path = path_join('.', 'param_search_result', time_stamp())
@@ -91,24 +196,15 @@ class BaseWrapperRegPack(RegWrapperMixIn, metaclass=meta_BaseWrapperReg):
         Ys = self.np_arr_to_index(Ys)
         scores = {}
         for clf_k, predict in self._collect_predict(Xs).items():
-            scores[clf_k] = self._apply_metric(Ys, predict, metric)
+            scores[clf_k] = self.pack[clf_k]._apply_metric(Ys, predict, metric)
         return scores
 
     def score_pack(self, Xs, Ys):
         Ys = self.np_arr_to_index(Ys)
         ret = {}
         for clf_k, predict in self._collect_predict(Xs).items():
-            ret[clf_k] = self._apply_metric_pack(Ys, predict)
+            ret[clf_k] = self.pack[clf_k]._apply_metric_pack(Ys, predict)
         return ret
-
-    def predict_proba(self, Xs):
-        result = {}
-        for key in self.pack:
-            try:
-                result[key] = self.pack[key].predict_proba(Xs)
-            except BaseException as e:
-                self.log.warn(f'while predict_proba, {key} raise {e}')
-        return result
 
     def import_params(self, params_pack):
         for key in self.pack:
