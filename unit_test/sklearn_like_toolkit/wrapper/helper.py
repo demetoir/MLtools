@@ -42,11 +42,6 @@ def helper_wrapper_reg_common(reg, ):
         pprint(f" while score in {reg}, {e}")
 
     try:
-        pprint('Coefficients: \n', reg.coef_)
-    except BaseException as e:
-        pprint(f'while coef_ in {reg}, {e}')
-
-    try:
         score = reg.score_pack(train_x, train_y)
         pprint(score)
     except BaseException as e:
