@@ -145,3 +145,26 @@ def test_wrapper_pack_grid_search():
     print(score)
     result = clf_pack.optimize_result
     print(result)
+
+
+def test_wrapperclfpack_HyperOpt():
+    data_pack = DatasetPackLoader().load_dataset('titanic')
+    clf_name = 'skMLPClf'
+    # clf_pack = ClassifierPack(['skGaussian_NBClf', 'skMLPClf'])
+    clf_pack = ClassifierPack()
+
+    train_set = data_pack['train']
+    train_set.shuffle()
+    train_set, valid_set = train_set.split()
+    train_Xs, train_Ys = train_set.full_batch(['Xs', 'Ys'])
+    valid_Xs, valid_Ys = valid_set.full_batch(['Xs', 'Ys'])
+
+    clf_pack.HyperOpt(train_Xs, train_Ys, n_iter=3, parallel=False)
+    pprint(clf_pack.optimize_result)
+    pprint(clf_pack.HyperOpt_best_loss)
+    pprint(clf_pack.HyperOpt_best_params)
+    pprint(clf_pack.HyperOpt_best_result)
+    pprint(clf_pack.HyperOpt_opt_info)
+
+    score = clf_pack.score(valid_Xs, valid_Ys)
+    pprint(score)
