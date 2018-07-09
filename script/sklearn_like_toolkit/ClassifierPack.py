@@ -8,12 +8,12 @@ from script.sklearn_like_toolkit.warpper.mlxtend_wrapper import mlxLogisticRegre
 from script.sklearn_like_toolkit.warpper.mlxtend_wrapper import mlxMLPClf
 from script.sklearn_like_toolkit.warpper.mlxtend_wrapper import mlxPerceptronClf
 from script.sklearn_like_toolkit.warpper.mlxtend_wrapper import mlxSoftmaxRegressionClf
+from script.sklearn_like_toolkit.warpper.skClf_wrapper.skRadiusNeighborsClf import skRadiusNeighborsClf
 from script.sklearn_like_toolkit.warpper.mlxtend_wrapper import mlxStackingCVClf
 from script.sklearn_like_toolkit.warpper.mlxtend_wrapper import mlxStackingClf
 from script.sklearn_like_toolkit.warpper.skClf_wrapper.skMLPClf import skMLPClf
 from script.sklearn_like_toolkit.warpper.skClf_wrapper.skNearestCentroidClf import skNearestCentroidClf
 from script.sklearn_like_toolkit.warpper.skClf_wrapper.skPassiveAggressiveClf import skPassiveAggressiveClf
-from script.sklearn_like_toolkit.warpper.skClf_wrapper.skRadiusNeighborsClf import skRadiusNeighborsClf
 from script.sklearn_like_toolkit.warpper.skClf_wrapper.skRidgeCVClf import skRidgeCVClf
 from script.sklearn_like_toolkit.warpper.skClf_wrapper.skRidgeClf import skRidgeClf
 from script.sklearn_like_toolkit.warpper.skClf_wrapper.skLinear_SVCClf import skLinear_SVCClf
@@ -64,16 +64,16 @@ class ClassifierPack(BaseWrapperClfPack):
         XGBoostClf.__name__: XGBoostClf,
         LightGBMClf.__name__: LightGBMClf,
         CatBoostClf.__name__: CatBoostClf,
-        mlxAdalineClf.__name__: mlxAdalineClf,
-        mlxLogisticRegressionClf.__name__: mlxLogisticRegressionClf,
-        mlxMLPClf.__name__: mlxMLPClf,
-        mlxPerceptronClf.__name__: mlxPerceptronClf,
-        mlxSoftmaxRegressionClf.__name__: mlxSoftmaxRegressionClf,
+        skPassiveAggressiveClf.__name__: skPassiveAggressiveClf,
         skRidgeClf.__name__: skRidgeClf,
         skRidgeCVClf.__name__: skRidgeCVClf,
         skNearestCentroidClf.__name__: skNearestCentroidClf,
-        skRadiusNeighborsClf.__name__: skRadiusNeighborsClf,
-        skPassiveAggressiveClf.__name__: skPassiveAggressiveClf,
+        # skRadiusNeighborsClf.__name__: skRadiusNeighborsClf,
+        # mlxAdalineClf.__name__: mlxAdalineClf,
+        # mlxLogisticRegressionClf.__name__: mlxLogisticRegressionClf,
+        # mlxMLPClf.__name__: mlxMLPClf,
+        # mlxPerceptronClf.__name__: mlxPerceptronClf,
+        # mlxSoftmaxRegressionClf.__name__: mlxSoftmaxRegressionClf,
     }
 
     def to_FoldingHardVote(self):
