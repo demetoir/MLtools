@@ -32,6 +32,7 @@ from script.sklearn_like_toolkit.warpper.skReg_wrapper.skRidgeReg import skRidge
 
 
 class RegressionPack(BaseWrapperRegPack):
+
     class_pack = {
         CatBoostReg.__name__: CatBoostReg,
         LightGBMReg.__name__: LightGBMReg,
@@ -64,14 +65,13 @@ class RegressionPack(BaseWrapperRegPack):
         mlxLinearReg.__name__: mlxLinearReg,
         skElasticNetReg.__name__: skElasticNetReg,
     }
-
-    def to_stackingReg(self, meta_clf=None):
+    def to_stackingReg(self, meta_reg=None):
         regs = [reg for k, reg in self.pack.items() if hasattr(reg, 'get_params')]
-        return mlxStackingReg(regs, meta_clf)
+        return mlxStackingReg(regs, meta_reg)
 
-    def to_stackingCVReg(self, meta_clf=None):
+    def to_stackingCVReg(self, meta_reg=None):
         regs = [reg for k, reg in self.pack.items() if hasattr(reg, 'get_params')]
-        return mlxStackingCVReg(regs, meta_clf)
+        return mlxStackingCVReg(regs, meta_reg)
 
     def to_ensembleRegPack(self):
         pass
