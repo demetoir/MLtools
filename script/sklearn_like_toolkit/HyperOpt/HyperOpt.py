@@ -46,7 +46,7 @@ def deco_hyperOpt_fn(func, min_best=True, pbar=None, feed_args=None, feed_kwargs
         finally:
             trial['eval_time'] = time.time() - start_time
 
-            if min_best is False:
+            if min_best is True:
                 trial['loss'] = -trial['loss']
 
             try:
@@ -69,12 +69,21 @@ CPU_COUNT = mp.cpu_count() - 1
 
 
 class HyperOpt:
+    _pool_single_ton = None
 
     def __init__(self, min_best=True, n_job=CPU_COUNT):
         self.min_best = min_best
         self._trials = None
         self._best_param = None
         self.n_job = n_job
+
+    @property
+    def pool(self):
+
+        if self.__class__._pool_single_ton is None:
+            self.__class__._pool_single_ton = Pool(processes=self.n_job)
+
+        return self.__class__._pool_single_ton
 
     @property
     def outer_trials(self):
@@ -120,6 +129,10 @@ class HyperOpt:
         }
         return info
 
+    @property
+    def best_result(self):
+        return self._trials.best_trial
+
     @staticmethod
     def _make_feed_space(data_pack, space):
         return {
@@ -134,23 +147,13 @@ class HyperOpt:
 
     def fit_serial(self, func, space, n_iter, feed_args=None, feed_kwargs=None, algo=tpe.suggest, trials=None,
                    min_best=None, pbar=True):
-        if min_best is None:
-            min_best = self.min_best
-
         self._check_Trials(trials)
-
-        if trials is None:
-            trials = FreeTrials()
-        else:
-            trials.refresh()
-
-        if pbar is True:
-            pbar = tqdm(range(n_iter))
-        else:
-            pbar = None
-
+        min_best = self.min_best if min_best is None else min_best
+        trials = FreeTrials() if trials is None else trials
+        trials.refresh()
+        pbar = tqdm(range(n_iter)) if pbar is True else None
         if len(space) == 0:
-            space = hp.choice('dummy', [None])
+            space = hp.choice('dummy', [{}])
 
         fmin(
             fn=deco_hyperOpt_fn(
@@ -163,6 +166,7 @@ class HyperOpt:
             max_evals=n_iter + len(trials),
             trials=trials,
         )
+
         self._trials = trials
         return self._trials
 
@@ -171,12 +175,13 @@ class HyperOpt:
         self._check_Trials(trials)
         min_best = self.min_best if min_best is None else min_best
         trials = FreeTrials() if trials is None else trials
+
         # range_ = trange if pbar else range
 
         # current_done = len(trials)
         base_trials = trials
         opt = HyperOpt()
-        pool = Pool(processes=self.n_job)
+        pool = self.pool
 
         childs = []
         print('fetch job')
