@@ -1,4 +1,5 @@
 import numpy as np
+from hyperopt import hp
 from sklearn.linear_model import LassoLars as _LassoLars
 
 from script.sklearn_like_toolkit.base.BaseWrapperReg import BaseWrapperReg
@@ -13,8 +14,11 @@ class skLassoLarsReg(_LassoLars, BaseWrapperReg, metaclass=meta_BaseWrapperReg_w
             self, alpha, fit_intercept, verbose, normalize, precompute, max_iter, eps, copy_X, fit_path, positive)
         BaseWrapperReg.__init__(self)
 
-    # TODO
-    HyperOpt_space = {}
+    HyperOpt_space = {
+        'eps': hp.loguniform('eps', -5, 0),
+        'max_iter': hp.qloguniform('max_iter', 4, 8, 1),
+        'alpha': hp.uniform('alpha', 0, 1),
+    }
 
     tuning_grid = {
         'alpha': 1.0,

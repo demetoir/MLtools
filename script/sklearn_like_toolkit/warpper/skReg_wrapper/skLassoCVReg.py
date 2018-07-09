@@ -18,7 +18,9 @@ class skLassoCVReg(_LassoCVReg, BaseWrapperReg, metaclass=meta_BaseWrapperReg_wi
 
     HyperOpt_space = {
         'n_alphas': hp.qloguniform('n_alphas', 2, 5, 1),
-        'eps': hp.loguniform('eps', -5, 0)
+        'eps': hp.loguniform('eps', -5, 0),
+        'max_iter': hp.qloguniform('max_iter', 4, 8, 1),
+        'tol': hp.loguniform('tol', -8, 0),
     }
 
     tuning_grid = {

@@ -13,8 +13,9 @@ class skRidgeReg(_RidgeReg, BaseWrapperReg, metaclass=meta_BaseWrapperReg_with_A
 
     HyperOpt_space = {
         'alpha': hp.loguniform('alpha', -5, 3),
-        'tol': 1e-5,
-        'max_iter': 1000,
+        'max_iter': hp.qloguniform('max_iter', 4, 8, 1),
+        'tol': hp.loguniform('tol', -8, 0),
+
     }
     tuning_grid = {
         'alpha': 1.0,

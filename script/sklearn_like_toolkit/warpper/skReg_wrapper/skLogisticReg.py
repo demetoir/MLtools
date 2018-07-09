@@ -1,3 +1,4 @@
+from hyperopt import hp
 from sklearn.linear_model import LogisticRegression as _LogisticRegression
 
 from script.sklearn_like_toolkit.base.BaseWrapperReg import BaseWrapperReg
@@ -14,8 +15,14 @@ class skLogisticReg(_LogisticRegression, BaseWrapperReg, metaclass=meta_BaseWrap
             max_iter, multi_class, verbose, warm_start, n_jobs)
         BaseWrapperReg.__init__(self)
 
-    # TODO
-    HyperOpt_space = {}
+    HyperOpt_space = {
+        'penalty': hp.choice('penalty', ['l1', 'l2']),
+        'tol': hp.loguniform('tol', -8, 0),
+        'C': hp.loguniform('C', 0, 5),
+        'solver': hp.choice('solver', ['newton-cg', 'lbfgs', 'liblinear', 'sag', 'saga']),
+        'max_iter': hp.qloguniform('max_iter', 4, 7, 1),
+        'multi_class': hp.choice('multi_class', ['ovr', 'multinomial']),
+    }
 
     tuning_grid = {
         'penalty': 'l2',

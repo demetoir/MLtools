@@ -19,6 +19,7 @@ class skPassiveAggressiveReg(_PassiveAggressiveRegressor, BaseWrapperReg, metacl
     HyperOpt_space = {
         'C': hp.loguniform('C', -5, 3),
         'loss': hp.choice('loss', ["epsilon_insensitive", 'squared_epsilon_insensitive']),
+        'max_iter': hp.qloguniform('max_iter', 4, 7, 1),
     }
 
     tuning_grid = {

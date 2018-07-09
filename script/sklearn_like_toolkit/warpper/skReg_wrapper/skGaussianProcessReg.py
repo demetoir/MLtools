@@ -1,3 +1,4 @@
+from hyperopt import hp
 from sklearn.gaussian_process import GaussianProcessRegressor as _GaussianProcessRegressor
 
 from script.sklearn_like_toolkit.base.BaseWrapperReg import BaseWrapperReg

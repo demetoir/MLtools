@@ -7,7 +7,6 @@ from hyperopt import hp
 
 
 class LightGBMClf(lightgbm.LGBMClassifier, BaseWrapperClf, metaclass=meta_BaseWrapperClf_with_ABC):
-
     HyperOpt_space = {
         'boosting_type': hp.choice('boosting_type', ['dart', "gbdt"]),
         'max_depth': 2 + hp.randint('max_depth', 10),
@@ -87,6 +86,16 @@ class LightGBMClf(lightgbm.LGBMClassifier, BaseWrapperClf, metaclass=meta_BaseWr
 
 
 class LightGBMReg(lightgbm.LGBMRegressor, BaseWrapperReg, metaclass=meta_BaseWrapperReg_with_ABC):
+    HyperOpt_space = {
+        'boosting_type': hp.choice('boosting_type', ['dart', "gbdt"]),
+        'max_depth': 2 + hp.randint('max_depth', 10),
+        'n_estimators': 10 + hp.randint('n_estimators', 400),
+        'subsample': hp.uniform('subsample', 0, 1),
+        'min_child_samples': hp.qloguniform('min_child_samples', 2, 4, 1),
+        'num_leaves': hp.qloguniform('num_leaves', 2, 5, 1),
+        'learning_rate': hp.loguniform('learning_rate', -5, 0),
+        'colsample_bytree': hp.uniform('colsample_bytree', 0, 1),
+    }
     tuning_grid = {
         # 'num_leaves': [4, 8, 16, 32],
         # 'min_child_samples': [4, 8, 16, 32],
@@ -141,6 +150,8 @@ class LightGBMReg(lightgbm.LGBMRegressor, BaseWrapperReg, metaclass=meta_BaseWra
         kwargs['verbose'] = -1
         warnings.filterwarnings(module='sklearn*', action='ignore', category=DeprecationWarning)
         warnings.filterwarnings(module='lightgbm*', action='ignore', category=UserWarning)
+        num_leaves = int(num_leaves)
+        min_child_samples = int(min_child_samples)
 
         lightgbm.LGBMRegressor.__init__(
             self, boosting_type, num_leaves, max_depth, learning_rate, n_estimators, subsample_for_bin, objective,

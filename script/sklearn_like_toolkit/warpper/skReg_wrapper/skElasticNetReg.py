@@ -1,3 +1,4 @@
+from hyperopt import hp
 from sklearn.linear_model import ElasticNet as _ElasticNetReg
 
 from script.sklearn_like_toolkit.base.BaseWrapperReg import BaseWrapperReg
@@ -13,11 +14,15 @@ class skElasticNetReg(_ElasticNetReg, BaseWrapperReg, metaclass=meta_BaseWrapper
             positive, random_state, selection)
         BaseWrapperReg.__init__(self)
 
-    # TODO
-    HyperOpt_space = {}
+    HyperOpt_space = {
+        'l1_ratio': hp.uniform('l1_ratio', 0, 1),
+        'max_iter': hp.qloguniform('max_iter', 5, 8, 1),
+        'tol': hp.loguniform('tol', -8, 0),
+        'alpha': hp.uniform('alpha', 0, 1),
+    }
 
     tuning_grid = {
-        'ffalpha': 1.0,
+        'alpha': 1.0,
         'l1_ratio': 0.5,
         'fit_intercept': True,
         'normalize': False,

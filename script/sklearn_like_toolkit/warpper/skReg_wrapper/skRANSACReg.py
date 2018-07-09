@@ -16,7 +16,17 @@ class skRANSACReg(_RANSACRegressor, BaseWrapperReg, metaclass=meta_BaseWrapperRe
         BaseWrapperReg.__init__(self)
 
     # TODO
-    HyperOpt_space = {}
+    HyperOpt_space = {
+        # 'min_samples': None,
+        # 'residual_threshold': None,
+        # 'max_trials': 100,
+        # 'max_skips': np.inf,
+        # 'stop_n_inliers': np.inf,
+        # 'stop_score': np.inf,
+        # 'stop_probability': 0.99,
+        # 'residual_metric': None,
+        # 'loss': 'absolute_loss',
+    }
 
     tuning_grid = {
         'base_estimator': None,
