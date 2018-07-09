@@ -2,7 +2,7 @@ from pprint import pprint
 from script.data_handler.DatasetPackLoader import DatasetPackLoader
 
 
-def get_reg_data():
+def helper_get_reg_data():
     import numpy as np
     from sklearn import datasets
 
@@ -23,14 +23,15 @@ def get_reg_data():
     return X_train, y_train, X_test, y_test
 
 
-def wrapper_reg_common(reg, ):
-    train_x, train_y, test_x, test_y = get_reg_data()
+def helper_wrapper_reg_common(reg, ):
+    train_x, train_y, test_x, test_y = helper_get_reg_data()
 
     reg.fit(train_x, train_y)
 
     try:
-        predict = reg.predict(test_x)
+        predict = reg.predict(test_x[:2])
         pprint(predict)
+        pprint(f"real {test_y[:2]}")
     except BaseException as e:
         pprint(f" while predict in {reg}, {e}")
 
@@ -40,10 +41,10 @@ def wrapper_reg_common(reg, ):
     except BaseException as e:
         pprint(f" while score in {reg}, {e}")
 
-    # TODO implement
-    # The coefficients
-    # print('Coefficients: \n', regr.coef_)
-    # The mean squared error
+    try:
+        pprint('Coefficients: \n', reg.coef_)
+    except BaseException as e:
+        pprint(f'while coef_ in {reg}, {e}')
 
     try:
         score = reg.score_pack(train_x, train_y)
@@ -52,7 +53,7 @@ def wrapper_reg_common(reg, ):
         pprint(f" while score_pack in {reg}, {e}")
 
 
-def wrapper_clf_common(clf):
+def helper_wrapper_clf_common(clf):
     datapack = DatasetPackLoader().load_dataset("titanic")
     train_set = datapack['train']
     train_set, valid_set = train_set.split((7, 3))
