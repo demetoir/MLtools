@@ -16,7 +16,6 @@ class LightGBMClf(lightgbm.LGBMClassifier, BaseWrapperClf, metaclass=meta_BaseWr
         'num_leaves': hp.qloguniform('num_leaves', 2, 5, 1),
         'learning_rate': hp.loguniform('learning_rate', -5, 0),
         'colsample_bytree': hp.uniform('colsample_bytree', 0, 1),
-
     }
     tuning_grid = {
         'num_leaves': [4, 8, 16, 32],
