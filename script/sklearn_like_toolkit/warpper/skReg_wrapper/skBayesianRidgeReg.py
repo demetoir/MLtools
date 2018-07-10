@@ -1,3 +1,4 @@
+from hyperopt import hp
 from sklearn.linear_model import BayesianRidge as _BayesianRidgeReg
 
 from script.sklearn_like_toolkit.base.BaseWrapperReg import BaseWrapperReg
@@ -13,8 +14,14 @@ class skBayesianRidgeReg(_BayesianRidgeReg, BaseWrapperReg, metaclass=meta_BaseW
             copy_X, verbose)
         BaseWrapperReg.__init__(self)
 
-    # TODO
-    HyperOpt_space = {}
+    HyperOpt_space = {
+        'n_iter': 10 + hp.randint('n_iter', 500),
+        'tol': hp.loguniform('tol', -8, 0),
+        'alpha_1': hp.loguniform('alpha_1', -8, 0),
+        'alpha_2': hp.loguniform('alpha_2', -8, 0),
+        'lambda_1': hp.loguniform('lambda_1', -8, 0),
+        'lambda_2': hp.loguniform('lambda_2', -8, 0),
+    }
 
     tuning_grid = {
         'n_iter': 300,

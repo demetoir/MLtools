@@ -1,16 +1,17 @@
-import time
 import multiprocessing as mp
+import time
 import numpy as np
 from functools import wraps
 from multiprocessing.pool import Pool
 from hyperopt import fmin, tpe, STATUS_OK, STATUS_FAIL, hp
 from hyperopt.mongoexp import MongoTrials
-from tqdm import tqdm, trange
+from tqdm import tqdm
 from script.sklearn_like_toolkit.HyperOpt.FreeTrials import FreeTrials
 from script.util.misc_util import log_error_trace
 
 
-def deco_hyperOpt_fn(func, min_best=True, pbar=None, feed_args=None, feed_kwargs=None):
+def deco_hyperOpt_fn(func, min_best=True, pbar=None, feed_args=None,
+                     feed_kwargs=None):
     @wraps(func)
     def deco_hyperOpt_fn_wrapper(params):
         start_time = time.time()
@@ -46,7 +47,7 @@ def deco_hyperOpt_fn(func, min_best=True, pbar=None, feed_args=None, feed_kwargs
         finally:
             trial['eval_time'] = time.time() - start_time
 
-            if min_best is True:
+            if min_best is False:
                 trial['loss'] = -trial['loss']
 
             try:
@@ -68,22 +69,37 @@ class HyperOpt_fn:
 CPU_COUNT = mp.cpu_count() - 1
 
 
-class HyperOpt:
-    _pool_single_ton = None
+class singletonPoolMixIn:
+    _pool_singleton = None
+    _n_job = None
 
-    def __init__(self, min_best=True, n_job=CPU_COUNT):
-        self.min_best = min_best
-        self._trials = None
-        self._best_param = None
-        self.n_job = n_job
+    def __init__(self, n_job=1):
+        self.__class__._n_job = n_job
 
     @property
     def pool(self):
+        if self.__class__._pool_singleton is None:
+            self.__class__._pool_singleton = Pool(
+                processes=self.__class__._n_job)
 
-        if self.__class__._pool_single_ton is None:
-            self.__class__._pool_single_ton = Pool(processes=self.n_job)
+        return self.__class__._pool_singleton
 
-        return self.__class__._pool_single_ton
+    def close_pool(self):
+        pass
+
+
+class HyperOpt(singletonPoolMixIn):
+    _pool_singleton = None
+
+    def __init__(self, min_best=True, n_job=CPU_COUNT):
+        singletonPoolMixIn.__init__(self, n_job)
+        self._min_best = min_best
+        self._trials = None
+        self._best_param = None
+
+    @property
+    def min_best(self):
+        return self._min_best
 
     @property
     def outer_trials(self):
@@ -125,7 +141,6 @@ class HyperOpt:
             'std_eval_time': np.std(eval_times),
             'mean_loss': np.mean(self.losses),
             'std_loss': np.std(self.losses),
-
         }
         return info
 
@@ -145,13 +160,21 @@ class HyperOpt:
         if isinstance(trials, MongoTrials):
             raise TypeError("MongoTrials not support")
 
-    def fit_serial(self, func, space, n_iter, feed_args=None, feed_kwargs=None, algo=tpe.suggest, trials=None,
-                   min_best=None, pbar=True):
+    def fit_serial(self, func, space, n_iter, feed_args=None, feed_kwargs=None,
+                   trials=None, algo=tpe.suggest, min_best=None, pbar=True):
         self._check_Trials(trials)
-        min_best = self.min_best if min_best is None else min_best
-        trials = FreeTrials() if trials is None else trials
+        if trials is None:
+            trials = FreeTrials()
         trials.refresh()
-        pbar = tqdm(range(n_iter)) if pbar is True else None
+
+        if min_best is None:
+            min_best = self.min_best
+
+        if pbar:
+            pbar = tqdm(range(n_iter))
+        else:
+            pbar = None
+
         if len(space) == 0:
             space = hp.choice('dummy', [{}])
 
@@ -170,23 +193,26 @@ class HyperOpt:
         self._trials = trials
         return self._trials
 
-    def fit_parallel(self, func, space, n_iter, feed_args=None, feed_kwargs=None, algo=tpe.suggest, trials=None,
-                     min_best=None, pbar=True):
+    def fit_parallel(self, func, space, n_iter, feed_args=None,
+                     feed_kwargs=None, trials=None, algo=tpe.suggest,
+                     pbar=True, min_best=None):
         self._check_Trials(trials)
-        min_best = self.min_best if min_best is None else min_best
-        trials = FreeTrials() if trials is None else trials
+        if trials is None:
+            trials = FreeTrials()
+        trials.refresh()
 
-        # range_ = trange if pbar else range
+        if min_best is None:
+            min_best = self.min_best
 
-        # current_done = len(trials)
+        if len(space) == 0:
+            return self.fit_serial(func, space, n_iter, feed_args, feed_kwargs, trials, algo, pbar, min_best)
+
         base_trials = trials
-        opt = HyperOpt()
-        pool = self.pool
 
+        opt = HyperOpt()
         childs = []
-        print('fetch job')
-        for _ in trange(n_iter):
-            child = pool.apply_async(
+        for _ in range(n_iter):
+            child = self.pool.apply_async(
                 opt.fit_serial,
                 args=(func, space, 1),
                 kwds={
@@ -199,23 +225,22 @@ class HyperOpt:
                 })
             childs += [child]
 
+        if pbar:
+            childs = tqdm(childs)
+
         print('collect job')
-        for child in tqdm(childs):
+        n_already_done = len(base_trials)
+        for child in childs:
             trials = child.get()
-            base_trials = base_trials.concat(trials, refresh=False)
+            partial = trials.partial_deepcopy(n_already_done, n_already_done + 1)
+            base_trials = base_trials.concat(partial, refresh=False)
 
         base_trials.refresh()
-        # base_trials = opt.fit_serial(
-        #     func, {}, 0,
-        #     feed_args=feed_args, feed_kwargs=feed_kwargs, algo=algo,
-        #     trials=base_trials, min_best=min_best, pbar=False
-        # )
-
-        # self._best_param = opt._best_param
         self._trials = base_trials
 
         return base_trials
 
-    def fit_parallel_async(self, func, data_pack, space, n_iter, feed_args=None, feed_kwargs=None, algo=tpe.suggest,
+    def fit_parallel_async(self, func, data_pack, space, n_iter, feed_args=None,
+                           feed_kwargs=None, algo=tpe.suggest,
                            trials=None, min_best=None):
         raise NotImplementedError

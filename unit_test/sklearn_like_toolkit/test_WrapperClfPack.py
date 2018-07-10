@@ -1,3 +1,5 @@
+from pprint import pprint
+
 from script.sklearn_like_toolkit.warpper.skClf_wrapper.skBernoulli_NBClf import skBernoulli_NBClf
 from script.sklearn_like_toolkit.warpper.wrapperGridSearchCV import wrapperGridSearchCV
 from script.data_handler.DatasetPackLoader import DatasetPackLoader
@@ -147,7 +149,7 @@ def test_wrapper_pack_grid_search():
     print(result)
 
 
-def test_wrapperclfpack_HyperOpt():
+def test_wrapperclfpack_HyperOpt_serial():
     data_pack = DatasetPackLoader().load_dataset('titanic')
     clf_name = 'skMLPClf'
     # clf_pack = ClassifierPack(['skGaussian_NBClf', 'skMLPClf'])
@@ -159,7 +161,30 @@ def test_wrapperclfpack_HyperOpt():
     train_Xs, train_Ys = train_set.full_batch(['Xs', 'Ys'])
     valid_Xs, valid_Ys = valid_set.full_batch(['Xs', 'Ys'])
 
-    clf_pack.HyperOpt(train_Xs, train_Ys, n_iter=3, parallel=False)
+    clf_pack.HyperOptSearch(train_Xs, train_Ys, n_iter=3, parallel=False)
+    pprint(clf_pack.optimize_result)
+    pprint(clf_pack.HyperOpt_best_loss)
+    pprint(clf_pack.HyperOpt_best_params)
+    pprint(clf_pack.HyperOpt_best_result)
+    pprint(clf_pack.HyperOpt_opt_info)
+
+    score = clf_pack.score(valid_Xs, valid_Ys)
+    pprint(score)
+
+
+def test_wrapperclfpack_HyperOpt_parallel():
+    data_pack = DatasetPackLoader().load_dataset('titanic')
+    clf_name = 'skMLPClf'
+    # clf_pack = ClassifierPack(['skGaussian_NBClf', 'skMLPClf'])
+    clf_pack = ClassifierPack()
+
+    train_set = data_pack['train']
+    train_set.shuffle()
+    train_set, valid_set = train_set.split()
+    train_Xs, train_Ys = train_set.full_batch(['Xs', 'Ys'])
+    valid_Xs, valid_Ys = valid_set.full_batch(['Xs', 'Ys'])
+
+    clf_pack.HyperOptSearch(train_Xs, train_Ys, n_iter=3, parallel=True)
     pprint(clf_pack.optimize_result)
     pprint(clf_pack.HyperOpt_best_loss)
     pprint(clf_pack.HyperOpt_best_params)

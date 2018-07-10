@@ -2,7 +2,6 @@ from abc import ABCMeta
 import numpy as np
 from sklearn.metrics import accuracy_score, confusion_matrix, roc_auc_score, recall_score, precision_score
 from script.util.MixIn import PickleMixIn, LoggerMixIn
-from script.util.misc_util import log_error_trace
 from script.util.numpy_utils import reformat_np_arr, NP_ARRAY_TYPE_INDEX, NP_ARRAY_TYPE_ONEHOT
 from sklearn.metrics.regression import r2_score
 from sklearn.metrics.regression import explained_variance_score
@@ -102,8 +101,10 @@ class clf_score_pack_MixIn(Reformat_Ys_MixIn):
             try:
                 ret[key] = self._apply_metric(Y_true, Y_predict, key)
             except BaseException as e:
-                log_error_trace(getattr(self, 'log').warn, e,
-                                head=f'while {self.__class__} execute score_pack, skip to applying metric {key}\n')
+                getattr(self, 'log').warn(
+                    f'while "{str(self)}" execute score_pack,'
+                    f' raise "{e}",'
+                    f' skip to applying metric "{key}"\n')
         return ret
 
     def score_pack(self, X, y):
@@ -125,8 +126,10 @@ class reg_score_pack_MixIn(Reformat_Ys_MixIn):
             try:
                 ret[key] = self._apply_metric(Y_true, Y_predict, key)
             except BaseException as e:
-                log_error_trace(getattr(self, 'log').warn, e,
-                                head=f'while {self.__class__} execute score_pack, skip to applying metric {key}\n')
+                getattr(self, 'log').warn(
+                    f'while "{str(self)}" execute score_pack,'
+                    f' raise "{e}",'
+                    f' skip to applying metric "{key}"\n')
         return ret
 
     def score_pack(self, X, y):
@@ -183,3 +186,6 @@ class RegWrapperMixIn(reg_score_pack_MixIn, PickleMixIn, LoggerMixIn, etc_MixIn)
         PickleMixIn.__init__(self)
         LoggerMixIn.__init__(self)
         etc_MixIn.__init__(self)
+
+    def __str__(self):
+        return self.__class__.__name__

@@ -15,7 +15,9 @@ class skLassoReg(_LassoReg, BaseWrapperReg, metaclass=meta_BaseWrapperReg_with_A
         BaseWrapperReg.__init__(self)
 
     HyperOpt_space = {
-        'alpha': hp.loguniform('alpha', -8, 2),
+        'alpha': hp.uniform('alpha', 0, 1),
+        'max_iter': hp.qloguniform('max_iter', 4, 8, 1),
+        'tol': hp.loguniform('tol', -8, 0),
     }
 
     tuning_grid = {
