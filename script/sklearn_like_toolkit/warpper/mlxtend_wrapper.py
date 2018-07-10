@@ -37,6 +37,8 @@ class mlxAdalineClf(_Adaline, BaseWrapperClf,
 
     def __init__(self, eta=0.01, epochs=50, minibatches=1, random_seed=None,
                  print_progress=0):
+        epochs = int(epochs)
+
         warnings.filterwarnings(module='mlxtend*', action='ignore',
                                 category=FutureWarning)
         # minibatches = 1
@@ -62,6 +64,8 @@ class mlxLogisticRegressionClf(_LogisticRegression, BaseWrapperClf,
 
     def __init__(self, eta=0.01, epochs=50, l2_lambda=0.0, minibatches=1,
                  random_seed=None, print_progress=0):
+        epochs = int(epochs)
+
         warnings.filterwarnings(module='mlxtend*', action='ignore',
                                 category=FutureWarning)
         _LogisticRegression.__init__(self, eta, epochs, l2_lambda, minibatches,
@@ -88,6 +92,8 @@ class mlxMLPClf(_MultiLayerPerceptron, BaseWrapperClf,
                  momentum=0.0, l1=0.0, l2=0.0,
                  dropout=1.0, decrease_const=0.0, minibatches=1,
                  random_seed=None, print_progress=0):
+        epochs = int(epochs)
+
         warnings.filterwarnings(module='mlxtend*', action='ignore',
                                 category=FutureWarning)
         warnings.filterwarnings(module='mlxtend*', action='ignore',
@@ -109,8 +115,11 @@ class mlxPerceptronClf(_Perceptron, BaseWrapperClf,
     }
 
     def __init__(self, eta=0.1, epochs=50, random_seed=None, print_progress=0):
+        epochs = int(epochs)
+
         warnings.filterwarnings(module='mlxtend*', action='ignore',
                                 category=FutureWarning)
+
         _Perceptron.__init__(self, eta, epochs, random_seed, print_progress)
         BaseWrapperClf.__init__(self)
 
@@ -135,6 +144,7 @@ class mlxSoftmaxRegressionClf(_SoftmaxRegression, BaseWrapperClf,
                  n_classes=None, random_seed=None, print_progress=0):
         warnings.filterwarnings(module='mlxtend*', action='ignore',
                                 category=FutureWarning)
+        epochs = int(epochs)
         _SoftmaxRegression.__init__(
             self, eta, epochs, l2, minibatches, n_classes, random_seed,
             print_progress)
@@ -221,6 +231,7 @@ class mlxLinearReg(BaseWrapperReg, _LinearRegression,
 
     def __init__(self, eta=0.01, epochs=50, minibatches=None, random_seed=None,
                  print_progress=0):
+        epochs = int(epochs)
         _LinearRegression.__init__(
             self, eta, epochs, minibatches, random_seed, print_progress)
 
