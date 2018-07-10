@@ -77,6 +77,11 @@ CLF_METRICS = {
     'precision_score': precision_score,
 }
 
+
+def RMSE(y_true, y_pred, sample_weight=None, multioutput='uniform_average'):
+    return np.sqrt(mean_squared_error(y_true, y_pred, sample_weight, multioutput))
+
+
 REG_METRIC = {
     r2_score.__name__: r2_score,
     explained_variance_score.__name__: explained_variance_score,
@@ -84,6 +89,7 @@ REG_METRIC = {
     mean_squared_log_error.__name__: mean_squared_log_error,
     mean_squared_error.__name__: mean_squared_error,
     median_absolute_error.__name__: median_absolute_error,
+    RMSE.__name__:RMSE
 }
 
 
