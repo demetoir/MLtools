@@ -5,9 +5,12 @@ from script.data_handler.DummyDataset import DummyDataset
 from script.sklearn_like_toolkit.HyperOpt.HyperOpt import HyperOpt, HyperOpt_fn
 from script.sklearn_like_toolkit.ParamOptimizer import ParamOptimizer
 from script.sklearn_like_toolkit.base.BaseWrapperClf import BaseWrapperClf
-from script.sklearn_like_toolkit.base.MixIn import ClfWrapperMixIn, meta_BaseWrapperClf
-from script.sklearn_like_toolkit.warpper.wrapperGridSearchCV import wrapperGridSearchCV
-from script.util.misc_util import time_stamp, dump_pickle, load_pickle, path_join, log_error_trace
+from script.sklearn_like_toolkit.base.MixIn import ClfWrapperMixIn, \
+    meta_BaseWrapperClf
+from script.sklearn_like_toolkit.warpper.wrapperGridSearchCV import \
+    wrapperGridSearchCV
+from script.util.misc_util import time_stamp, dump_pickle, load_pickle, \
+    path_join, log_error_trace
 
 
 class clfpack_HyperOpt_fn(HyperOpt_fn):
@@ -26,6 +29,7 @@ class clfpack_HyperOpt_fn(HyperOpt_fn):
         score = clf.score(test_Xs, test_Ys)
 
         return score
+
 
 
 class BaseWrapperClfPack(ClfWrapperMixIn, metaclass=meta_BaseWrapperClf):
@@ -88,7 +92,8 @@ class BaseWrapperClfPack(ClfWrapperMixIn, metaclass=meta_BaseWrapperClf):
     def HyperOpt_opt_info(self):
         return {key: self.optimizers[key].opt_info for key in self.pack}
 
-    def HyperOptSearch(self, Xs, Ys, n_iter, min_best=False, parallel=False, **kwargs):
+    def HyperOptSearch(self, Xs, Ys, n_iter, min_best=False, parallel=False,
+                       **kwargs):
         Ys = self.np_arr_to_index(Ys)
 
         dataset = DummyDataset()
@@ -104,31 +109,21 @@ class BaseWrapperClfPack(ClfWrapperMixIn, metaclass=meta_BaseWrapperClf):
                 opt = HyperOpt()
 
                 if parallel:
-                    trials = opt.fit_parallel(
-                        clfpack_HyperOpt_fn,
-                        clf.HyperOpt_space,
-                        n_iter,
-                        feed_args=(),
-                        feed_kwargs={
-                            'clf_cls': clf.__class__,
-                            'dataset': dataset
-                        },
-                        min_best=min_best
-                    )
-
+                    opt_func = opt.fit_parallel
                 else:
-                    trials = opt.fit_serial(
-                        clfpack_HyperOpt_fn,
-                        clf.HyperOpt_space,
-                        n_iter,
-                        feed_args=(),
-                        feed_kwargs={
-                            'clf_cls': clf.__class__,
-                            'dataset': dataset
-                        },
-                        min_best=min_best
-                    )
+                    opt_func = opt.fit_serial
 
+                trials = opt_func(
+                    clfpack_HyperOpt_fn,
+                    clf.HyperOpt_space,
+                    n_iter,
+                    feed_args=(),
+                    feed_kwargs={
+                        'clf_cls': clf.__class__,
+                        'dataset': dataset
+                    },
+                    min_best=min_best
+                )
                 self.optimizers[key] = opt
                 self._HyperOpt_trials[key] = trials
                 self._HyperOpt_results[key] = trials.results
@@ -144,7 +139,8 @@ class BaseWrapperClfPack(ClfWrapperMixIn, metaclass=meta_BaseWrapperClf):
                     self.pack[key] = clf
 
             except BaseException as e:
-                log_error_trace(self.log.warn, e, head=f'while HyperOpt at {key}')
+                log_error_trace(self.log.warn, e,
+                                head=f'while HyperOpt at {key}')
                 self.log.warn(f'while, HyperOpt at {key}, raise ')
 
     def param_search(self, Xs, Ys):
@@ -180,7 +176,8 @@ class BaseWrapperClfPack(ClfWrapperMixIn, metaclass=meta_BaseWrapperClf):
                 self.optimize_result = optimizer.cv_results_
                 # self.optimizers[key] = optimizer
             except BaseException as e:
-                log_error_trace(self.log.warn, e, head=f'while GridSearchCV at {key}')
+                log_error_trace(self.log.warn, e,
+                                head=f'while GridSearchCV at {key}')
                 self.log.warn(f'while, GridSearchCV at {key}, raise ')
 
     def fit(self, Xs, Ys):
@@ -268,7 +265,8 @@ class BaseWrapperClfPack(ClfWrapperMixIn, metaclass=meta_BaseWrapperClf):
             try:
                 confidences[key] = clf.predict_confidence(Xs)
             except BaseException as e:
-                log_error_trace(self.log.warn, e, f'while execute confidence at {key},\n')
+                log_error_trace(self.log.warn, e,
+                                f'while execute confidence at {key},\n')
 
         return confidences
 

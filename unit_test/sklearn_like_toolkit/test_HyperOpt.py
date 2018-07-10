@@ -193,14 +193,10 @@ def test_HyperOpt_space_with_data():
 
     # space.update({'args': ()})
     # space.update({'kwargs':})
-    opt.fit_serial(fit_fn, space, 10,
-                   feed_args=(),
-                   feed_kwargs={'data_pack': data_pack.to_DummyDatasetPack()})
+    opt.fit_serial(fit_fn, space, 10, feed_args=(), feed_kwargs={'data_pack': data_pack.to_DummyDatasetPack()})
     pprint(opt.best_loss)
     pprint(opt.best_param)
 
-    opt.fit_parallel(fit_fn, space, 10,
-                     feed_args=(),
-                     feed_kwargs={'data_pack': data_pack.to_DummyDatasetPack()})
+    opt.fit_parallel(fit_fn, space, 10, feed_args=(), feed_kwargs={'data_pack': data_pack.to_DummyDatasetPack()})
     pprint(opt.best_loss)
     pprint(opt.best_param)

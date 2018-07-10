@@ -4,9 +4,12 @@ from env_settting import SKLEARN_PARAMS_SAVE_PATH
 from script.data_handler.DummyDataset import DummyDataset
 from script.sklearn_like_toolkit.HyperOpt.HyperOpt import HyperOpt, HyperOpt_fn
 from script.sklearn_like_toolkit.ParamOptimizer import ParamOptimizer
-from script.sklearn_like_toolkit.base.MixIn import RegWrapperMixIn, meta_BaseWrapperReg
-from script.sklearn_like_toolkit.warpper.wrapperGridSearchCV import wrapperGridSearchCV
-from script.util.misc_util import time_stamp, dump_pickle, load_pickle, path_join, log_error_trace
+from script.sklearn_like_toolkit.base.MixIn import RegWrapperMixIn, \
+    meta_BaseWrapperReg
+from script.sklearn_like_toolkit.warpper.wrapperGridSearchCV import \
+    wrapperGridSearchCV
+from script.util.misc_util import time_stamp, dump_pickle, load_pickle, \
+    path_join, log_error_trace
 
 
 class regpack_HyperOpt_fn(HyperOpt_fn):
@@ -87,18 +90,17 @@ class BaseWrapperRegPack(RegWrapperMixIn, metaclass=meta_BaseWrapperReg):
     def HyperOpt_opt_info(self):
         return {key: self.optimizers[key].opt_info for key in self.pack}
 
-    def HyperOptSearch(self, Xs, Ys, n_iter, min_best=True, parallel=False, **kwargs):
+    def HyperOptSearch(self, Xs, Ys, n_iter, min_best=True, parallel=False,
+                       **kwargs):
         dataset = DummyDataset()
         dataset.add_data('Xs', Xs)
         dataset.add_data('Ys', Ys)
 
         total = len(self.pack)
-        current = 0
-        for key, clf in self.pack.items():
-            current += 1
+        for idx, (key, clf) in enumerate(self.pack.items()):
+            self.log.info(f'HyperOpt at {key} {idx}/{total}')
             try:
-                self.log.info(f'HyperOpt at {key} {current}/{total}')
-                opt = HyperOpt()
+                opt = HyperOpt(min_best=min_best)
 
                 if parallel:
                     opt_func = opt.fit_parallel
@@ -114,7 +116,6 @@ class BaseWrapperRegPack(RegWrapperMixIn, metaclass=meta_BaseWrapperReg):
                         'reg_cls': clf.__class__,
                         'dataset': dataset
                     },
-                    min_best=min_best
                 )
 
                 self.optimizers[key] = opt
@@ -132,7 +133,8 @@ class BaseWrapperRegPack(RegWrapperMixIn, metaclass=meta_BaseWrapperReg):
                     self.pack[key] = clf
 
             except BaseException as e:
-                log_error_trace(self.log.warn, e, head=f'while HyperOpt at {key}')
+                log_error_trace(self.log.warn, e,
+                                head=f'while HyperOpt at {key}')
                 self.log.warn(f'while, HyperOpt at {key}, raise ')
 
     def param_search(self, Xs, Ys):
@@ -168,7 +170,8 @@ class BaseWrapperRegPack(RegWrapperMixIn, metaclass=meta_BaseWrapperReg):
                 self.optimize_result = optimizer.cv_results_
                 # self.optimizers[key] = optimizer
             except BaseException as e:
-                log_error_trace(self.log.warn, e, head=f'while GridSearchCV at {key}')
+                log_error_trace(self.log.warn, e,
+                                head=f'while GridSearchCV at {key}')
                 self.log.warn(f'while, GridSearchCV at {key}, raise ')
 
     def fit(self, Xs, Ys):
@@ -186,7 +189,7 @@ class BaseWrapperRegPack(RegWrapperMixIn, metaclass=meta_BaseWrapperReg):
             try:
                 result[key] = self.pack[key].predict(Xs)
             except BaseException as e:
-                self.log.warn(f'while fitting, {key} raise {e}')
+                self.log.warn(f'while _collect_predict, {key} raise {e}')
         return result
 
     def predict(self, Xs):
@@ -247,7 +250,8 @@ class BaseWrapperRegPack(RegWrapperMixIn, metaclass=meta_BaseWrapperReg):
             try:
                 confidences[key] = clf.predict_confidence(Xs)
             except BaseException as e:
-                log_error_trace(self.log.warn, e, f'while execute confidence at {key},\n')
+                log_error_trace(self.log.warn, e,
+                                f'while execute confidence at {key},\n')
 
         return confidences
 
