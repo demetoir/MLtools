@@ -205,13 +205,12 @@ class HyperOpt(singletonPoolMixIn):
             min_best = self.min_best
 
         if len(space) == 0:
-            space = hp.choice('dummy', [{}])
+            return self.fit_serial(func, space, n_iter, feed_args, feed_kwargs, trials, algo, pbar, min_best)
 
         base_trials = trials
-        opt = HyperOpt()
 
+        opt = HyperOpt()
         childs = []
-        print('fetch job')
         for _ in range(n_iter):
             child = self.pool.apply_async(
                 opt.fit_serial,
@@ -230,9 +229,11 @@ class HyperOpt(singletonPoolMixIn):
             childs = tqdm(childs)
 
         print('collect job')
+        n_already_done = len(base_trials)
         for child in childs:
             trials = child.get()
-            base_trials = base_trials.concat(trials, refresh=False)
+            partial = trials.partial_deepcopy(n_already_done, n_already_done + 1)
+            base_trials = base_trials.concat(partial, refresh=False)
 
         base_trials.refresh()
         self._trials = base_trials
