@@ -191,5 +191,6 @@ def test_wrapperclfpack_HyperOpt_parallel():
     pprint(clf_pack.HyperOpt_best_result)
     pprint(clf_pack.HyperOpt_opt_info)
 
-    score = clf_pack.score(valid_Xs, valid_Ys)
+    score = clf_pack.score_pack(valid_Xs, valid_Ys)
     pprint(score)
+
