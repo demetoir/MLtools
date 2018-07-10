@@ -164,7 +164,7 @@ class HyperOpt(singletonPoolMixIn):
                    trials=None, algo=tpe.suggest, min_best=None, pbar=True):
         self._check_Trials(trials)
         if trials is None:
-            trials = FreeTrials
+            trials = FreeTrials()
         trials.refresh()
 
         if min_best is None:
