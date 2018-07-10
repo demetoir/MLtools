@@ -49,7 +49,7 @@ class RegressionPack(BaseWrapperRegPack):
         skHuberReg.__name__: skHuberReg,
         skRadiusNeighborsReg.__name__: skRadiusNeighborsReg,
         skKNeighborsReg.__name__: skKNeighborsReg,
-        skPassiveAggressiveReg.__name__: skPassiveAggressiveReg,
+        # skPassiveAggressiveReg.__name__: skPassiveAggressiveReg,
         skRANSACReg.__name__: skRANSACReg,
         skKernelRidgeReg.__name__: skKernelRidgeReg,
         skTheilSenReg.__name__: skTheilSenReg,
