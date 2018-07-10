@@ -56,8 +56,7 @@ def test_regpack_HyperOpt_serial():
     pprint(reg_pack.HyperOpt_best_loss)
 
     score_pack = reg_pack.score_pack(test_Xs, test_Ys)
-
-    pass
+    pprint(score_pack)
 
 
 def test_regpack_HyperOpt_parallel():
@@ -68,5 +67,4 @@ def test_regpack_HyperOpt_parallel():
     pprint(reg_pack.HyperOpt_best_loss)
 
     score_pack = reg_pack.score_pack(test_Xs, test_Ys)
-
-    pass
+    pprint(score_pack)
