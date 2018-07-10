@@ -62,7 +62,7 @@ class RegressionPack(BaseWrapperRegPack):
         skLassoLarsReg.__name__: skLassoLarsReg,
         skLassoCVReg.__name__: skLassoCVReg,
         skLassoReg.__name__: skLassoReg,
-        mlxLinearReg.__name__: mlxLinearReg,
+        # mlxLinearReg.__name__: mlxLinearReg,
         skElasticNetReg.__name__: skElasticNetReg,
     }
     def to_stackingReg(self, meta_reg=None):
