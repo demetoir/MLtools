@@ -6,6 +6,8 @@ import pandas as pd
 from tqdm import trange
 from script.data_handler.DummyDataset import DummyDataset
 from script.data_handler.titanic import build_transform
+from script.model.sklearn_like_model.AE.CVAE import CVAE
+from script.model.sklearn_like_model.GAN.C_GAN import C_GAN
 from script.sklearn_like_toolkit.ClassifierPack import ClassifierPack
 from script.data_handler.DatasetPackLoader import DatasetPackLoader
 from script.sklearn_like_toolkit.EnsembleClfPack import EnsembleClfPack
@@ -22,6 +24,7 @@ from script.util.numpy_utils import np_stat_dict
 ########################################################################################################################
 # print(built-in function) is not good for logging
 from script.util.pandas_util import df_to_onehot_embedding, df_to_np_onehot_embedding
+from unit_test.model.sklearn_like_model.GAN.test_GAN import to_zero_one_encoding
 
 bprint = print
 logger = StdoutOnlyLogger()
@@ -787,3 +790,61 @@ def exp_CVAE_with_titanic():
     # pprint(predict.shape)
     # submit_path = './submit.csv'
     # datapack.to_kaggle_submit_csv(submit_path, predict)
+
+
+def titanic_submit():
+    datapack = DatasetPackLoader().load_dataset('titanic')
+    # datapack = DatasetPackLoader().load_dataset('titanic')
+    train_set = datapack['train']
+    test_set = datapack['test']
+    train_set.shuffle()
+    train, valid = train_set.split()
+
+    train_Xs, train_Ys = train.full_batch(['Xs', 'Ys'])
+    valid_Xs, valid_Ys = valid.full_batch(['Xs', 'Ys'])
+
+    path = './clf_pack.clf'
+    if not os.path.exists(path):
+        train_Xs, train_Ys = train_set.full_batch(['Xs', 'Ys'])
+        clf_pack = ClassifierPack()
+        clf_pack.gridSearchCV(train_Xs, train_Ys, cv=10)
+        clf_pack.dump(path)
+
+    clf_pack = ClassifierPack().load(path)
+    # pprint(clf_pack.optimize_result)
+    clf_pack.drop('skQDA')
+    clf_pack.drop('skGaussian_NB')
+    clf_pack.drop('mlxSoftmaxRegressionClf')
+    clf_pack.drop('mlxPerceptronClf')
+    clf_pack.drop('mlxMLP')
+    clf_pack.drop('mlxLogisticRegression')
+    clf_pack.drop('mlxAdaline')
+    clf_pack.drop('skLinear_SVC')
+
+    train_Xs, train_Ys = train.full_batch(['Xs', 'Ys'])
+    valid_Xs, valid_Ys = valid.full_batch(['Xs', 'Ys'])
+    score = clf_pack.score(train_Xs, train_Ys)
+    pprint(score)
+
+    score = clf_pack.score(valid_Xs, valid_Ys)
+    pprint(score)
+    #
+    esm_pack = clf_pack.to_ensembleClfpack()
+    train, valid = train_set.split((2, 7))
+    train_Xs, train_Ys = train.full_batch(['Xs', 'Ys'])
+    valid_Xs, valid_Ys = valid.full_batch(['Xs', 'Ys'])
+
+    esm_pack.fit(train_Xs, train_Ys)
+    pprint(esm_pack.score_pack(train_Xs, train_Ys))
+    pprint(esm_pack.score_pack(valid_Xs, valid_Ys))
+
+    test_Xs = test_set.full_batch(['Xs'])
+
+    predict = esm_pack.predict(test_Xs)['FoldingHardVote']
+    # predict = clf_pack.predict(test_Xs)['skBagging']
+    pprint(predict)
+    pprint(predict.shape)
+    submit_path = './submit.csv'
+    datapack.to_kaggle_submit_csv(submit_path, predict)
+
+    # clf_pack.dump(path)
