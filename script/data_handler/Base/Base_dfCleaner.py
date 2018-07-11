@@ -85,7 +85,7 @@ class Base_dfCleaner(LoggerMixIn, null_clean_methodMixIn, df_plotterMixIn):
 
         return code
 
-    def clean_null(self) -> DF:
+    def clean(self) -> DF:
         for key, val in self.__class__.__dict__.items():
             if key in self.df.keys():
                 col = self.df[[key]]
