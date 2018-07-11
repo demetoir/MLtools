@@ -212,7 +212,7 @@ class PlotTools:
         if with_swarmplot:
             dodge = True if hue is not None else False
             sns_plot = self.sns.swarmplot(x_col, y_col, hue=hue, data=df, dodge=dodge,
-                                          color='magenta', size=5)
+                                          color='magenta', size=2)
         fig = sns_plot.figure
 
         self.plt_common_teardown(fig, path=path, show=show, title=title, extend=extend)
