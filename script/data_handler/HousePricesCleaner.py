@@ -1,11 +1,11 @@
 import pandas as pd
-from script.data_handler.Base.Base_df_nullCleaner import Base_df_nullCleaner
+from script.data_handler.Base.Base_dfCleaner import Base_dfCleaner
 
 DF = pd.DataFrame
 Series = pd.Series
 
 
-class HousePrices_null_cleaner(Base_df_nullCleaner):
+class HousePricesCleaner(Base_dfCleaner):
 
     def col_03_Alley(self, df: DF, key: str, col: DF, series: Series, Xs_key: list, Ys_key: list):
         df = self.drop_col(df, key)

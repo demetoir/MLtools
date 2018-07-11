@@ -36,7 +36,7 @@ class null_clean_methodMixIn:
         return df
 
 
-class Base_df_nullCleaner(LoggerMixIn, null_clean_methodMixIn, df_plotterMixIn):
+class Base_dfCleaner(LoggerMixIn, null_clean_methodMixIn, df_plotterMixIn):
     def __init__(self, df: DF, df_Xs_keys, df_Ys_key, silent=False, verbose=0):
         LoggerMixIn.__init__(self, verbose)
         null_clean_methodMixIn.__init__(self)
