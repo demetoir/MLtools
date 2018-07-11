@@ -1,7 +1,7 @@
 import progressbar
 import sklearn
 import pandas as pd
-from script.data_handler.BaseDataset import BaseDataset
+from script.data_handler.Base.BaseDataset import BaseDataset
 from script.util.Logger import StdoutOnlyLogger
 from script.util.misc_util import time_stamp, path_join, log_error_trace, setup_file
 

@@ -1,4 +1,4 @@
-from script.data_handler.BaseDataset import BaseDataset
+from script.data_handler.Base.BaseDataset import BaseDataset
 
 
 class DummyDataset(BaseDataset):

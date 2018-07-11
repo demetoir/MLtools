@@ -1,6 +1,6 @@
 from tensorflow.examples.tutorials.mnist import input_data
-from script.data_handler.BaseDataset import BaseDataset, DownloadInfo
-from script.data_handler.BaseDatasetPack import BaseDatasetPack
+from script.data_handler.Base.BaseDataset import BaseDataset, DownloadInfo
+from script.data_handler.Base.BaseDatasetPack import BaseDatasetPack
 import numpy as np
 
 
