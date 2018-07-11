@@ -22,7 +22,7 @@ class Base_df_transformer(LoggerMixIn, df_plotterMixIn):
         return df
 
     def boilerplate_maker(self, path=None, encoding='UTF8'):
-        base_class_name = self.__class__.__name__
+        base_class_name = super().__class__.__name__
 
         import_code = f"""
         import pandas as pd
