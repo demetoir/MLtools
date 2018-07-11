@@ -26,7 +26,7 @@ class regpack_HyperOpt_fn(HyperOpt_fn):
 
         reg = reg_cls(**params)
         reg.fit(train_Xs, train_Ys)
-        score = reg.score(test_Xs, test_Ys)
+        score = reg.score_pack(test_Xs, test_Ys)['RMSE']
 
         return score
 
