@@ -1,29 +1,33 @@
 # -*- coding:utf-8 -*-
 import inspect
-
 import numpy as np
-
-from script.data_handler.BaseDataset import BaseDataset
 from script.data_handler.DatasetPackLoader import DatasetPackLoader
-from script.data_handler.DummyDataset import DummyDataset
+from script.data_handler.HousePrices import load_merge_set
+from script.data_handler.HousePrices_null_handler import HousePrices_null_handler
 from script.sklearn_like_toolkit.ClassifierPack import ClassifierPack
-from script.sklearn_like_toolkit.HyperOpt.HyperOpt import HyperOpt, HyperOpt_fn
+from script.sklearn_like_toolkit.HyperOpt.HyperOpt import HyperOpt
 # print(built-in function) is not good for logging
 from script.sklearn_like_toolkit.RegressionPack import RegressionPack
 from script.util.Logger import pprint_logger, Logger
 from script.util.deco import deco_timeit
-from unit_test.test_python_syntax import check_pickle_able
+from unit_test.sklearn_like_toolkit.test_RegressionPack import get_reg_data
+from unit_test.util.test_PlotTools import test_plt_dist
 
 bprint = print
 logger = Logger('bench_code', level='INFO', )
 print = logger.info
 pprint = pprint_logger(print)
+from pandas import DataFrame as DF
 
 
 def onehot_label_smooth(Ys, smooth=0.05):
     Ys *= (1 - smooth * 2)
     Ys += smooth
     return Ys
+
+
+def get_current_func_name():
+    return inspect.stack()[0][3]
 
 
 # def titanic_submit():
@@ -104,34 +108,10 @@ def onehot_label_smooth(Ys, smooth=0.05):
 #     plt.dist(ret)
 
 
-
-def get_reg_data():
-    import numpy as np
-    from sklearn import datasets
-
-    # Load the diabetes dataset
-    diabetes = datasets.load_diabetes()
-
-    # Use only one feature
-    diabetes_X = diabetes.data[:, np.newaxis, 2]
-
-    # Split the data into training/testing sets
-    X_train = diabetes_X[:-20]
-    X_test = diabetes_X[-20:]
-
-    # Split the targets into training/testing sets
-    y_train = diabetes.target[:-20]
-    y_test = diabetes.target[-20:]
-
-    return X_train, y_train, X_test, y_test
-
-
 def test_param():
     data_pack = DatasetPackLoader().load_dataset('titanic')
     train_Xs, train_Ys, valid_Xs, valid_Ys = get_reg_data()
     clf_name = 'XGBoostClf'
-
-    # clf_name = 'skMLPClf'
 
     def fit_clf(params):
         pprint(params)
@@ -188,50 +168,107 @@ def test_param():
     pprint(opt.best_loss)
 
 
-def get_current_func_name():
-    return inspect.stack()[0][3]
+def test_HousePrices():
+    dataset_pack = DatasetPackLoader().load_dataset('HousePrices')
+
+    pass
 
 
-def fit_clf(params, feed_args, feed_kwargs):
-    data_pack = feed_kwargs.pop('data_pack')
-    train_set = data_pack['train']
-
-    train_set, valid_set = train_set.split()
-    train_Xs, train_Ys = train_set.full_batch(['Xs', 'Ys'])
-    valid_Xs, valid_Ys = valid_set.full_batch(['Xs', 'Ys'])
-
-    clf_pack = ClassifierPack()
-    clf = clf_pack['skMLPClf']
-    clf = clf.__class__(**params)
-    clf.fit(train_Xs, train_Ys)
-    score = -clf.score(valid_Xs, valid_Ys)
-
-    return score
+def print_null_col_info(df, key, Y_key):
+    col = df[[key]]
+    series = df[key]
+    print()
+    pprint(f'column : "{key}", {series.isna().sum()}/{len(col)}(null/total)')
+    pprint(col.describe())
+    print('value_counts')
+    pprint(series.value_counts())
+    groupby = df[[key, Y_key]].groupby(key).agg(['mean', 'std', 'min', 'max', 'count'])
+    pprint(groupby)
+    print()
 
 
+df_keys = [
+    '1stFlrSF', '2ndFlrSF', '3SsnPorch', 'Alley', 'BedroomAbvGr',
+    'BldgType', 'BsmtCond', 'BsmtExposure', 'BsmtFinSF1', 'BsmtFinSF2',
+    'BsmtFinType1', 'BsmtFinType2', 'BsmtFullBath', 'BsmtHalfBath',
+    'BsmtQual', 'BsmtUnfSF', 'CentralAir', 'Condition1', 'Condition2',
+    'Electrical', 'EnclosedPorch', 'ExterCond', 'ExterQual', 'Exterior1st',
+    'Exterior2nd', 'Fence', 'FireplaceQu', 'Fireplaces', 'Foundation',
+    'FullBath', 'Functional', 'GarageArea', 'GarageCars', 'GarageCond',
+    'GarageFinish', 'GarageQual', 'GarageType', 'GarageYrBlt', 'GrLivArea',
+    'HalfBath', 'Heating', 'HeatingQC', 'HouseStyle', 'Id', 'KitchenAbvGr',
+    'KitchenQual', 'LandContour', 'LandSlope', 'LotArea', 'LotConfig',
+    'LotFrontage', 'LotShape', 'LowQualFinSF', 'MSSubClass', 'MSZoning',
+    'MasVnrArea', 'MasVnrType', 'MiscFeature', 'MiscVal', 'MoSold',
+    'Neighborhood', 'OpenPorchSF', 'OverallCond', 'OverallQual',
+    'PavedDrive', 'PoolArea', 'PoolQC', 'RoofMatl', 'RoofStyle',
+    'SaleCondition', 'SalePrice', 'SaleType', 'ScreenPorch', 'Street',
+    'TotRmsAbvGrd', 'TotalBsmtSF', 'Utilities', 'WoodDeckSF', 'YearBuilt',
+    'YearRemodAdd', 'YrSold'
+]
+df_Xs_keys = [
+    '1stFlrSF', '2ndFlrSF', '3SsnPorch', 'Alley', 'BedroomAbvGr',
+    'BldgType', 'BsmtCond', 'BsmtExposure', 'BsmtFinSF1', 'BsmtFinSF2',
+    'BsmtFinType1', 'BsmtFinType2', 'BsmtFullBath', 'BsmtHalfBath',
+    'BsmtQual', 'BsmtUnfSF', 'CentralAir', 'Condition1', 'Condition2',
+    'Electrical', 'EnclosedPorch', 'ExterCond', 'ExterQual', 'Exterior1st',
+    'Exterior2nd', 'Fence', 'FireplaceQu', 'Fireplaces', 'Foundation',
+    'FullBath', 'Functional', 'GarageArea', 'GarageCars', 'GarageCond',
+    'GarageFinish', 'GarageQual', 'GarageType', 'GarageYrBlt', 'GrLivArea',
+    'HalfBath', 'Heating', 'HeatingQC', 'HouseStyle', 'Id', 'KitchenAbvGr',
+    'KitchenQual', 'LandContour', 'LandSlope', 'LotArea', 'LotConfig',
+    'LotFrontage', 'LotShape', 'LowQualFinSF', 'MSSubClass', 'MSZoning',
+    'MasVnrArea', 'MasVnrType', 'MiscFeature', 'MiscVal', 'MoSold',
+    'Neighborhood', 'OpenPorchSF', 'OverallCond', 'OverallQual',
+    'PavedDrive', 'PoolArea', 'PoolQC', 'RoofMatl', 'RoofStyle',
+    'SaleCondition', 'SaleType', 'ScreenPorch', 'Street', 'TotRmsAbvGrd',
+    'TotalBsmtSF', 'Utilities', 'WoodDeckSF', 'YearBuilt', 'YearRemodAdd',
+    'YrSold'
+]
+df_Ys_key = 'SalePrice'
 
 
+def is_categorical(df, key):
+    col = df[[key]]
+    series = df[key]
+    value_counts = series.value_counts()
+    # pprint(value_counts)
+    pprint(key, len(value_counts))
 
+    pass
+
+
+def test_null_handling():
+    def df_column_has_null(df: DF) -> DF:
+        null_column = df.columns[df.isna().any()].tolist()
+        return df.loc[:, null_column]
+
+    dataset_path = """C:\\Users\\demetoir_desktop\\PycharmProjects\\MLtools\\data\\HousePrices"""
+    merge_df = load_merge_set(dataset_path)
+    pprint(merge_df.info())
+    pprint(df_column_has_null(merge_df).info())
+
+    null_column_df = df_column_has_null(merge_df)
+
+    null_handler = HousePrices_null_handler(null_column_df, df_Xs_keys, 'col_70_SalePrice', silent=False)
+    null_handler.boilerplate_maker(null_column_df, path='./gen_code.py')
+    # null_column_df = null_handler.execute()
+    pprint(df_column_has_null(null_column_df).info())
+    null_handler.gen_info()
+
+
+    # for key in null_column_df.keys():
+    #     is_categorical(null_column_df, key)
 
 
 @deco_timeit
 def main():
+    test_null_handling()
 
-    # data_pack = DatasetPackLoader().load_dataset('titanic')
-    # test_HyperOpt_space_with_data()
+    # test_HousePrices()
 
-    # check_pickle_able(data_pack['train'])
-    # check_pickle_able(titanic_train())
-    # check_pickle_able(DummyDataset())
-    # check_pickle_able(BaseDataset())
-    # check_pickle_able(data_pack)
-
-    # test_HyperOpt_parallel()
-    # test_hyperOpt()
-    # test_py_syntax()
-    # test_expon_min_max()
-
-    # test_param()
-
-    # test_wrapperRandomizedSearchCV()
+    # test_regpack_HyperOpt_serial()
+    # test_regpack_HyperOpt_parallel()
+    # test_wrapperclfpack_HyperOpt_serial()
+    # test_wrapperclfpack_HyperOpt_parallel()
     pass
