@@ -5,7 +5,7 @@ import numpy as np
 import os
 import sys
 
-from script.data_handler.Base_df_null_handler import df_add_col_num
+from script.data_handler.HousePrices_null_handler import HousePrices_null_cleaner
 from script.util.misc_util import path_join
 
 df_keys = [
@@ -49,7 +49,29 @@ df_Xs_keys = [
 df_Ys_key = 'SalePrice'
 
 
+def null_cleaning(merge_df):
+    nullCleaner = HousePrices_null_cleaner(merge_df, df_Xs_keys, 'col_70_SalePrice', silent=True)
+    info = nullCleaner.null_cols_info()
+    print(info)
+    nullCleaner.null_cols_plot()
+
+    # nullCleaner.boilerplate_maker(path='./gen_code.py')
+    merge_null_clean = nullCleaner.clean_null()
+    print(merge_null_clean.info())
+    return merge_null_clean
+
+
 def load_merge_set(path):
+    def df_add_col_num(df, zfill_width=None):
+        if zfill_width is None:
+            zfill_width = 0
+
+        mapping = {}
+        for idx, key in enumerate(df.keys()):
+            mapping[key] = f'col_{str(idx).zfill(zfill_width)}_{key}'
+
+        return df.rename(mapping, axis='columns')
+
     merged_path = path_join(path, 'merged.csv')
     if os.path.exists(merged_path):
         merged = pd.read_csv(merged_path)
