@@ -3,9 +3,9 @@ import numpy as np
 import random
 import inspect
 
+from script.data_handler.Base.df_plotterMixIn import df_plotterMixIn
 from script.util.MixIn import LoggerMixIn
 from script.util.PlotTools import PlotTools
-from script.util.Pool_context import Pool_context
 
 DF = pd.DataFrame
 Series = pd.Series
@@ -14,7 +14,7 @@ import_code = """
 import pandas as pd
 import numpy as np
 import random
-from script.data_handler.Base_df_null_handler import Base_df_null_handler
+from script.data_handler.Base_df_nullCleaner import Base_df_nullCleaner
 
 DF = pd.DataFrame
 Series = pd.Series
@@ -45,65 +45,6 @@ class null_clean_methodMixIn:
         p = np.array(count) / np.sum(count)
         df[key] = df[key].fillna(lambda x: random.choice(values, p=p))
         return df
-
-
-def deco_exception_catch(func):
-    def wrapper(*args, **kwargs):
-        self = args[0]
-        key = args[2]
-
-        try:
-            return func(*args, **kwargs)
-        except BaseException as e:
-            self.log.warn(f'\nfail {func.__name__}, {key}\n')
-            print(e)
-
-    return wrapper
-
-
-class df_plotterMixIn:
-
-    def __init__(self):
-        self.plot = PlotTools()
-
-    @deco_exception_catch
-    def _plot_dist(self, df: DF, key: str, col: DF, series: Series, Xs_key: list, Ys_key: list, path=None):
-        # np_array = np.array(series)
-
-        title = f'{key}_plot_dist'
-        self.plot.dist(np.array(series), title=title, path=f"./matplot/{title}.png")
-
-    @deco_exception_catch
-    def _plot_count(self, df: DF, key: str, col: DF, series: Series, Xs_key: list, Ys_key: list, path=None):
-        title = f'{key}_plot_count_bar'
-        self.plot.count(df, key, title=title, path=f"./matplot/{title}.png")
-
-    @deco_exception_catch
-    def _plot_violin(self, df: DF, key: str, col: DF, series: Series, Xs_key: list, Ys_key: list, path=None):
-        # df[key] = df[df[key].notna().to_list()]
-        # df[Ys_key] = df[df[key].notna()]
-        title = f'{key}_plot_violin'
-        self.plot.violin_plot(key, Ys_key, df, title=title, path=f"./matplot/{title}.png")
-
-    @deco_exception_catch
-    def _plot_joint2d(self, df: DF, key: str, col: DF, series: Series, Xs_key: list, Ys_key: list, path=None):
-        if df[key].dtype is not float:
-            raise TypeError()
-
-        title = f'{key}_plot_joint2d'
-        self.plot.joint_2d(key, Ys_key, df, title=title, path=f"./matplot/{title}.png")
-
-    def _df_cols_plot(self, df, df_Xs_keys, df_Ys_key):
-        with Pool_context() as pool:
-            for key in list(df.keys()):
-                col = df[[key]]
-                series = df[key]
-                args = (df, key, col, series, df_Xs_keys, df_Ys_key)
-
-                pool.apply_async(self._plot_dist, args=args)
-                pool.apply_async(self._plot_count, args=args)
-                pool.apply_async(self._plot_violin, args=args)
-                pool.apply_async(self._plot_joint2d, args=args)
 
 
 class Base_df_nullCleaner(LoggerMixIn, null_clean_methodMixIn, df_plotterMixIn):
@@ -148,23 +89,22 @@ class Base_df_nullCleaner(LoggerMixIn, null_clean_methodMixIn, df_plotterMixIn):
         self._df_cols_plot(df_only_null, list(df_only_null.keys()), self.df_Ys_key)
 
     def boilerplate_maker(self, path=None, encoding='UTF8'):
+        code = [import_code]
 
-        class_name = "boilder_plate_Base_df_Null_handler"
-        class_template = """class {class_name}(Base_df_null_handler):"""
-        mothod_template = inspect.getsource(self.__method_template)
-        mothod_template = mothod_template.replace('__method_template', '{col_name}')
+        base_class_name = self.__class__.__name__
+        class_name = f"boiler_plate_{base_class_name}"
+        class_template = f"""class {class_name}({base_class_name}):"""
+        code += [class_template.format(class_name=class_name)]
 
-        code = [
-            import_code,
-            class_template.format(class_name=class_name)
-        ]
-
+        method_template = inspect.getsource(self.__method_template)
+        method_template = method_template.replace('__method_template', '{col_name}')
         df_only_null = self.df_null_include(self.df)
         for key in df_only_null.keys():
-            method_code = mothod_template.format(col_name=key)
+            method_code = method_template.format(col_name=key)
             code += [method_code]
 
         code = "\n".join(code)
+
         if path is not None:
             with open(path, mode='w', encoding=encoding) as f:
                 f.write(code)
@@ -186,7 +126,3 @@ class Base_df_nullCleaner(LoggerMixIn, null_clean_methodMixIn, df_plotterMixIn):
         ret += [groupby]
 
         return "\n".join(map(str, ret))
-
-
-
-
