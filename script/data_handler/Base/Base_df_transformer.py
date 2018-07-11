@@ -1,6 +1,5 @@
 import pandas as pd
 import inspect
-
 from script.data_handler.Base.df_plotterMixIn import df_plotterMixIn
 from script.util.MixIn import LoggerMixIn
 
@@ -53,3 +52,12 @@ class Base_df_transformer(LoggerMixIn, df_plotterMixIn):
                 f.write(code)
 
         return code
+
+    def plot_all(self):
+        self._df_cols_plot(self.df, self.df_Xs_keys, self.df_Ys_key)
+
+
+
+
+    def transform(self):
+        pass
