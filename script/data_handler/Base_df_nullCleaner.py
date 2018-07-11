@@ -10,18 +10,6 @@ from script.util.Pool_context import Pool_context
 DF = pd.DataFrame
 Series = pd.Series
 
-
-def df_add_col_num(df, zfill_width=None):
-    if zfill_width is None:
-        zfill_width = 0
-
-    mapping = {}
-    for idx, key in enumerate(df.keys()):
-        mapping[key] = f'col_{str(idx).zfill(zfill_width)}_{key}'
-
-    return df.rename(mapping, axis='columns')
-
-
 import_code = """
 import pandas as pd
 import numpy as np
@@ -32,6 +20,31 @@ DF = pd.DataFrame
 Series = pd.Series
 
 """
+
+
+class null_clean_methodMixIn:
+    @staticmethod
+    def drop_col(df: DF, key) -> DF:
+        return df.drop(columns=key)
+
+    @staticmethod
+    def fill_major_value_cate(df: DF, key) -> DF:
+        major_value = df[key].astype(str).describe()['top']
+        df[key] = df[key].fillna(major_value)
+        return df
+
+    @staticmethod
+    def fill_random_value_cate(df: DF, key) -> DF:
+        values = df[key].value_counts().keys()
+        df[key] = df[key].fillna(lambda x: random.choice(values))
+        return df
+
+    @staticmethod
+    def fill_rate_value_cate(df: DF, key) -> DF:
+        values, count = zip(*list(df[key].value_counts().items()))
+        p = np.array(count) / np.sum(count)
+        df[key] = df[key].fillna(lambda x: random.choice(values, p=p))
+        return df
 
 
 def deco_exception_catch(func):
@@ -48,71 +61,94 @@ def deco_exception_catch(func):
     return wrapper
 
 
-class Base_df_nullCleaner(LoggerMixIn):
+class df_plotterMixIn:
+
+    def __init__(self):
+        self.plot = PlotTools()
+
+    @deco_exception_catch
+    def _plot_dist(self, df: DF, key: str, col: DF, series: Series, Xs_key: list, Ys_key: list, path=None):
+        # np_array = np.array(series)
+
+        title = f'{key}_plot_dist'
+        self.plot.dist(np.array(series), title=title, path=f"./matplot/{title}.png")
+
+    @deco_exception_catch
+    def _plot_count(self, df: DF, key: str, col: DF, series: Series, Xs_key: list, Ys_key: list, path=None):
+        title = f'{key}_plot_count_bar'
+        self.plot.count(df, key, title=title, path=f"./matplot/{title}.png")
+
+    @deco_exception_catch
+    def _plot_violin(self, df: DF, key: str, col: DF, series: Series, Xs_key: list, Ys_key: list, path=None):
+        # df[key] = df[df[key].notna().to_list()]
+        # df[Ys_key] = df[df[key].notna()]
+        title = f'{key}_plot_violin'
+        self.plot.violin_plot(key, Ys_key, df, title=title, path=f"./matplot/{title}.png")
+
+    @deco_exception_catch
+    def _plot_joint2d(self, df: DF, key: str, col: DF, series: Series, Xs_key: list, Ys_key: list, path=None):
+        if df[key].dtype is not float:
+            raise TypeError()
+
+        title = f'{key}_plot_joint2d'
+        self.plot.joint_2d(key, Ys_key, df, title=title, path=f"./matplot/{title}.png")
+
+    def _df_cols_plot(self, df, df_Xs_keys, df_Ys_key):
+        with Pool_context() as pool:
+            for key in list(df.keys()):
+                col = df[[key]]
+                series = df[key]
+                args = (df, key, col, series, df_Xs_keys, df_Ys_key)
+
+                pool.apply_async(self._plot_dist, args=args)
+                pool.apply_async(self._plot_count, args=args)
+                pool.apply_async(self._plot_violin, args=args)
+                pool.apply_async(self._plot_joint2d, args=args)
+
+
+class Base_df_nullCleaner(LoggerMixIn, null_clean_methodMixIn, df_plotterMixIn):
     def __init__(self, df: DF, df_Xs_keys, df_Ys_key, silent=False, verbose=0):
         LoggerMixIn.__init__(self, verbose)
+        null_clean_methodMixIn.__init__(self)
+        df_plotterMixIn.__init__(self)
+
         self.df = df
         self.silent = silent
         self.df_Xs_keys = df_Xs_keys
-        self.df_Ys_keys = df_Ys_key
+        self.df_Ys_key = df_Ys_key
         self.plot = PlotTools()
 
     def __method_template(self, df: DF, key: str, col: DF, series: Series, Xs_key: list, Ys_key: list):
         return df
 
-    def execute(self, *args, **kwargs) -> DF:
+    def clean_null(self) -> DF:
         for key, val in self.__class__.__dict__.items():
             if key in self.df.keys():
                 col = self.df[[key]]
                 series = self.df[key]
-                self.df = val(self, self.df, key, col, series, self.df_Xs_keys, self.df_Ys_keys)
+                self.df = val(self, self.df, key, col, series, self.df_Xs_keys, self.df_Ys_key)
 
         return self.df
 
-    def gen_info(self):
-        with Pool_context() as pool:
-            for key, val in list(self.__class__.__dict__.items()):
-                if key in self.df.keys():
-                    col = self.df[[key]]
-                    series = self.df[key]
-                    self.print_null_col_info(self.df, key)
+    def null_cols_info(self) -> str:
+        ret = []
+        for key, val in list(self.__class__.__dict__.items()):
+            if key in self.df.keys():
+                info = self._str_null_col_info(self.df, key)
+                ret += [info]
 
-                    args = (self.df, key, col, series, self.df_Xs_keys, self.df_Ys_keys)
+        return "\n\n".join(ret)
 
-                    pool.apply_async(self.plot_dist, args=args)
-                    pool.apply_async(self.plot_count, args=args)
-                    pool.apply_async(self.plot_violin, args=args)
-                    pool.apply_async(self.plot_joint2d, args=args)
-
-    @staticmethod
-    def drop_col(df: DF, key):
-        return df.drop(columns=key)
-
-    @staticmethod
-    def fill_major_value_cate(df: DF, key):
-        major_value = df[key].astype(str).describe()['top']
-        df[key] = df[key].fillna(major_value)
-        return df
-
-    @staticmethod
-    def fill_random_value_cate(df: DF, key):
-        values = df[key].value_counts().keys()
-        df[key] = df[key].fillna(lambda x: random.choice(values))
-        return df
-
-    @staticmethod
-    def fill_rate_value_cate(df: DF, key):
-        values, count = zip(*list(df[key].value_counts().items()))
-        p = np.array(count) / np.sum(count)
-        df[key] = df[key].fillna(lambda x: random.choice(values, p=p))
-        return df
-
-    @staticmethod
-    def df_null_include(df: DF) -> DF:
+    def df_null_include(self, df: DF) -> DF:
         null_column = df.columns[df.isna().any()].tolist()
         return df.loc[:, null_column]
 
+    def null_cols_plot(self):
+        df_only_null = self.df_null_include(self.df)
+        self._df_cols_plot(df_only_null, list(df_only_null.keys()), self.df_Ys_key)
+
     def boilerplate_maker(self, path=None, encoding='UTF8'):
+
         class_name = "boilder_plate_Base_df_Null_handler"
         class_template = """class {class_name}(Base_df_null_handler):"""
         mothod_template = inspect.getsource(self.__method_template)
@@ -135,38 +171,18 @@ class Base_df_nullCleaner(LoggerMixIn):
 
         return code
 
-    def print_null_col_info(self, df: DF, key):
-        if not self.silent:
-            col = df[[key]]
-            series = df[key]
-            print()
+    def _str_null_col_info(self, df: DF, key) -> str:
+        ret = []
+        col = df[[key]]
+        series = df[key]
 
-            na_count = series.isna().sum()
-            total = len(col)
-            print(f'column : "{key}", {float(na_count)/float(total):.4f}% {na_count}/{total}(null/total)')
-            print(col.describe())
+        na_count = series.isna().sum()
+        total = len(col)
+        ret += [f'column : "{key}", null ratio:{float(na_count)/float(total):.4f}%,  {na_count}/{total}(null/total)']
+        ret += [col.describe()]
+        ret += ['value_counts']
+        ret += [series.value_counts()]
+        groupby = df[[key, self.df_Ys_key]].groupby(key).agg(['mean', 'std', 'min', 'max', 'count'])
+        ret += [groupby]
 
-            print('value_counts')
-            print(series.value_counts())
-
-            groupby = df[[key, self.df_Ys_keys]].groupby(key).agg(['mean', 'std', 'min', 'max', 'count'])
-            print(groupby)
-
-            print()
-
-    @deco_exception_catch
-    def plot_dist(self, df: DF, key: str, col: DF, series: Series, Xs_key: list, Ys_key: list, path=None):
-        np_array = np.array(series[series.notna()])
-        self.plot.dist(np_array, title=key, path=f"./matplot/{key}_dist.png")
-
-    @deco_exception_catch
-    def plot_count(self, df: DF, key: str, col: DF, series: Series, Xs_key: list, Ys_key: list, path=None):
-        self.plot.count(df, key, title=key, path=f"./matplot/{key}_count.png")
-
-    @deco_exception_catch
-    def plot_violin(self, df: DF, key: str, col: DF, series: Series, Xs_key: list, Ys_key: list, path=None):
-        self.plot.violin_plot(key, Ys_key, df, title=key, path=f"./matplot/{key}_violin.png")
-
-    @deco_exception_catch
-    def plot_joint2d(self, df: DF, key: str, col: DF, series: Series, Xs_key: list, Ys_key: list, path=None):
-        self.plot.joint_2d(key, Ys_key, df, title=key, path=f'./matplot/{key}_joint2d.png')
+        return "\n".join(map(str, ret))
