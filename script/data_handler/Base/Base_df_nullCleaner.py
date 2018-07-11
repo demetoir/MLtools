@@ -10,17 +10,6 @@ from script.util.PlotTools import PlotTools
 DF = pd.DataFrame
 Series = pd.Series
 
-import_code = """
-import pandas as pd
-import numpy as np
-import random
-from script.data_handler.Base_df_nullCleaner import Base_df_nullCleaner
-
-DF = pd.DataFrame
-Series = pd.Series
-
-"""
-
 
 class null_clean_methodMixIn:
     @staticmethod
@@ -62,6 +51,40 @@ class Base_df_nullCleaner(LoggerMixIn, null_clean_methodMixIn, df_plotterMixIn):
     def __method_template(self, df: DF, key: str, col: DF, series: Series, Xs_key: list, Ys_key: list):
         return df
 
+    def boilerplate_maker(self, path=None, encoding='UTF8'):
+        base_class_name = self.__class__.__name__
+
+        import_code = f"""
+        import pandas as pd
+        import numpy as np
+        import random
+        from script.data_handler.{base_class_name} import {base_class_name} 
+
+        DF = pd.DataFrame
+        Series = pd.Series
+
+        """
+        code = [import_code]
+
+        class_name = f"boiler_plate_{base_class_name}"
+        class_template = f"""class {class_name}({base_class_name}):"""
+        code += [class_template.format(class_name=class_name)]
+
+        method_template = inspect.getsource(self.__method_template)
+        method_template = method_template.replace('__method_template', '{col_name}')
+        df_only_null = self._df_null_include(self.df)
+        for key in df_only_null.keys():
+            method_code = method_template.format(col_name=key)
+            code += [method_code]
+
+        code = "\n".join(code)
+
+        if path is not None:
+            with open(path, mode='w', encoding=encoding) as f:
+                f.write(code)
+
+        return code
+
     def clean_null(self) -> DF:
         for key, val in self.__class__.__dict__.items():
             if key in self.df.keys():
@@ -80,36 +103,13 @@ class Base_df_nullCleaner(LoggerMixIn, null_clean_methodMixIn, df_plotterMixIn):
 
         return "\n\n".join(ret)
 
-    def df_null_include(self, df: DF) -> DF:
-        null_column = df.columns[df.isna().any()].tolist()
-        return df.loc[:, null_column]
-
     def null_cols_plot(self):
-        df_only_null = self.df_null_include(self.df)
+        df_only_null = self._df_null_include(self.df)
         self._df_cols_plot(df_only_null, list(df_only_null.keys()), self.df_Ys_key)
 
-    def boilerplate_maker(self, path=None, encoding='UTF8'):
-        code = [import_code]
-
-        base_class_name = self.__class__.__name__
-        class_name = f"boiler_plate_{base_class_name}"
-        class_template = f"""class {class_name}({base_class_name}):"""
-        code += [class_template.format(class_name=class_name)]
-
-        method_template = inspect.getsource(self.__method_template)
-        method_template = method_template.replace('__method_template', '{col_name}')
-        df_only_null = self.df_null_include(self.df)
-        for key in df_only_null.keys():
-            method_code = method_template.format(col_name=key)
-            code += [method_code]
-
-        code = "\n".join(code)
-
-        if path is not None:
-            with open(path, mode='w', encoding=encoding) as f:
-                f.write(code)
-
-        return code
+    def _df_null_include(self, df: DF) -> DF:
+        null_column = df.columns[df.isna().any()].tolist()
+        return df.loc[:, null_column]
 
     def _str_null_col_info(self, df: DF, key) -> str:
         ret = []
