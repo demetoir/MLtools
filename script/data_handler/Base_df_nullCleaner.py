@@ -37,16 +37,18 @@ Series = pd.Series
 def deco_exception_catch(func):
     def wrapper(*args, **kwargs):
         self = args[0]
+        key = args[2]
 
         try:
             return func(*args, **kwargs)
         except BaseException as e:
-            self.log.warn(f'\nfail {func.__name__}, {args}, {kwargs}\n')
+            self.log.warn(f'\nfail {func.__name__}, {key}\n')
+            print(e)
 
     return wrapper
 
 
-class Base_df_null_handler(LoggerMixIn):
+class Base_df_nullCleaner(LoggerMixIn):
     def __init__(self, df: DF, df_Xs_keys, df_Ys_key, silent=False, verbose=0):
         LoggerMixIn.__init__(self, verbose)
         self.df = df
@@ -59,8 +61,6 @@ class Base_df_null_handler(LoggerMixIn):
         return df
 
     def execute(self, *args, **kwargs) -> DF:
-        self.gen_info()
-
         for key, val in self.__class__.__dict__.items():
             if key in self.df.keys():
                 col = self.df[[key]]
@@ -81,6 +81,8 @@ class Base_df_null_handler(LoggerMixIn):
 
                     pool.apply_async(self.plot_dist, args=args)
                     pool.apply_async(self.plot_count, args=args)
+                    pool.apply_async(self.plot_violin, args=args)
+                    pool.apply_async(self.plot_joint2d, args=args)
 
     @staticmethod
     def drop_col(df: DF, key):
@@ -88,7 +90,7 @@ class Base_df_null_handler(LoggerMixIn):
 
     @staticmethod
     def fill_major_value_cate(df: DF, key):
-        major_value = df[key].describe()['top']
+        major_value = df[key].astype(str).describe()['top']
         df[key] = df[key].fillna(major_value)
         return df
 
@@ -105,7 +107,12 @@ class Base_df_null_handler(LoggerMixIn):
         df[key] = df[key].fillna(lambda x: random.choice(values, p=p))
         return df
 
-    def boilerplate_maker(self, df, path=None, encoding='UTF8'):
+    @staticmethod
+    def df_null_include(df: DF) -> DF:
+        null_column = df.columns[df.isna().any()].tolist()
+        return df.loc[:, null_column]
+
+    def boilerplate_maker(self, path=None, encoding='UTF8'):
         class_name = "boilder_plate_Base_df_Null_handler"
         class_template = """class {class_name}(Base_df_null_handler):"""
         mothod_template = inspect.getsource(self.__method_template)
@@ -116,7 +123,8 @@ class Base_df_null_handler(LoggerMixIn):
             class_template.format(class_name=class_name)
         ]
 
-        for key in df.keys():
+        df_only_null = self.df_null_include(self.df)
+        for key in df_only_null.keys():
             method_code = mothod_template.format(col_name=key)
             code += [method_code]
 
@@ -146,15 +154,19 @@ class Base_df_null_handler(LoggerMixIn):
 
             print()
 
+    @deco_exception_catch
     def plot_dist(self, df: DF, key: str, col: DF, series: Series, Xs_key: list, Ys_key: list, path=None):
-        try:
-            np_array = np.array(series[series.notna()])
-            self.plot.dist(np_array, title=key, path=f"./matplot/{key}_dist.png")
-        except BaseException as e:
-            self.log.warn(f'fail plot dist at {key}')
+        np_array = np.array(series[series.notna()])
+        self.plot.dist(np_array, title=key, path=f"./matplot/{key}_dist.png")
 
+    @deco_exception_catch
     def plot_count(self, df: DF, key: str, col: DF, series: Series, Xs_key: list, Ys_key: list, path=None):
-        try:
-            self.plot.count(df, key, title=key, path=f"./matplot/{key}_count.png")
-        except BaseException as e:
-            self.log.warn(f'fail plot count at {key}')
+        self.plot.count(df, key, title=key, path=f"./matplot/{key}_count.png")
+
+    @deco_exception_catch
+    def plot_violin(self, df: DF, key: str, col: DF, series: Series, Xs_key: list, Ys_key: list, path=None):
+        self.plot.violin_plot(key, Ys_key, df, title=key, path=f"./matplot/{key}_violin.png")
+
+    @deco_exception_catch
+    def plot_joint2d(self, df: DF, key: str, col: DF, series: Series, Xs_key: list, Ys_key: list, path=None):
+        self.plot.joint_2d(key, Ys_key, df, title=key, path=f'./matplot/{key}_joint2d.png')
