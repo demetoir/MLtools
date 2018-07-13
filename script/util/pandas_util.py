@@ -1,8 +1,9 @@
 import numpy as np
 import pandas as pd
-
-from script.data_handler.Base.Base_df_transformer import DF, NpArr
 from script.util.numpy_utils import np_minmax_normalize
+
+DF = pd.DataFrame
+NpArr = np.array
 
 
 def df_bucketize(df, key, bucket_range, column='bucket', na='None', null='None'):
