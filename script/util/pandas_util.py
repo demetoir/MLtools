@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 from script.util.numpy_utils import np_minmax_normalize
+import math
 
 DF = pd.DataFrame
 NpArr = np.array
@@ -69,7 +70,7 @@ def df_binning(df: DF, key: str, bin_seq: list, column_tail='_binning') -> DF:
 
     for i in range(len(bin_seq) - 1):
         a, b = bin_seq[i: i + 2]
-        name = f'{a}~{b}'
+        name = f'bin{str(i).zfill(int(math.log10(len(bin_seq))) + 1)}_{a}~{b}'
 
         query = f'{a} <= {key} < {b}'
         idx = list(df.query(query).index.values)
