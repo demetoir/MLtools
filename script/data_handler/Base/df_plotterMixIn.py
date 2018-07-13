@@ -29,8 +29,7 @@ class df_plotterMixIn:
 
     @deco_exception_catch
     def _plot_dist(self, df: DF, key: str, col: DF, series: Series, Xs_key: list, Ys_key: list, path=None):
-        # np_array = np.array(series)
-
+        np_array = np.array(series[series.isna()])
         title = f'{key}_plot_dist'
         self.plot.dist(np.array(series), title=title, path=f"./matplot/{title}.png")
 
@@ -48,8 +47,7 @@ class df_plotterMixIn:
 
     @deco_exception_catch
     def _plot_joint2d(self, df: DF, key: str, col: DF, series: Series, Xs_key: list, Ys_key: list, path=None):
-        if df[key].dtype is not float:
-            raise TypeError()
+        # raise TypeError()
 
         title = f'{key}_plot_joint2d'
         self.plot.joint_2d(key, Ys_key, df, title=title, path=f"./matplot/{title}.png")
