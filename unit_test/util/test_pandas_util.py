@@ -1,11 +1,10 @@
 from pprint import pprint
-
 import numpy as np
-
+import pandas as pd
 from script.util.PlotTools import PlotTools
 from script.util.deco import deco_timeit
-from script.util.pandas_util import df_binning
-from unit_test.data_handler.Base_df_transformer import DF
+from script.util.pandas_util import df_binning, df_minmax_normalize, df_to_onehot_embedding
+DF = pd.DataFrame
 
 
 def test_df_minmax_normalize():
