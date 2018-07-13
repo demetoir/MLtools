@@ -2,15 +2,34 @@ import pandas as pd
 import inspect
 from script.data_handler.Base.df_plotterMixIn import df_plotterMixIn
 from script.util.MixIn import LoggerMixIn
+import numpy as np
+from script.util.pandas_util import df_binning, df_minmax_normalize, df_to_onehot_embedding
 
 DF = pd.DataFrame
 Series = pd.Series
+NpArr = np.array
 
 
-class Base_df_transformer(LoggerMixIn, df_plotterMixIn):
+class transform_methodMixIn:
+
+    @staticmethod
+    def mixmax_normalize(df: DF, key) -> DF:
+        return df_minmax_normalize(df, key)
+
+    @staticmethod
+    def binning(df: DF, key: str, bin_seq: list, column_tail='_binning') -> DF:
+        return df_binning(df, key, bin_seq, column_tail)
+
+    @staticmethod
+    def to_onehot(df: DF, keys: list) -> DF:
+        return df_to_onehot_embedding(df[keys])
+
+
+class Base_df_transformer(LoggerMixIn, df_plotterMixIn, transform_methodMixIn):
     def __init__(self, df: DF, df_Xs_keys, df_Ys_key, silent=False, verbose=0):
         LoggerMixIn.__init__(self, verbose)
         df_plotterMixIn.__init__(self)
+        transform_methodMixIn.__init__(self)
 
         self.df = df
         self.df_Xs_keys = df_Xs_keys
