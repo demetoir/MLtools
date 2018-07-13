@@ -1,6 +1,9 @@
 import numpy as np
 import pandas as pd
 
+from script.data_handler.Base.Base_df_transformer import DF, NpArr
+from script.util.numpy_utils import np_minmax_normalize
+
 
 def df_bucketize(df, key, bucket_range, column='bucket', na='None', null='None'):
     new_df = pd.DataFrame({column: df[key]})
@@ -32,8 +35,9 @@ def df_to_np_dict(df, dtype=None):
     return ret
 
 
-def df_to_onehot_embedding(df):
-    ret = pd.DataFrame({'_idx': [i for i in range(len(df))]})
+def df_to_onehot_embedding(df: DF) -> DF:
+    ret = pd.DataFrame({'_idx': np.zeros(len(df))})
+
     for df_key in df.keys():
         np_arr = np.array(df[df_key])
         for unique_key in sorted(df[df_key].unique()):
@@ -52,3 +56,30 @@ def df_to_np_onehot_embedding(df):
 
     ret = np.concatenate([v for k, v in ret.items()], axis=1)
     return ret
+
+
+def df_binning(df: DF, key: str, bin_seq: list, column_tail='_binning') -> DF:
+    col_bucketed = key + column_tail
+    col_intensity = key + '_intensity'
+    new_df = pd.DataFrame({
+        col_bucketed: df[key],
+        col_intensity: np.zeros(len(df[key]))
+    })
+
+    for i in range(len(bin_seq) - 1):
+        a, b = bin_seq[i: i + 2]
+        name = f'{a}~{b}'
+
+        query = f'{a} <= {key} < {b}'
+        idx = list(df.query(query).index.values)
+        new_df.loc[idx, col_bucketed] = name
+        new_df.loc[idx, col_intensity] = (df.loc[idx, key] - a) / (b - a)
+
+    return new_df
+
+
+def df_minmax_normalize(df: DF, key: str, min=None, max=None, col_tail='_normailized') -> DF:
+    np_x = NpArr(df[key])
+    np_x_normalized = np_minmax_normalize(np_x, min, max)
+    new_df = DF({key + col_tail: np_x_normalized})
+    return new_df
