@@ -3,11 +3,12 @@
 * np_img(single numpy image ) is numpy array with shape WHC
 * np_imgs(multiple numpy images) is numpy array with shape NWHC
 """
+import scipy
 from PIL import Image
 from skimage import color, io
 import math
 import numpy as np
-
+from scipy.stats import rankdata
 NpArr = np.array
 
 
@@ -218,3 +219,31 @@ def np_minmax_normalize(np_x: NpArr, min=None, max=None) -> NpArr:
         max = np.max(np_x)
 
     return (np_x - min) / (max - min)
+
+
+def np_equal_bins(np_x: NpArr, n_bins: int) -> NpArr:
+    np_x_size = np_x.shape[0]
+    bin_size = np_x_size // n_bins
+
+    rank = rankdata(np_x, method='dense')
+    rank_count = np.bincount(rank)
+    accumulate_sum = np.cumsum(rank_count)
+    bins = [
+        np_x[
+            np.argwhere(
+                rank == np.searchsorted(accumulate_sum, i, side='right'))
+        ]
+        for i in range(bin_size, np_x_size, bin_size)
+    ]
+
+    # for i in range(bin_size, np_x_size, bin_size):
+    #     value = np.searchsorted(accumulate_sum, i, side='right')
+    #     idx = np.argwhere(rank == value)
+    #     bins += [np_x[idx]]
+
+    bins = np.reshape(bins, newshape=[-1])
+    return np.concatenate([
+        NpArr([np.min(np_x)]),
+        bins,
+        NpArr([np.max(np_x)]),
+    ])
