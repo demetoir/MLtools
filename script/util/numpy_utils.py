@@ -8,6 +8,8 @@ from skimage import color, io
 import math
 import numpy as np
 
+from script.data_handler.Base.Base_df_transformer import NpArr
+
 
 def np_img_float32_to_uint8(np_img):
     """type cast numpy image from float to uint8
@@ -206,3 +208,13 @@ def np_stat_dict(a):
 
 def is_np_arr(x):
     return isinstance(x, np.ndarray)
+
+
+def np_minmax_normalize(np_x: NpArr, min=None, max=None) -> NpArr:
+    if min is None:
+        min = np.min(np_x)
+
+    if max is None:
+        max = np.max(np_x)
+
+    return (np_x - min) / (max - min)
