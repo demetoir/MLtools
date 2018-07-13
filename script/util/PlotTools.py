@@ -50,6 +50,18 @@ line_marker = list(itertools.product(line_set, color_set))
 line_marker = map(lambda x: "".join(x), line_marker)
 
 
+def deco_rollback_plt(func):
+    def wrapper(*args, **kwargs):
+        try:
+            func(*args, **kwargs)
+        except BaseException as e:
+            self = args[0]
+            self.plt.clf()
+            raise e
+
+    return wrapper
+
+
 class PlotTools:
 
     def __init__(self, dpi=300):
@@ -147,6 +159,7 @@ class PlotTools:
         self.sns.set_style('whitegrid')
         self.sns.set_color_codes()
 
+    @deco_rollback_plt
     def dist(self, np_x, bins=None, ax=None, axlabel=None, path=None, show=False, title=None, extend='.png'):
         warnings.filterwarnings(module='matplotlib*', action='ignore', category=UserWarning)
 
@@ -160,6 +173,7 @@ class PlotTools:
 
         self.plt_common_teardown(fig, path=path, show=show, title=title, extend=extend)
 
+    @deco_rollback_plt
     def count(self, df, column, hue=None, path=None, show=False, title=None, extend='.png'):
         self.sns_setup()
 
@@ -169,6 +183,7 @@ class PlotTools:
 
         self.plt_common_teardown(fig, path=path, show=show, title=title, extend=extend)
 
+    @deco_rollback_plt
     def line(self, dots, linewidth=1, path=None, show=False, title=None, extend='.png'):
         self.sns_setup()
         fig = self.figure
@@ -184,6 +199,7 @@ class PlotTools:
 
         self.plt_common_teardown(fig, path=path, show=show, title=title, extend=extend)
 
+    @deco_rollback_plt
     def scatter_2d(self, dots, marker_size=2, path=None, show=False, title=None, extend='.png'):
         self.sns_setup()
         fig = self.figure
@@ -196,15 +212,15 @@ class PlotTools:
 
         self.plt_common_teardown(fig, path=path, show=show, title=title, extend=extend)
 
+    @deco_rollback_plt
     def joint_2d(self, x_col, y_col, df, kind='reg', path=None, show=False, title=None, extend='.png'):
-        self.sns_setup()
-        # fig = self.figure
 
+        self.sns_setup()
         sns_plot = self.sns.jointplot(x_col, y_col, data=df, kind=kind)
         fig = sns_plot.fig
-
         self.plt_common_teardown(fig, path=path, show=show, title=title, extend=extend)
 
+    @deco_rollback_plt
     def violin_plot(self, x_col, y_col, df, hue=None, with_swarmplot=True, path=None, show=False, title=None,
                     extend='.png'):
         self.sns_setup()
@@ -217,6 +233,7 @@ class PlotTools:
 
         self.plt_common_teardown(fig, path=path, show=show, title=title, extend=extend)
 
+    @deco_rollback_plt
     def heatmap(self, np_arr, vmin=-1.0, vmax=1.0, center=0, annot=False, fmt='.2f', cmap=None, mask=False,
                 mask_color='white', path=None, show=False, title=None, extend='.png'):
         self.sns_setup()
@@ -241,6 +258,7 @@ class PlotTools:
 
         self.plt_common_teardown(fig, path=path, show=show, title=title, extend=extend)
 
+    @deco_rollback_plt
     def cluster_map(self, df, row_group_key=None, col_group_key=None, metric='correlation', path=None, show=False,
                     title=None, extend='.png'):
         self.sns_setup()
@@ -264,6 +282,7 @@ class PlotTools:
 
         self.plt_common_teardown(fig, path=path, show=show, title=title, extend=extend)
 
+    @deco_rollback_plt
     def pair_plot(self, df, hue=None, path=None, show=False, title=None, extend='.png'):
         self.sns_setup()
 
