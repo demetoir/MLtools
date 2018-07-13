@@ -8,7 +8,7 @@ from skimage import color, io
 import math
 import numpy as np
 
-from script.data_handler.Base.Base_df_transformer import NpArr
+NpArr = np.array
 
 
 def np_img_float32_to_uint8(np_img):
