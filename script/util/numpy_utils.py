@@ -3,12 +3,12 @@
 * np_img(single numpy image ) is numpy array with shape WHC
 * np_imgs(multiple numpy images) is numpy array with shape NWHC
 """
-import scipy
 from PIL import Image
 from skimage import color, io
 import math
 import numpy as np
 from scipy.stats import rankdata
+
 NpArr = np.array
 
 
@@ -221,7 +221,7 @@ def np_minmax_normalize(np_x: NpArr, min=None, max=None) -> NpArr:
     return (np_x - min) / (max - min)
 
 
-def np_equal_bins(np_x: NpArr, n_bins: int) -> NpArr:
+def np_frequency_equal_bins(np_x: NpArr, n_bins: int) -> NpArr:
     np_x_size = np_x.shape[0]
     bin_size = np_x_size // n_bins
 
@@ -232,7 +232,7 @@ def np_equal_bins(np_x: NpArr, n_bins: int) -> NpArr:
         np_x[
             np.argwhere(
                 rank == np.searchsorted(accumulate_sum, i, side='right'))
-        ]
+        ][0]
         for i in range(bin_size, np_x_size, bin_size)
     ]
 
@@ -242,8 +242,16 @@ def np_equal_bins(np_x: NpArr, n_bins: int) -> NpArr:
     #     bins += [np_x[idx]]
 
     bins = np.reshape(bins, newshape=[-1])
-    return np.concatenate([
-        NpArr([np.min(np_x)]),
+    bins[-1] = NpArr([np.max(np_x) + 1])
+    bins = np.concatenate([
+        NpArr([np.min(np_x) - 1]),
         bins,
-        NpArr([np.max(np_x)]),
     ])
+    return bins
+
+
+def np_width_equal_bins(np_x: NpArr, width: int, ) -> NpArr:
+    min_ = np.min(np_x) - 1
+    max_ = np.max(np_x) + 1
+    bins = np.concatenate([np.arange(min_, max_, width), [max_]])
+    return bins
