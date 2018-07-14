@@ -71,6 +71,8 @@ class PlotTools:
         self.show = show
         self.extend = extend
 
+        self.xticklabel_rotation = -45
+
         import seaborn as _sns
         self.sns = _sns
         del _sns
@@ -173,12 +175,12 @@ class PlotTools:
         self.sns.set_color_codes()
 
     @deco_rollback_plt
-    def dist(self, np_x, bins=None, ax=None, axlabel=None, path=None, **kwargs):
+    def dist(self, df, column, bins=None, ax=None, axlabel=None, path=None, **kwargs):
         warnings.filterwarnings(module='matplotlib*', action='ignore', category=UserWarning)
 
         self.sns_setup()
 
-        sns_plot = self.sns.distplot(np_x, bins=bins, rug=True, hist=True, ax=ax, axlabel=axlabel,
+        sns_plot = self.sns.distplot(np.array(df[column]), bins=bins, rug=True, hist=True, ax=ax, axlabel=axlabel,
                                      rug_kws={"color": "g", 'label': 'rug'},
                                      kde_kws={"color": "r", "label": "KDE"},
                                      hist_kws={"color": "b", "label": 'hist'})
@@ -190,8 +192,13 @@ class PlotTools:
     def count(self, df, column, hue=None, path=None, **kwargs):
         self.sns_setup()
 
+        order = sorted(df[column].value_counts().index)
         # fig = self.figure
-        sns_plot = self.sns.countplot(x=column, data=df, hue=hue)
+        sns_plot = self.sns.countplot(x=column, data=df, hue=hue, order=order)
+        # sns_plot.set_xticklabels(sns_plot.get_xticklabels(), rotation=self.xticklabel_rotation)
+        sns_plot.set_xticklabels(sns_plot.get_xticklabels(), rotation=self.xticklabel_rotation, ha="left",
+                                 rotation_mode='anchor')
+        # self.plt.tight_layout()
         fig = sns_plot.figure
 
         self.plt_common_teardown(fig, path=path, **kwargs)
@@ -236,11 +243,18 @@ class PlotTools:
     @deco_rollback_plt
     def violin_plot(self, x_col, y_col, df, hue=None, with_swarmplot=True, path=None, **kwargs):
         self.sns_setup()
-        sns_plot = self.sns.violinplot(x_col, y_col, hue=hue, data=df)
+
+        order = sorted(df[x_col].value_counts().index)
+        sns_plot = self.sns.violinplot(x_col, y_col, hue=hue, data=df, order=order)
         if with_swarmplot:
             dodge = True if hue is not None else False
             sns_plot = self.sns.swarmplot(x_col, y_col, hue=hue, data=df, dodge=dodge,
-                                          color='magenta', size=2)
+                                          color='magenta', size=2, order=order)
+
+        sns_plot.set_xticklabels(sns_plot.get_xticklabels(), rotation=self.xticklabel_rotation, ha="left",
+                                 rotation_mode='anchor')
+        # sns_plot.set_xticklabels(sns_plot.get_xticklabels(), rotation=self.xticklabel_rotation)
+
         fig = sns_plot.figure
 
         self.plt_common_teardown(fig, path=path, **kwargs)
