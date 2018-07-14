@@ -1,23 +1,34 @@
 # -*- coding:utf-8 -*-
+import pandas as pd
 import inspect
 import numpy as np
+
+from script.data_handler.HousePricesTransformer import HousePricesTransformer
 from script.data_handler.DatasetPackLoader import DatasetPackLoader
-from script.data_handler.HousePrices import load_merge_set
-from script.data_handler.HousePrices_null_handler import HousePrices_null_handler
+from script.data_handler.HousePrices import load_merge_set, df_Xs_keys, df_Ys_key, null_cleaning, transform_df, \
+    train_test_split
 from script.sklearn_like_toolkit.ClassifierPack import ClassifierPack
 from script.sklearn_like_toolkit.HyperOpt.HyperOpt import HyperOpt
 # print(built-in function) is not good for logging
 from script.sklearn_like_toolkit.RegressionPack import RegressionPack
 from script.util.Logger import pprint_logger, Logger
+from script.util.PlotTools import PlotTools
 from script.util.deco import deco_timeit
+from script.util.misc_util import path_join
+from script.util.pandas_util import df_binning
+from unit_test.data_handler.test_HousePrices import test_train_test_split
 from unit_test.sklearn_like_toolkit.test_RegressionPack import get_reg_data
-from unit_test.util.test_PlotTools import test_plt_dist
+from unit_test.util.test_numpy_util import test_np_frequency_equal_bins, test_np_width_equal_bins
+from unit_test.util.test_pandas_util import test_df_to_onehot_embedding, test_df_minmax_normalize, test_df_binning
 
 bprint = print
 logger = Logger('bench_code', level='INFO', )
 print = logger.info
 pprint = pprint_logger(print)
 from pandas import DataFrame as DF
+import scipy
+
+NpArr = np.array
 
 
 def onehot_label_smooth(Ys, smooth=0.05):
@@ -30,202 +41,64 @@ def get_current_func_name():
     return inspect.stack()[0][3]
 
 
-# def titanic_submit():
-#     datapack = DatasetPackLoader().load_dataset('titanic')
-#     # datapack = DatasetPackLoader().load_dataset('titanic')
-#     train_set = datapack['train']
-#     test_set = datapack['test']
-#     train_set.shuffle()
-#     train, valid = train_set.split()
+# def test_param():
+#     data_pack = DatasetPackLoader().load_dataset('titanic')
+#     train_Xs, train_Ys, valid_Xs, valid_Ys = get_reg_data()
+#     clf_name = 'XGBoostClf'
 #
-#     train_Xs, train_Ys = train.full_batch(['Xs', 'Ys'])
-#     valid_Xs, valid_Ys = valid.full_batch(['Xs', 'Ys'])
+#     def fit_clf(params):
+#         pprint(params)
+#         train_set = data_pack['train']
 #
-#     path = './clf_pack.clf'
-#     if not os.path.exists(path):
-#         train_Xs, train_Ys = train_set.full_batch(['Xs', 'Ys'])
 #         clf_pack = ClassifierPack()
-#         clf_pack.gridSearchCV(train_Xs, train_Ys, cv=10)
-#         clf_pack.dump(path)
+#         clf = clf_pack[clf_name]
 #
-#     clf_pack = ClassifierPack().load(path)
-#     # pprint(clf_pack.optimize_result)
-#     clf_pack.drop('skQDA')
-#     clf_pack.drop('skGaussian_NB')
-#     clf_pack.drop('mlxSoftmaxRegressionClf')
-#     clf_pack.drop('mlxPerceptronClf')
-#     clf_pack.drop('mlxMLP')
-#     clf_pack.drop('mlxLogisticRegression')
-#     clf_pack.drop('mlxAdaline')
-#     clf_pack.drop('skLinear_SVC')
+#         cv = 3
+#         scores = []
+#         for _ in range(cv):
+#             train_set.shuffle()
+#             train_set, valid_set = train_set.split()
+#             train_Xs, train_Ys = train_set.full_batch(['Xs', 'Ys'])
+#             valid_Xs, valid_Ys = valid_set.full_batch(['Xs', 'Ys'])
 #
-#     train_Xs, train_Ys = train.full_batch(['Xs', 'Ys'])
-#     valid_Xs, valid_Ys = valid.full_batch(['Xs', 'Ys'])
-#     score = clf_pack.score(train_Xs, train_Ys)
-#     pprint(score)
+#             clf = clf.__class__(**params)
+#             clf.fit(train_Xs, train_Ys)
+#             score = clf.score(valid_Xs, valid_Ys)
 #
-#     score = clf_pack.score(valid_Xs, valid_Ys)
-#     pprint(score)
-#     #
-#     esm_pack = clf_pack.to_ensembleClfpack()
-#     train, valid = train_set.split((2, 7))
-#     train_Xs, train_Ys = train.full_batch(['Xs', 'Ys'])
-#     valid_Xs, valid_Ys = valid.full_batch(['Xs', 'Ys'])
+#             scores += [score]
 #
-#     esm_pack.fit(train_Xs, train_Ys)
-#     pprint(esm_pack.score_pack(train_Xs, train_Ys))
-#     pprint(esm_pack.score_pack(valid_Xs, valid_Ys))
+#         return -np.mean(scores)
 #
-#     test_Xs = test_set.full_batch(['Xs'])
+#     def fit_reg(params):
+#         pprint(params)
 #
-#     predict = esm_pack.predict(test_Xs)['FoldingHardVote']
-#     # predict = clf_pack.predict(test_Xs)['skBagging']
-#     pprint(predict)
-#     pprint(predict.shape)
-#     submit_path = './submit.csv'
-#     datapack.to_kaggle_submit_csv(submit_path, predict)
+#         clf_pack = RegressionPack()
+#         clf = clf_pack[clf_name]
 #
-#     # clf_pack.dump(path)
-
-
-# def expon10(low, high, base=10):
-#     return base ** np.random.uniform(low, high)
+#         cv = 3
+#         scores = []
+#         for _ in range(cv):
+#             clf = clf.__class__(**params)
+#             clf.fit(train_Xs, train_Ys)
+#             score = clf.score(valid_Xs, valid_Ys)
 #
+#             scores += [score]
 #
-# def test_expon_min_max():
-#     low = -4
-#     high = 3
-#     base = 10
-#     ret = []
-#     for i in range(10000):
-#         ret += [expon10(low, high, base=base)]
+#         return np.mean(scores)
 #
-#     ret.sort()
-#     pprint(ret)
-#     ret = np.array(ret)
-#     ret = np.log10(ret)
-#     plt = PlotTools()
-#     plt.dist(ret)
-
-
-def test_param():
-    data_pack = DatasetPackLoader().load_dataset('titanic')
-    train_Xs, train_Ys, valid_Xs, valid_Ys = get_reg_data()
-    clf_name = 'XGBoostClf'
-
-    def fit_clf(params):
-        pprint(params)
-        train_set = data_pack['train']
-
-        clf_pack = ClassifierPack()
-        clf = clf_pack[clf_name]
-
-        cv = 3
-        scores = []
-        for _ in range(cv):
-            train_set.shuffle()
-            train_set, valid_set = train_set.split()
-            train_Xs, train_Ys = train_set.full_batch(['Xs', 'Ys'])
-            valid_Xs, valid_Ys = valid_set.full_batch(['Xs', 'Ys'])
-
-            clf = clf.__class__(**params)
-            clf.fit(train_Xs, train_Ys)
-            score = clf.score(valid_Xs, valid_Ys)
-
-            scores += [score]
-
-        return -np.mean(scores)
-
-    def fit_reg(params):
-        pprint(params)
-
-        clf_pack = RegressionPack()
-        clf = clf_pack[clf_name]
-
-        cv = 3
-        scores = []
-        for _ in range(cv):
-            clf = clf.__class__(**params)
-            clf.fit(train_Xs, train_Ys)
-            score = clf.score(valid_Xs, valid_Ys)
-
-            scores += [score]
-
-        return np.mean(scores)
-
-    clf_pack = ClassifierPack()
-    clf = clf_pack[clf_name]
-    space = clf.HyperOpt_space
-
-    opt = HyperOpt()
-    best = opt.fit_serial(fit_clf, space, 10)
-
-    # pprint(opt.trials)
-    pprint(opt.losses)
-    pprint(opt.result)
-    pprint(opt.opt_info)
-    pprint(opt.best_param)
-    pprint(opt.best_loss)
-
-
-def test_HousePrices():
-    dataset_pack = DatasetPackLoader().load_dataset('HousePrices')
-
-    pass
-
-
-def print_null_col_info(df, key, Y_key):
-    col = df[[key]]
-    series = df[key]
-    print()
-    pprint(f'column : "{key}", {series.isna().sum()}/{len(col)}(null/total)')
-    pprint(col.describe())
-    print('value_counts')
-    pprint(series.value_counts())
-    groupby = df[[key, Y_key]].groupby(key).agg(['mean', 'std', 'min', 'max', 'count'])
-    pprint(groupby)
-    print()
-
-
-df_keys = [
-    '1stFlrSF', '2ndFlrSF', '3SsnPorch', 'Alley', 'BedroomAbvGr',
-    'BldgType', 'BsmtCond', 'BsmtExposure', 'BsmtFinSF1', 'BsmtFinSF2',
-    'BsmtFinType1', 'BsmtFinType2', 'BsmtFullBath', 'BsmtHalfBath',
-    'BsmtQual', 'BsmtUnfSF', 'CentralAir', 'Condition1', 'Condition2',
-    'Electrical', 'EnclosedPorch', 'ExterCond', 'ExterQual', 'Exterior1st',
-    'Exterior2nd', 'Fence', 'FireplaceQu', 'Fireplaces', 'Foundation',
-    'FullBath', 'Functional', 'GarageArea', 'GarageCars', 'GarageCond',
-    'GarageFinish', 'GarageQual', 'GarageType', 'GarageYrBlt', 'GrLivArea',
-    'HalfBath', 'Heating', 'HeatingQC', 'HouseStyle', 'Id', 'KitchenAbvGr',
-    'KitchenQual', 'LandContour', 'LandSlope', 'LotArea', 'LotConfig',
-    'LotFrontage', 'LotShape', 'LowQualFinSF', 'MSSubClass', 'MSZoning',
-    'MasVnrArea', 'MasVnrType', 'MiscFeature', 'MiscVal', 'MoSold',
-    'Neighborhood', 'OpenPorchSF', 'OverallCond', 'OverallQual',
-    'PavedDrive', 'PoolArea', 'PoolQC', 'RoofMatl', 'RoofStyle',
-    'SaleCondition', 'SalePrice', 'SaleType', 'ScreenPorch', 'Street',
-    'TotRmsAbvGrd', 'TotalBsmtSF', 'Utilities', 'WoodDeckSF', 'YearBuilt',
-    'YearRemodAdd', 'YrSold'
-]
-df_Xs_keys = [
-    '1stFlrSF', '2ndFlrSF', '3SsnPorch', 'Alley', 'BedroomAbvGr',
-    'BldgType', 'BsmtCond', 'BsmtExposure', 'BsmtFinSF1', 'BsmtFinSF2',
-    'BsmtFinType1', 'BsmtFinType2', 'BsmtFullBath', 'BsmtHalfBath',
-    'BsmtQual', 'BsmtUnfSF', 'CentralAir', 'Condition1', 'Condition2',
-    'Electrical', 'EnclosedPorch', 'ExterCond', 'ExterQual', 'Exterior1st',
-    'Exterior2nd', 'Fence', 'FireplaceQu', 'Fireplaces', 'Foundation',
-    'FullBath', 'Functional', 'GarageArea', 'GarageCars', 'GarageCond',
-    'GarageFinish', 'GarageQual', 'GarageType', 'GarageYrBlt', 'GrLivArea',
-    'HalfBath', 'Heating', 'HeatingQC', 'HouseStyle', 'Id', 'KitchenAbvGr',
-    'KitchenQual', 'LandContour', 'LandSlope', 'LotArea', 'LotConfig',
-    'LotFrontage', 'LotShape', 'LowQualFinSF', 'MSSubClass', 'MSZoning',
-    'MasVnrArea', 'MasVnrType', 'MiscFeature', 'MiscVal', 'MoSold',
-    'Neighborhood', 'OpenPorchSF', 'OverallCond', 'OverallQual',
-    'PavedDrive', 'PoolArea', 'PoolQC', 'RoofMatl', 'RoofStyle',
-    'SaleCondition', 'SaleType', 'ScreenPorch', 'Street', 'TotRmsAbvGrd',
-    'TotalBsmtSF', 'Utilities', 'WoodDeckSF', 'YearBuilt', 'YearRemodAdd',
-    'YrSold'
-]
-df_Ys_key = 'SalePrice'
+#     clf_pack = ClassifierPack()
+#     clf = clf_pack[clf_name]
+#     space = clf.HyperOpt_space
+#
+#     opt = HyperOpt()
+#     best = opt.fit_serial(fit_clf, space, 10)
+#
+#     # pprint(opt.trials)
+#     pprint(opt.losses)
+#     pprint(opt.result)
+#     pprint(opt.opt_info)
+#     pprint(opt.best_param)
+#     pprint(opt.best_loss)
 
 
 def is_categorical(df, key):
@@ -238,37 +111,34 @@ def is_categorical(df, key):
     pass
 
 
-def test_null_handling():
-    def df_column_has_null(df: DF) -> DF:
-        null_column = df.columns[df.isna().any()].tolist()
-        return df.loc[:, null_column]
+def np_entropy_base_bins(np_x: NpArr) -> NpArr:
+    pass
 
+
+def test_np_entropy_base_bins():
+    pass
+
+
+@deco_timeit
+def test_HousePrices_dataset():
     dataset_path = """C:\\Users\\demetoir_desktop\\PycharmProjects\\MLtools\\data\\HousePrices"""
     merge_df = load_merge_set(dataset_path)
-    pprint(merge_df.info())
-    pprint(df_column_has_null(merge_df).info())
 
-    null_column_df = df_column_has_null(merge_df)
+    merge_null_clean = null_cleaning(merge_df)
 
-    null_handler = HousePrices_null_handler(null_column_df, df_Xs_keys, 'col_70_SalePrice', silent=False)
-    null_handler.boilerplate_maker(null_column_df, path='./gen_code.py')
-    # null_column_df = null_handler.execute()
-    pprint(df_column_has_null(null_column_df).info())
-    null_handler.gen_info()
+    transformed = transform_df(merge_null_clean)
 
+    # print(transformed.info())
 
-    # for key in null_column_df.keys():
-    #     is_categorical(null_column_df, key)
+    # train_df, test_df = train_test_split(transformed)
+    #
+    # train_df.to_csv(path_join(dataset_path, 'transformed_train.csv'), index=False)
+    # test_df.to_csv(path_join(dataset_path, 'transformed_test.csv'), index=False)
 
 
 @deco_timeit
 def main():
-    test_null_handling()
 
-    # test_HousePrices()
-
-    # test_regpack_HyperOpt_serial()
-    # test_regpack_HyperOpt_parallel()
-    # test_wrapperclfpack_HyperOpt_serial()
-    # test_wrapperclfpack_HyperOpt_parallel()
+    # test_np_equal_bins()
+    # test_HousePrices_dataset()
     pass
