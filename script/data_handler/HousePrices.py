@@ -4,6 +4,7 @@ import pandas as pd
 import os
 
 from script.data_handler.HousePricesCleaner import HousePricesCleaner
+from script.data_handler.HousePricesTransformer import HousePricesTransformer
 from script.util.misc_util import path_join
 
 df_raw_keys = [
@@ -55,6 +56,8 @@ df_Xs_keys = [
 ]
 df_Ys_key = 'col_70_SalePrice'
 
+DF = pd.DataFrame
+
 
 def null_cleaning(merge_df):
     nullCleaner = HousePricesCleaner(merge_df, df_Xs_keys, 'col_70_SalePrice', silent=True)
@@ -66,6 +69,28 @@ def null_cleaning(merge_df):
     merge_null_clean = nullCleaner.clean()
     print(merge_null_clean.info())
     return merge_null_clean
+
+
+def transform_df(merge_df: DF) -> DF:
+    transformer = HousePricesTransformer(merge_df, df_Xs_keys, df_Ys_key)
+    transformer.boilerplate_maker('./gen_code.py')
+
+    df = transformer.transform()
+    transformer.corr_heatmap()
+
+    # transformer = HousePricesTransformer(merge_df[['col_00_1stFlrSF', df_Ys_key]], df_Xs_keys, df_Ys_key)
+    # transformer.plot_all()
+
+    return df
+
+
+def train_test_split(merged_df: DF) -> (DF, DF):
+    test = merged_df.query(f'{df_Ys_key}.isnull()')
+    test = test.drop(columns=[df_Ys_key])
+
+    train = merged_df.query(f'not {df_Ys_key}.isnull()')
+
+    return train, test
 
 
 def load_merge_set(path):
@@ -84,10 +109,11 @@ def load_merge_set(path):
         merged = pd.read_csv(merged_path)
     else:
         train_path = path_join(path, 'train.csv')
-        test_path = path_join(path, 'test.csv')
-
         train = pd.read_csv(train_path)
+
+        test_path = path_join(path, 'test.csv')
         test = pd.read_csv(test_path)
+
         merged = pd.concat([train, test], axis=0)
         merged = df_add_col_num(merged, zfill_width=2)
 
