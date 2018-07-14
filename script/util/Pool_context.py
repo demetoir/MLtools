@@ -5,14 +5,22 @@ from multiprocessing_on_dill.pool import Pool as _Pool
 from multiprocessing_on_dill.context import TimeoutError
 from queue import Queue
 
-CPU_COUNT = mp.cpu_count()
+CPU_COUNT = mp.cpu_count() - 1
 
 
 class Pool_context:
+    _singleton_pool = None
+
+    @property
+    def pool(self):
+        if self.__class__._singleton_pool is None:
+            self.__class__._singleton_pool = _Pool(processes=self.processes)
+
+        return self.__class__._singleton_pool
+
     def __init__(self, processes=CPU_COUNT) -> None:
         super().__init__()
         self.processes = processes
-        self.pool = _Pool(processes=processes)
         self.childs = IdDict()
         self.tic = 0.01
         self._id_count = 0

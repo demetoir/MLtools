@@ -1,7 +1,7 @@
 from __future__ import division
 from glob import glob
-from script.data_handler.BaseDataset import BaseDataset, DownloadInfo
-from script.data_handler.BaseDatasetPack import BaseDatasetPack
+from script.data_handler.Base.BaseDataset import BaseDataset, DownloadInfo
+from script.data_handler.Base.BaseDatasetPack import BaseDatasetPack
 from script.dict_keys.dataset_batch_keys import *
 import _pickle as pickle
 import os

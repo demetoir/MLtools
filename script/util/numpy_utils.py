@@ -7,6 +7,9 @@ from PIL import Image
 from skimage import color, io
 import math
 import numpy as np
+from scipy.stats import rankdata
+
+NpArr = np.array
 
 
 def np_img_float32_to_uint8(np_img):
@@ -206,3 +209,49 @@ def np_stat_dict(a):
 
 def is_np_arr(x):
     return isinstance(x, np.ndarray)
+
+
+def np_minmax_normalize(np_x: NpArr, min=None, max=None) -> NpArr:
+    if min is None:
+        min = np.min(np_x)
+
+    if max is None:
+        max = np.max(np_x)
+
+    return (np_x - min) / (max - min)
+
+
+def np_frequency_equal_bins(np_x: NpArr, n_bins: int) -> NpArr:
+    np_x_size = np_x.shape[0]
+    bin_size = np_x_size // n_bins
+
+    rank = rankdata(np_x, method='dense')
+    rank_count = np.bincount(rank)
+    accumulate_sum = np.cumsum(rank_count)
+    bins = [
+        np_x[
+            np.argwhere(
+                rank == np.searchsorted(accumulate_sum, i, side='right'))
+        ][0]
+        for i in range(bin_size, np_x_size, bin_size)
+    ]
+
+    # for i in range(bin_size, np_x_size, bin_size):
+    #     value = np.searchsorted(accumulate_sum, i, side='right')
+    #     idx = np.argwhere(rank == value)
+    #     bins += [np_x[idx]]
+
+    bins = np.reshape(bins, newshape=[-1])
+    bins[-1] = NpArr([np.max(np_x) + 1])
+    bins = np.concatenate([
+        NpArr([np.min(np_x) - 1]),
+        bins,
+    ])
+    return bins
+
+
+def np_width_equal_bins(np_x: NpArr, width: int, ) -> NpArr:
+    min_ = np.min(np_x) - 1
+    max_ = np.max(np_x) + 1
+    bins = np.concatenate([np.arange(min_, max_, width), [max_]])
+    return bins

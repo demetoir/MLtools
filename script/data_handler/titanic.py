@@ -1,7 +1,7 @@
 from script.util.misc_util import path_join
 from script.util.numpy_utils import *
-from script.data_handler.BaseDataset import BaseDataset
-from script.data_handler.BaseDatasetPack import BaseDatasetPack
+from script.data_handler.Base.BaseDataset import BaseDataset
+from script.data_handler.Base.BaseDatasetPack import BaseDatasetPack
 import os
 import pandas as pd
 from script.util.pandas_util import df_bucketize, df_to_np_dict, df_to_onehot_embedding

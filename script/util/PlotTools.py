@@ -50,11 +50,28 @@ line_marker = list(itertools.product(line_set, color_set))
 line_marker = map(lambda x: "".join(x), line_marker)
 
 
+def deco_rollback_plt(func):
+    def wrapper(*args, **kwargs):
+        try:
+            func(*args, **kwargs)
+        except BaseException as e:
+            self = args[0]
+            self.plt.clf()
+            raise e
+
+    return wrapper
+
+
 class PlotTools:
 
-    def __init__(self, dpi=300):
+    def __init__(self, dpi=300, save=True, show=False, extend='.png'):
         self.fig_count = 0
         self.dpi = dpi
+        self.save = save
+        self.show = show
+        self.extend = extend
+
+        self.xticklabel_rotation = -45
 
         import seaborn as _sns
         self.sns = _sns
@@ -123,7 +140,16 @@ class PlotTools:
         w, h, d = buf.shape
         return Image.frombytes("RGBA", (w, h), buf.tostring())
 
-    def plt_common_teardown(self, fig, path=None, show=False, title=None, extend='.png', dpi=None):
+    def plt_common_teardown(self, fig, path=None, show=None, title=None, extend=None, dpi=None, save=None):
+        if extend is None:
+            extend = self.extend
+
+        if save is None:
+            save = self.save
+
+        if show is None:
+            show = self.show
+
         if title is None:
             title = time_stamp() + self.finger_print(6)
         self.plt.title(title)
@@ -135,7 +161,8 @@ class PlotTools:
         if dpi is None:
             dpi = 300
 
-        fig.savefig(path, dpi=300)
+        if save:
+            fig.savefig(path, dpi=300)
 
         if show:
             self.plt.show()
@@ -147,29 +174,37 @@ class PlotTools:
         self.sns.set_style('whitegrid')
         self.sns.set_color_codes()
 
-    def dist(self, np_x, bins=None, ax=None, axlabel=None, path=None, show=False, title=None, extend='.png'):
+    @deco_rollback_plt
+    def dist(self, df, column, bins=None, ax=None, axlabel=None, path=None, **kwargs):
         warnings.filterwarnings(module='matplotlib*', action='ignore', category=UserWarning)
 
         self.sns_setup()
 
-        sns_plot = self.sns.distplot(np_x, bins=bins, rug=True, hist=True, ax=ax, axlabel=axlabel,
+        sns_plot = self.sns.distplot(np.array(df[column]), bins=bins, rug=True, hist=True, ax=ax, axlabel=axlabel,
                                      rug_kws={"color": "g", 'label': 'rug'},
                                      kde_kws={"color": "r", "label": "KDE"},
                                      hist_kws={"color": "b", "label": 'hist'})
         fig = sns_plot.figure
 
-        self.plt_common_teardown(fig, path=path, show=show, title=title, extend=extend)
+        self.plt_common_teardown(fig, path=path, **kwargs)
 
-    def count(self, df, column, hue=None, path=None, show=False, title=None, extend='.png'):
+    @deco_rollback_plt
+    def count(self, df, column, hue=None, path=None, **kwargs):
         self.sns_setup()
 
+        order = sorted(df[column].value_counts().index)
         # fig = self.figure
-        sns_plot = self.sns.countplot(x=column, data=df, hue=hue)
+        sns_plot = self.sns.countplot(x=column, data=df, hue=hue, order=order)
+        # sns_plot.set_xticklabels(sns_plot.get_xticklabels(), rotation=self.xticklabel_rotation)
+        sns_plot.set_xticklabels(sns_plot.get_xticklabels(), rotation=self.xticklabel_rotation, ha="left",
+                                 rotation_mode='anchor')
+        # self.plt.tight_layout()
         fig = sns_plot.figure
 
-        self.plt_common_teardown(fig, path=path, show=show, title=title, extend=extend)
+        self.plt_common_teardown(fig, path=path, **kwargs)
 
-    def line(self, dots, linewidth=1, path=None, show=False, title=None, extend='.png'):
+    @deco_rollback_plt
+    def line(self, dots, linewidth=1, path=None, **kwargs):
         self.sns_setup()
         fig = self.figure
 
@@ -182,9 +217,10 @@ class PlotTools:
 
         self.plt.legend(loc='center left', bbox_to_anchor=(1, 0.5))
 
-        self.plt_common_teardown(fig, path=path, show=show, title=title, extend=extend)
+        self.plt_common_teardown(fig, path=path, **kwargs)
 
-    def scatter_2d(self, dots, marker_size=2, path=None, show=False, title=None, extend='.png'):
+    @deco_rollback_plt
+    def scatter_2d(self, dots, marker_size=2, path=None, **kwargs):
         self.sns_setup()
         fig = self.figure
 
@@ -194,31 +230,38 @@ class PlotTools:
 
         self.plt.legend(loc='center left', bbox_to_anchor=(1, 0.5))
 
-        self.plt_common_teardown(fig, path=path, show=show, title=title, extend=extend)
+        self.plt_common_teardown(fig, path=path, **kwargs)
 
-    def joint_2d(self, x_col, y_col, df, kind='reg', path=None, show=False, title=None, extend='.png'):
+    @deco_rollback_plt
+    def joint_2d(self, x_col, y_col, df, kind='reg', path=None, **kwargs):
+
         self.sns_setup()
-        # fig = self.figure
-
         sns_plot = self.sns.jointplot(x_col, y_col, data=df, kind=kind)
         fig = sns_plot.fig
+        self.plt_common_teardown(fig, path=path, **kwargs)
 
-        self.plt_common_teardown(fig, path=path, show=show, title=title, extend=extend)
-
-    def violin_plot(self, x_col, y_col, df, hue=None, with_swarmplot=True, path=None, show=False, title=None,
-                    extend='.png'):
+    @deco_rollback_plt
+    def violin_plot(self, x_col, y_col, df, hue=None, with_swarmplot=True, path=None, **kwargs):
         self.sns_setup()
-        sns_plot = self.sns.violinplot(x_col, y_col, hue=hue, data=df)
+
+        order = sorted(df[x_col].value_counts().index)
+        sns_plot = self.sns.violinplot(x_col, y_col, hue=hue, data=df, order=order)
         if with_swarmplot:
             dodge = True if hue is not None else False
             sns_plot = self.sns.swarmplot(x_col, y_col, hue=hue, data=df, dodge=dodge,
-                                          color='magenta', size=5)
+                                          color='magenta', size=2, order=order)
+
+        sns_plot.set_xticklabels(sns_plot.get_xticklabels(), rotation=self.xticklabel_rotation, ha="left",
+                                 rotation_mode='anchor')
+        # sns_plot.set_xticklabels(sns_plot.get_xticklabels(), rotation=self.xticklabel_rotation)
+
         fig = sns_plot.figure
 
-        self.plt_common_teardown(fig, path=path, show=show, title=title, extend=extend)
+        self.plt_common_teardown(fig, path=path, **kwargs)
 
+    @deco_rollback_plt
     def heatmap(self, np_arr, vmin=-1.0, vmax=1.0, center=0, annot=False, fmt='.2f', cmap=None, mask=False,
-                mask_color='white', path=None, show=False, title=None, extend='.png'):
+                mask_color='white', path=None, **kwargs):
         self.sns_setup()
 
         dim = len(np_arr.shape)
@@ -239,10 +282,10 @@ class PlotTools:
                                         annot=annot)
         fig = sns_plot.figure
 
-        self.plt_common_teardown(fig, path=path, show=show, title=title, extend=extend)
+        self.plt_common_teardown(fig, path=path, **kwargs)
 
-    def cluster_map(self, df, row_group_key=None, col_group_key=None, metric='correlation', path=None, show=False,
-                    title=None, extend='.png'):
+    @deco_rollback_plt
+    def cluster_map(self, df, row_group_key=None, col_group_key=None, metric='correlation', path=None, **kwargs):
         self.sns_setup()
 
         # if row_group_key is not None:
@@ -262,9 +305,10 @@ class PlotTools:
         sns_plot = self.sns.clustermap(df, metric=metric)
         fig = sns_plot.fig
 
-        self.plt_common_teardown(fig, path=path, show=show, title=title, extend=extend)
+        self.plt_common_teardown(fig, path=path, **kwargs)
 
-    def pair_plot(self, df, hue=None, path=None, show=False, title=None, extend='.png'):
+    @deco_rollback_plt
+    def pair_plot(self, df, hue=None, path=None, **kwargs):
         self.sns_setup()
 
         sns_plot = self.sns.pairplot(df, hue=hue)
@@ -274,4 +318,4 @@ class PlotTools:
             sns_plot.add_legend()
 
         fig = sns_plot.fig
-        self.plt_common_teardown(fig, path=path, show=show, title=title, extend=extend)
+        self.plt_common_teardown(fig, path=path, **kwargs)
