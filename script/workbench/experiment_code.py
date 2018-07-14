@@ -1,26 +1,27 @@
 # -*- coding:utf-8 -*-
 
 import os
+
 import numpy as np
 import pandas as pd
-from tqdm import trange
+from catboost import CatBoostRegressor
+from lightgbm import LGBMRegressor
+from sklearn.neural_network.multilayer_perceptron import MLPRegressor
+
+from script.data_handler.DatasetPackLoader import DatasetPackLoader
 from script.data_handler.DummyDataset import DummyDataset
+from script.data_handler.HousePrices import null_cleaning, HousePrices_load_merge_set
 from script.data_handler.titanic import build_transform
-from script.model.sklearn_like_model.AE.CVAE import CVAE
+from script.model.sklearn_like_model.AE.CVAE import CVAE, CVAE_MixIn
 from script.model.sklearn_like_model.GAN.C_GAN import C_GAN
 from script.sklearn_like_toolkit.ClassifierPack import ClassifierPack
-from script.data_handler.DatasetPackLoader import DatasetPackLoader
 from script.sklearn_like_toolkit.EnsembleClfPack import EnsembleClfPack
 from script.sklearn_like_toolkit.FoldingHardVoteClf import FoldingHardVoteClf
 from script.sklearn_like_toolkit.warpper.mlxtend_wrapper import mlxStackingCVClf, mlxStackingClf
-from sklearn.neural_network.multilayer_perceptron import MLPRegressor
-from lightgbm import LGBMRegressor
-from catboost import CatBoostRegressor
 from script.util.Logger import StdoutOnlyLogger, pprint_logger
 from script.util.deco import deco_timeit, deco_save_log
 from script.util.misc_util import path_join
-from script.util.numpy_utils import np_stat_dict
-
+from script.util.numpy_utils import np_stat_dict, np_minmax_normalize
 ########################################################################################################################
 # print(built-in function) is not good for logging
 from script.util.pandas_util import df_to_onehot_embedding, df_to_np_onehot_embedding
@@ -419,7 +420,7 @@ def exp_titanic_data_difficulty():
     # use best...
 
 
-def load_merge_set():
+def titanic_load_merge_set():
     path = os.getcwd()
     merge_set_path = os.path.join(path, "data", "titanic", "merge_set.csv")
     if not os.path.exists(merge_set_path):
@@ -599,7 +600,7 @@ def exp_titanic_corr_heatmap():
 
     path = 'temp.csv'
     if not os.path.exists(path):
-        df = build_transform(load_merge_set())
+        df = build_transform(titanic_load_merge_set())
         df.to_csv(path, index=False)
         pprint(df.info())
 
@@ -848,3 +849,330 @@ def titanic_submit():
     datapack.to_kaggle_submit_csv(submit_path, predict)
 
     # clf_pack.dump(path)
+
+
+from script.model.sklearn_like_model.BaseModel import BaseModel
+from script.util.Stacker import Stacker
+from script.util.tensor_ops import *
+from tqdm import trange
+
+NpArr = np.array
+import tensorflow as tf
+
+
+class autoOnehot(BaseModel, CVAE_MixIn):
+    _params_keys = [
+        'batch_size',
+        'learning_rate',
+        'beta1',
+        'L1_norm_lambda',
+        'K_average_top_k_loss',
+        'code_size',
+        'z_size',
+        'encoder_net_shapes',
+        'decoder_net_shapes',
+        'with_noise',
+        'noise_intensity',
+        'loss_type',
+        'KL_D_rate'
+    ]
+
+    def __init__(self, batch_size=100, learning_rate=0.01, beta1=0.5, L1_norm_lambda=0.001, cate_code_size=32,
+                 gauss_code_size=10,
+                 z_size=32, encoder_net_shapes=(512,), decoder_net_shapes=(512,), with_noise=False, noise_intensity=1.,
+                 loss_type='VAE', KL_D_rate=1.0, verbose=10):
+        BaseModel.__init__(self, verbose)
+        CVAE_MixIn.__init__(self)
+
+        self.batch_size = batch_size
+        self.learning_rate = learning_rate
+        self.beta1 = beta1
+        self.L1_norm_lambda = L1_norm_lambda
+        self.cate_code_size = cate_code_size
+        self.gauss_code_size = gauss_code_size
+        self.latent_code_size = cate_code_size + gauss_code_size
+
+        self.z_size = self.latent_code_size
+
+        self.loss_type = loss_type
+        self.encoder_net_shapes = encoder_net_shapes
+        self.decoder_net_shapes = decoder_net_shapes
+        self.with_noise = with_noise
+        self.noise_intensity = noise_intensity
+        self.KL_D_rate = KL_D_rate
+
+    def _build_input_shapes(self, shapes):
+        ret = {}
+        ret.update(self._build_Xs_input_shape(shapes))
+
+        ret.update(self._build_Ys_input_shape(shapes))
+
+        shapes['zs'] = [None, self.z_size]
+        ret.update(self._build_zs_input_shape(shapes))
+
+        shapes['noise'] = [None] + list(ret['X_shape'])
+        ret.update(self._build_noise_input_shape(shapes))
+
+        return ret
+
+    def encoder(self, Xs, net_shapes, reuse=False, name='encoder'):
+        with tf.variable_scope(name, reuse=reuse):
+            stack = Stacker(flatten(Xs))
+
+            for shape in net_shapes:
+                stack.linear_block(shape, relu)
+
+            stack.linear_block(self.cate_code_size + self.gauss_code_size * 2, relu)
+
+        return stack.last_layer
+
+    def decoder(self, zs, net_shapes, reuse=False, name='decoder'):
+        with tf.variable_scope(name, reuse=reuse):
+            stack = Stacker(zs)
+
+            for shape in net_shapes:
+                stack.linear_block(shape, relu)
+
+            stack.linear_block(self.X_flatten_size, relu)
+            # stack.linear(self.X_flatten_size)
+            # stack.relu()
+            # stack.reshape(self.Xs_shape)
+
+        return stack.last_layer
+
+    def aux_reg(self, Xs_onehot, net_shapes, reuse=False, name='aux_reg'):
+        with tf.variable_scope(name, reuse=reuse):
+            stack = Stacker(Xs_onehot)
+
+            for shape in net_shapes:
+                stack.linear_block(shape, sigmoid)
+
+            stack.linear_block(1, sigmoid)
+
+        return stack.last_layer
+
+    def _build_main_graph(self):
+        self.Xs = placeholder(tf.float32, self.Xs_shape, name='Xs')
+        self.Ys = placeholder(tf.float32, self.Ys_shape, name='Ys')
+        self.zs = placeholder(tf.float32, self.zs_shape, name='zs')
+        self.noises = placeholder(tf.float32, self.noises_shape, name='noises')
+
+        self.Xs_noised = tf.add(self.Xs, self.noises, name='Xs_noised')
+        if self.with_noise:
+            Xs = self.Xs_noised
+        else:
+            Xs = self.Xs
+
+        self.h = self.encoder(Xs, self.encoder_net_shapes)
+
+        self.h_cate = self.h[:, :self.cate_code_size]
+        self.h_softmax = tf.nn.softmax(self.h_cate)
+        self.h_cate_index = tf.argmax(self.h_softmax, 1)
+        self.cate_code = tf.one_hot(self.h_cate_index, self.cate_code_size)
+
+        self.h_gauss = self.h[:, self.cate_code_size:]
+        self.h_gauss_mean = self.h_gauss[:, : self.gauss_code_size]
+
+        self.h_gauss_std = self.h_gauss[:, self.gauss_code_size:]
+        self.h_gauss_std = tf.nn.softplus(self.h_gauss_std)
+        self.gauss_code = self.h_gauss_mean + self.h_gauss_std * tf.random_normal(tf.shape(self.h_gauss_mean), 0, 1,
+                                                                                  dtype=tf.float32)
+
+        # self.latent_code = tf.one_hot(tf.arg_max(self.h, 1), self.latent_code_size)
+        self.latent_code = concat([self.cate_code, self.gauss_code], axis=1)
+
+        # self.latent_code = self.h
+
+        self.Xs_recon = self.decoder(self.latent_code, self.decoder_net_shapes)
+        self.Xs_gen = self.decoder(self.zs, self.decoder_net_shapes, reuse=True)
+
+        net_shapes = (512, 512)
+        self.h_aux_reg = self.aux_reg(self.latent_code, net_shapes)
+
+        head = get_scope()
+        self.vars_encoder = collect_vars(join_scope(head, 'encoder'))
+        self.vars_decoder = collect_vars(join_scope(head, 'decoder'))
+        self.vars_aux_reg = collect_vars(join_scope(head, 'aux_reg'))
+
+        self.vars = self.vars_encoder + self.vars_decoder
+
+    def _build_loss_function(self):
+        X = flatten(self.Xs)
+        X_out = flatten(self.Xs_recon)
+
+        self.MSE = tf.reduce_sum(tf.squared_difference(X, X_out), axis=1)
+        if self.loss_type == 'MSE_only':
+            self.loss = self.MSE
+
+        self.step_func = tf.cast(X * self.cate_code_size, tf.int32)
+        onehot_label = tf.one_hot(self.step_func, self.cate_code_size)
+        self.loss_index = tf.nn.softmax_cross_entropy_with_logits_v2(logits=self.h_softmax, labels=onehot_label)
+        self.loss_index *= 0.001
+        # self.loss += self.loss_index
+
+        self.loss_mean = tf.reduce_mean(self.loss, name='loss_mean')
+
+        self.aux_reg_loss = tf.sqrt(tf.squared_difference(self.h_aux_reg, self.Ys))
+
+        self.__metric_ops = [self.loss, self.aux_reg_loss, self.loss_index]
+
+    def _build_train_ops(self):
+        var = self.vars_encoder + self.vars_decoder
+        self.train_op = tf.train.AdamOptimizer(self.learning_rate, self.beta1).minimize(loss=self.loss,
+                                                                                        var_list=var)
+
+        var = self.vars_aux_reg + self.vars_encoder
+        self.train_aux = tf.train.AdamOptimizer(self.learning_rate, self.beta1).minimize(loss=self.aux_reg_loss,
+                                                                                         var_list=var)
+
+        var = self.vars_encoder
+        self.train_index = tf.train.AdamOptimizer(self.learning_rate, self.beta1).minimize(loss=self.loss_index,
+                                                                                           var_list=var)
+        self.__train_ops = [self.train_op, self.train_aux, self.train_index, ]
+        # self.__train_ops = [self.train_op]
+
+    def train(self, Xs, Ys, epoch=1, save_interval=None, batch_size=None):
+        self._prepare_train(Xs=Xs, Ys=Ys)
+        dataset = self.to_dummyDataset(Xs=Xs, Ys=Ys)
+
+        if batch_size is None:
+            batch_size = self.batch_size
+
+        iter_num = 0
+        iter_per_epoch = dataset.size // batch_size
+        self.log.info("train epoch {}, iter/epoch {}".format(epoch, iter_per_epoch))
+
+        for e in trange(epoch):
+            dataset.shuffle()
+
+            for i in range(iter_per_epoch):
+                iter_num += 1
+
+                Xs, Ys = dataset.next_batch(batch_size, batch_keys=['Xs', 'Ys'])
+                noise = self.get_noises(Xs.shape, self.noise_intensity)
+
+                # train_ops = [self.train_op, self.train_aux]
+                train_ops = self.__train_ops
+                self.sess.run(train_ops, feed_dict={self._Xs: Xs, self._Ys: Ys, self._noises: noise})
+
+                recon = self.sess.run(self.Xs_recon, feed_dict={self._Xs: Xs, self._Ys: Ys, self._noises: noise})
+                self.sess.run(train_ops, feed_dict={self._Xs: recon, self._Ys: Ys, self._noises: noise})
+
+            # metric = self.metric(Xs, Ys)
+            # self.log.info(f"e:{e} {metric}")
+
+            if save_interval is not None and e % save_interval == 0:
+                self.save()
+
+    def code(self, Xs):
+        noise = self.get_noises(Xs.shape)
+        return self.get_tf_values(self._code_ops, {self._Xs: Xs, self._noises: noise})
+
+    def recon(self, Xs):
+        noise = self.get_noises(Xs.shape)
+        return self.get_tf_values(self._recon_ops, {self._Xs: Xs, self._noises: noise})
+
+    def metric(self, Xs, Ys):
+        noise = self.get_noises(Xs.shape)
+        metric_ops = self.__metric_ops
+        ae_loss, aux_reg_loss, index_loss = self.get_tf_values(metric_ops,
+                                                               {self._Xs: Xs, self.Ys: Ys, self._noises: noise})
+        return {'ae_loss': np.mean(ae_loss), 'aux_reg_loss': np.mean(aux_reg_loss),
+                'index_loss': np.mean(index_loss)}
+
+    def generate(self, zs, Ys):
+        return self.get_tf_values(self._recon_ops, {self._Ys: Ys, self._zs: zs})
+
+    def predict(self, Xs, Ys):
+        noise = self.get_noises(Xs.shape)
+        return self.get_tf_values(self.h_aux_reg, {self._Xs: Xs, self.Ys: Ys, self._noises: noise})
+        pass
+
+    def score(self, Xs, Ys):
+        predict = self.predict(Xs, Ys)
+        return np.sqrt((predict - Ys) * (predict - Ys))
+
+
+def test_auto_onehot_encoder():
+    dataset_path = """C:\\Users\\demetoir_desktop\\PycharmProjects\\MLtools\\data\\HousePrices"""
+    merge_df = HousePrices_load_merge_set(dataset_path)
+
+    merge_null_clean = null_cleaning(merge_df)
+
+    Xs = merge_null_clean['col_00_1stFlrSF'][:1400]
+    Ys = merge_null_clean['col_70_SalePrice'][:1400]
+
+    Xs = NpArr(Xs)
+    Ys = NpArr(Ys)
+    Xs = np_minmax_normalize(Xs)
+    Ys = np_minmax_normalize(Ys)
+
+    Xs = Xs.reshape(-1, 1)
+    Ys = Ys.reshape(-1, 1)
+
+    cate_code_size = 10
+    aoe = autoOnehot(gauss_code_size=1, cate_code_size=cate_code_size, loss_type='MSE_only', batch_size=128,
+                     learning_rate=0.01,
+                     encoder_net_shapes=(512, 256),
+                     decoder_net_shapes=(256, 512),
+                     # with_noise=True,
+                     # noise_intensity=0.00001
+                     )
+    aoe.train(Xs, Ys, epoch=100)
+    metric = aoe.metric(Xs, Ys)
+    pprint('metric')
+    pprint(metric)
+
+    aoe.batch_size = 128
+    aoe.train(Xs, Ys, epoch=200)
+    metric = aoe.metric(Xs, Ys)
+    pprint('metric')
+    pprint(metric)
+
+    aoe.batch_size = 256
+    aoe.train(Xs, Ys, epoch=400)
+    metric = aoe.metric(Xs, Ys)
+    pprint('metric')
+    pprint(metric)
+
+    # aoe.batch_size = 512
+    # aoe.train(Xs, Ys, epoch=1600)
+    # metric = aoe.metric(Xs, Ys)
+    # pprint('metric')
+    # pprint(metric)
+
+    score = aoe.score(Xs, Ys)
+    pprint('score')
+    pprint(np.mean(score))
+    pprint()
+
+    predict = aoe.predict(Xs, Ys)
+    pprint('predict')
+    pprint(Ys[10:15])
+    pprint(predict[10:15])
+
+    latent = aoe.code(Xs)
+    pprint('latent')
+    pprint(latent[10:15])
+
+    x_walk = np.arange(0, 1, 0.05).reshape(-1, 1)
+    y = np.zeros_like(x_walk)
+    latent = aoe.code(x_walk)
+    recon = aoe.recon(x_walk)
+    pprint('latent walk')
+    pprint(x_walk)
+    pprint(latent)
+    pprint(recon)
+
+    recon = aoe.recon(Xs)
+    pprint('recon')
+    pprint(Xs[10:15])
+    pprint(recon[10:15])
+
+    latent = aoe.code(Xs)[:, :cate_code_size]
+    print(latent.shape)
+    print(np.bincount(np.argmax(latent, axis=1)))
+
+    pprint(aoe.get_tf_values(aoe.h_cate_index, {aoe.Xs: Xs[10:15]}))
+    pprint(aoe.get_tf_values(aoe.step_func,
+                             {aoe.Xs: np.arange(0, 1, 0.05).reshape(-1, 1)}))
