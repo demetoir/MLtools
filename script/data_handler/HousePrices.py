@@ -67,7 +67,7 @@ def null_cleaning(merge_df):
     nullCleaner.boilerplate_maker(path='./gen_code.py')
 
     merge_null_clean = nullCleaner.clean()
-    print(merge_null_clean.info())
+    # print(merge_null_clean.info())
     return merge_null_clean
 
 
@@ -93,7 +93,7 @@ def train_test_split(merged_df: DF) -> (DF, DF):
     return train, test
 
 
-def load_merge_set(path):
+def HousePrices_load_merge_set(path):
     def df_add_col_num(df, zfill_width=None):
         if zfill_width is None:
             zfill_width = 0
@@ -126,7 +126,7 @@ class HousePrices_train(BaseDataset):
     def load(self, path, limit=None):
         train_path = path_join(path, 'transformed_train.csv')
 
-        merged_df = load_merge_set(path)
+        merged_df = HousePrices_load_merge_set(path)
 
         pass
 

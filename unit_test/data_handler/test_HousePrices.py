@@ -1,13 +1,13 @@
 from pprint import pprint
 import pandas as pd
-from script.data_handler.HousePrices import load_merge_set, null_cleaning, transform_df, train_test_split
+from script.data_handler.HousePrices import HousePrices_load_merge_set, null_cleaning, transform_df, train_test_split
 from script.util.misc_util import path_join
 
 
 def test_train_test_split():
     dataset_path = """C:\\Users\\demetoir_desktop\\PycharmProjects\\MLtools\\data\\HousePrices"""
 
-    merge_df = load_merge_set(dataset_path)
+    merge_df = HousePrices_load_merge_set(dataset_path)
 
     merge_null_clean = null_cleaning(merge_df)
     transformed = transform_df(merge_null_clean)
