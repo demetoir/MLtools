@@ -74,9 +74,6 @@ class Base_df_transformer(LoggerMixIn, df_plotterMixIn, transform_methodMixIn):
 
         return code
 
-    def plot_all(self):
-        self._df_cols_plot(self.df, self.df_Xs_keys, self.df_Ys_key)
-
     def corr_heatmap(self):
         plot = PlotTools(save=False, show=True)
 
