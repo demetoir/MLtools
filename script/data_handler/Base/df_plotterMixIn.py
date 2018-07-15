@@ -27,6 +27,9 @@ class df_plotterMixIn:
     def __init__(self):
         self.plot = PlotTools()
 
+    def plot_all(self, df, df_Xs_keys, df_Ys_key):
+        self._df_cols_plot(df, df_Xs_keys, df_Ys_key)
+
     @deco_exception_catch
     def _plot_dist(self, df: DF, key: str, col: DF, series: Series, Xs_key: list, Ys_key: list, path=None):
         np_array = np.array(series[series.isna()])
