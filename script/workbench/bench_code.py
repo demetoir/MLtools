@@ -1,32 +1,17 @@
 # -*- coding:utf-8 -*-
-import pandas as pd
 import inspect
 import numpy as np
-
-from script.data_handler.HousePricesTransformer import HousePricesTransformer
-from script.data_handler.DatasetPackLoader import DatasetPackLoader
-from script.data_handler.HousePrices import load_merge_set, df_Xs_keys, df_Ys_key, null_cleaning, transform_df, \
-    train_test_split
-from script.sklearn_like_toolkit.ClassifierPack import ClassifierPack
-from script.sklearn_like_toolkit.HyperOpt.HyperOpt import HyperOpt
+from script.data_handler.HousePrices import HousePricesHelper
 # print(built-in function) is not good for logging
-from script.sklearn_like_toolkit.RegressionPack import RegressionPack
 from script.util.Logger import pprint_logger, Logger
-from script.util.PlotTools import PlotTools
 from script.util.deco import deco_timeit
 from script.util.misc_util import path_join
-from script.util.pandas_util import df_binning
-from unit_test.data_handler.test_HousePrices import test_train_test_split
-from unit_test.sklearn_like_toolkit.test_RegressionPack import get_reg_data
-from unit_test.util.test_numpy_util import test_np_frequency_equal_bins, test_np_width_equal_bins
-from unit_test.util.test_pandas_util import test_df_to_onehot_embedding, test_df_minmax_normalize, test_df_binning
+from script.workbench.experiment_code import test_auto_onehot_encoder
 
 bprint = print
 logger = Logger('bench_code', level='INFO', )
 print = logger.info
 pprint = pprint_logger(print)
-from pandas import DataFrame as DF
-import scipy
 
 NpArr = np.array
 
@@ -111,33 +96,26 @@ def is_categorical(df, key):
     pass
 
 
-def np_entropy_base_bins(np_x: NpArr) -> NpArr:
-    pass
-
-
-def test_np_entropy_base_bins():
-    pass
-
-
 @deco_timeit
 def test_HousePrices_dataset():
     dataset_path = """C:\\Users\\demetoir_desktop\\PycharmProjects\\MLtools\\data\\HousePrices"""
-    merge_df = load_merge_set(dataset_path)
+    merge_df = HousePricesHelper.load_merge_set(dataset_path)
 
-    merge_null_clean = null_cleaning(merge_df)
+    merge_null_clean = HousePricesHelper.cleaning(merge_df)
 
-    transformed = transform_df(merge_null_clean)
-
+    transformed = HousePricesHelper.transform(merge_null_clean)
     # print(transformed.info())
 
-    # train_df, test_df = train_test_split(transformed)
-    #
-    # train_df.to_csv(path_join(dataset_path, 'transformed_train.csv'), index=False)
-    # test_df.to_csv(path_join(dataset_path, 'transformed_test.csv'), index=False)
+    train_df, test_df = HousePricesHelper.train_test_split(transformed)
+
+    train_df.to_csv(path_join(dataset_path, 'transformed_train.csv'), index=False)
+    test_df.to_csv(path_join(dataset_path, 'transformed_test.csv'), index=False)
 
 
 @deco_timeit
 def main():
+    test_auto_onehot_encoder()
+    # test_HousePrices_dataset()
 
     # test_np_equal_bins()
     # test_HousePrices_dataset()
