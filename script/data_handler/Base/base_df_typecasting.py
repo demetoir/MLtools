@@ -10,8 +10,8 @@ Series = pd.Series
 
 class type_cast_methodMixIn:
     @staticmethod
-    def to_category(df, key):
-        df[key] = df[key].astype('category')
+    def to_str(df, key):
+        df[key] = df[key].astype(str)
         return df
 
     @staticmethod
