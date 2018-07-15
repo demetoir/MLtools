@@ -31,7 +31,7 @@ class df_plotterMixIn:
     def _plot_dist(self, df: DF, key: str, col: DF, series: Series, Xs_key: list, Ys_key: list, path=None):
         np_array = np.array(series[series.isna()])
         title = f'{key}_plot_dist'
-        self.plot.dist(np.array(series), title=title, path=f"./matplot/{title}.png")
+        self.plot.dist(df, key, title=title, path=f"./matplot/{title}.png")
 
     @deco_exception_catch
     def _plot_count(self, df: DF, key: str, col: DF, series: Series, Xs_key: list, Ys_key: list, path=None):
