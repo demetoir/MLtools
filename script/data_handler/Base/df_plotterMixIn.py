@@ -32,9 +32,8 @@ class df_plotterMixIn:
 
     @deco_exception_catch
     def _plot_dist(self, df: DF, key: str, col: DF, series: Series, Xs_key: list, Ys_key: list, path=None):
-        np_array = np.array(series[series.isna()])
         title = f'{key}_plot_dist'
-        self.plot.dist(df, key, title=title, path=f"./matplot/{title}.png")
+        self.plot.dist(col, key, title=title, path=f"./matplot/{title}.png")
 
     @deco_exception_catch
     def _plot_count(self, df: DF, key: str, col: DF, series: Series, Xs_key: list, Ys_key: list, path=None):
@@ -57,7 +56,7 @@ class df_plotterMixIn:
 
     def _df_cols_plot(self, df, df_Xs_keys, df_Ys_key):
         with Pool_context() as pool:
-            for key in list(df.keys()):
+            for key in df_Xs_keys:
                 col = df[[key]]
                 series = df[key]
                 args = (df, key, col, series, df_Xs_keys, df_Ys_key)
