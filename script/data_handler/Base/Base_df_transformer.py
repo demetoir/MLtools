@@ -93,13 +93,7 @@ class Base_df_transformer(LoggerMixIn, df_plotterMixIn, transform_methodMixIn):
                 col = self.df[[key]]
                 series = self.df[key]
 
-                id_before = id(self.df[key])
                 self.df = func(self, self.df, key, col, series, self.df_Xs_keys, self.df_Ys_key)
-
-                if key in self.df.keys():
-                    id_after = id(self.df[key])
-                    if id_before == id_after:
-                        self.log.warn(f'while {key} {caller_name}, may not changed')
 
         return self.df
 

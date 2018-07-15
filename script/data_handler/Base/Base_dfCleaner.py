@@ -91,11 +91,7 @@ class Base_dfCleaner(LoggerMixIn, null_clean_methodMixIn, df_plotterMixIn):
                 col = self.df[[key]]
                 series = self.df[key]
 
-                id_before = id(self.df)
                 self.df = val(self, self.df, key, col, series, self.df_Xs_keys, self.df_Ys_key)
-                id_after = id(self.df)
-                if id_before == id_after:
-                    self.log.warn(f'{key} may not clean')
 
         return self.df
 
