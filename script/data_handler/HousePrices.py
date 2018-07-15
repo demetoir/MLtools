@@ -61,7 +61,7 @@ DF = pd.DataFrame
 
 class HousePricesHelper:
     @staticmethod
-    def cleaning(merge_df):
+    def null_cleaning(merge_df):
         nullCleaner = HousePricesCleaner(merge_df, df_Xs_keys, 'col_70_SalePrice', silent=True)
         # info = nullCleaner.null_cols_info()
         # print(info)
@@ -76,12 +76,12 @@ class HousePricesHelper:
     def transform(merge_df: DF) -> DF:
         transformer = HousePricesTransformer(merge_df, df_Xs_keys, df_Ys_key)
         transformer.boilerplate_maker('./gen_code.py')
+        transformer.plot_all()
 
         df = transformer.transform()
         transformer.corr_heatmap()
 
         # transformer = HousePricesTransformer(merge_df[['col_00_1stFlrSF', df_Ys_key]], df_Xs_keys, df_Ys_key)
-        # transformer.plot_all()
 
         return df
 

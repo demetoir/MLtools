@@ -1097,7 +1097,7 @@ def test_auto_onehot_encoder():
     dataset_path = """C:\\Users\\demetoir_desktop\\PycharmProjects\\MLtools\\data\\HousePrices"""
     merge_df = HousePricesHelper.load_merge_set(dataset_path)
 
-    merge_null_clean = HousePricesHelper.cleaning(merge_df)
+    merge_null_clean = HousePricesHelper.null_cleaning(merge_df)
 
     Xs = merge_null_clean['col_00_1stFlrSF'][:1400]
     Ys = merge_null_clean['col_70_SalePrice'][:1400]
