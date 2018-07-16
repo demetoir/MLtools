@@ -5,6 +5,7 @@ import os
 
 from script.data_handler.HousePricesCleaner import HousePricesCleaner
 from script.data_handler.HousePricesTransformer import HousePricesTransformer
+from script.data_handler.HousePricesTypeCasting import HousePriceTypeCasting
 from script.util.misc_util import path_join
 
 df_raw_keys = [
@@ -59,66 +60,76 @@ df_Ys_key = 'col_70_SalePrice'
 DF = pd.DataFrame
 
 
-def null_cleaning(merge_df):
-    nullCleaner = HousePricesCleaner(merge_df, df_Xs_keys, 'col_70_SalePrice', silent=True)
-    # info = nullCleaner.null_cols_info()
-    # print(info)
-    # nullCleaner.null_cols_plot()
-    nullCleaner.boilerplate_maker(path='./gen_code.py')
+class HousePricesHelper:
+    @staticmethod
+    def null_cleaning(merge_df):
+        nullCleaner = HousePricesCleaner(merge_df, df_Xs_keys, 'col_70_SalePrice', silent=True)
+        # info = nullCleaner.null_cols_info()
+        # print(info)
+        # nullCleaner.null_cols_plot()
+        nullCleaner.boilerplate_maker(path='./null_cleaning.py')
 
-    merge_null_clean = nullCleaner.clean()
-    # print(merge_null_clean.info())
-    return merge_null_clean
+        merge_null_clean = nullCleaner.clean()
+        # print(merge_null_clean.info())
+        return merge_null_clean
 
+    @staticmethod
+    def transform(merge_df: DF) -> DF:
+        transformer = HousePricesTransformer(merge_df, df_Xs_keys, df_Ys_key)
+        # transformer.boilerplate_maker('./transform.py')
+        # transformer.plot_all(merge_df, df_Xs_keys, df_Ys_key)
 
-def transform_df(merge_df: DF) -> DF:
-    transformer = HousePricesTransformer(merge_df, df_Xs_keys, df_Ys_key)
-    transformer.boilerplate_maker('./gen_code.py')
+        df = transformer.transform()
+        # transformer.corr_heatmap()
 
-    df = transformer.transform()
-    transformer.corr_heatmap()
+        # transformer = HousePricesTransformer(merge_df[['col_00_1stFlrSF', df_Ys_key]], df_Xs_keys, df_Ys_key)
 
-    # transformer = HousePricesTransformer(merge_df[['col_00_1stFlrSF', df_Ys_key]], df_Xs_keys, df_Ys_key)
-    # transformer.plot_all()
+        return df
 
-    return df
+    @staticmethod
+    def train_test_split(merged_df: DF) -> (DF, DF):
+        test = merged_df.query(f'{df_Ys_key}.isnull()')
+        test = test.drop(columns=[df_Ys_key])
 
+        train = merged_df.query(f'not {df_Ys_key}.isnull()')
 
-def train_test_split(merged_df: DF) -> (DF, DF):
-    test = merged_df.query(f'{df_Ys_key}.isnull()')
-    test = test.drop(columns=[df_Ys_key])
+        return train, test
 
-    train = merged_df.query(f'not {df_Ys_key}.isnull()')
+    @staticmethod
+    def load_merge_set(path):
+        def df_add_col_num(df, zfill_width=None):
+            if zfill_width is None:
+                zfill_width = 0
 
-    return train, test
+            mapping = {}
+            for idx, key in enumerate(df.keys()):
+                mapping[key] = f'col_{str(idx).zfill(zfill_width)}_{key}'
 
+            return df.rename(mapping, axis='columns')
 
-def HousePrices_load_merge_set(path):
-    def df_add_col_num(df, zfill_width=None):
-        if zfill_width is None:
-            zfill_width = 0
+        merged_path = path_join(path, 'merged.csv')
+        if os.path.exists(merged_path):
+            merged = pd.read_csv(merged_path)
+        else:
+            train_path = path_join(path, 'train.csv')
+            train = pd.read_csv(train_path)
 
-        mapping = {}
-        for idx, key in enumerate(df.keys()):
-            mapping[key] = f'col_{str(idx).zfill(zfill_width)}_{key}'
+            test_path = path_join(path, 'test.csv')
+            test = pd.read_csv(test_path)
 
-        return df.rename(mapping, axis='columns')
+            merged = pd.concat([train, test], axis=0)
+            merged = df_add_col_num(merged, zfill_width=2)
 
-    merged_path = path_join(path, 'merged.csv')
-    if os.path.exists(merged_path):
-        merged = pd.read_csv(merged_path)
-    else:
-        train_path = path_join(path, 'train.csv')
-        train = pd.read_csv(train_path)
+            merged.to_csv(merged_path, index=False)
+        return merged
 
-        test_path = path_join(path, 'test.csv')
-        test = pd.read_csv(test_path)
+    @staticmethod
+    def type_casting(df):
+        type_caster = HousePriceTypeCasting(df, df_Xs_keys, df_Ys_key)
+        # type_caster.boilerplate_maker('./type_casting.py')
+        df_type_casted = type_caster.type_cast()
 
-        merged = pd.concat([train, test], axis=0)
-        merged = df_add_col_num(merged, zfill_width=2)
-
-        merged.to_csv(merged_path, index=False)
-    return merged
+        return df_type_casted
 
 
 class HousePrices_train(BaseDataset):
@@ -126,7 +137,7 @@ class HousePrices_train(BaseDataset):
     def load(self, path, limit=None):
         train_path = path_join(path, 'transformed_train.csv')
 
-        merged_df = HousePrices_load_merge_set(path)
+        merged_df = HousePricesHelper.load_merge_set(path)
 
         pass
 

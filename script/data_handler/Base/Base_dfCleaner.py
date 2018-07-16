@@ -25,14 +25,15 @@ class null_clean_methodMixIn:
     @staticmethod
     def fill_random_value_cate(df: DF, key) -> DF:
         values = df[key].value_counts().keys()
-        df[key] = df[key].fillna(lambda x: random.choice(values))
+        df[key] = df[key].transform(lambda x: x.fillna(np.random.choice(values)))
+        # df[key] = df[key].fillna()
         return df
 
     @staticmethod
     def fill_rate_value_cate(df: DF, key) -> DF:
         values, count = zip(*list(df[key].value_counts().items()))
         p = np.array(count) / np.sum(count)
-        df[key] = df[key].fillna(lambda x: random.choice(values, p=p))
+        df[key] = df[key].transform(lambda x: x.fillna(np.random.choice(values, p=p)))
         return df
 
 
@@ -91,11 +92,7 @@ class Base_dfCleaner(LoggerMixIn, null_clean_methodMixIn, df_plotterMixIn):
                 col = self.df[[key]]
                 series = self.df[key]
 
-                id_before = id(self.df)
                 self.df = val(self, self.df, key, col, series, self.df_Xs_keys, self.df_Ys_key)
-                id_after = id(self.df)
-                if id_before == id_after:
-                    self.log.warn(f'{key} may not clean')
 
         return self.df
 
