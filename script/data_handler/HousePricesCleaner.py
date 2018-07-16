@@ -29,15 +29,17 @@ class HousePricesCleaner(Base_dfCleaner):
         return df
 
     def col_10_BsmtFinType1(self, df: DF, key: str, col: DF, series: Series, Xs_key: list, Ys_key: list):
-        df = self.fill_rate_value_cate(df, key)
+        col = col.fillna('null')
+        df[key] = col[key]
         return df
 
     def col_11_BsmtFinType2(self, df: DF, key: str, col: DF, series: Series, Xs_key: list, Ys_key: list):
-        df = self.fill_rate_value_cate(df, key)
+
+        # df = self.fill_rate_value_cate(df, key)
         return df
 
     def col_12_BsmtFullBath(self, df: DF, key: str, col: DF, series: Series, Xs_key: list, Ys_key: list):
-        df = self.fill_rate_value_cate(df, key)
+        # df = self.fill_rate_value_cate(df, key)
         return df
 
     def col_13_BsmtHalfBath(self, df: DF, key: str, col: DF, series: Series, Xs_key: list, Ys_key: list):

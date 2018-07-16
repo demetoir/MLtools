@@ -10,7 +10,7 @@ from sklearn.neural_network.multilayer_perceptron import MLPRegressor
 
 from script.data_handler.DatasetPackLoader import DatasetPackLoader
 from script.data_handler.DummyDataset import DummyDataset
-from script.data_handler.HousePrices import null_cleaning, HousePrices_load_merge_set
+from script.data_handler.HousePrices import HousePricesHelper
 from script.data_handler.titanic import build_transform
 from script.model.sklearn_like_model.AE.CVAE import CVAE, CVAE_MixIn
 from script.model.sklearn_like_model.GAN.C_GAN import C_GAN
@@ -1095,9 +1095,9 @@ class autoOnehot(BaseModel, CVAE_MixIn):
 
 def test_auto_onehot_encoder():
     dataset_path = """C:\\Users\\demetoir_desktop\\PycharmProjects\\MLtools\\data\\HousePrices"""
-    merge_df = HousePrices_load_merge_set(dataset_path)
+    merge_df = HousePricesHelper.load_merge_set(dataset_path)
 
-    merge_null_clean = null_cleaning(merge_df)
+    merge_null_clean = HousePricesHelper.null_cleaning(merge_df)
 
     Xs = merge_null_clean['col_00_1stFlrSF'][:1400]
     Ys = merge_null_clean['col_70_SalePrice'][:1400]
