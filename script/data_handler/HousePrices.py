@@ -5,6 +5,7 @@ import os
 
 from script.data_handler.HousePricesCleaner import HousePricesCleaner
 from script.data_handler.HousePricesTransformer import HousePricesTransformer
+from script.data_handler.HousePricesTypeCasting import HousePriceTypeCasting
 from script.util.misc_util import path_join
 
 df_raw_keys = [
@@ -66,7 +67,7 @@ class HousePricesHelper:
         # info = nullCleaner.null_cols_info()
         # print(info)
         # nullCleaner.null_cols_plot()
-        nullCleaner.boilerplate_maker(path='./gen_code.py')
+        nullCleaner.boilerplate_maker(path='./null_cleaning.py')
 
         merge_null_clean = nullCleaner.clean()
         # print(merge_null_clean.info())
@@ -75,11 +76,11 @@ class HousePricesHelper:
     @staticmethod
     def transform(merge_df: DF) -> DF:
         transformer = HousePricesTransformer(merge_df, df_Xs_keys, df_Ys_key)
-        transformer.boilerplate_maker('./gen_code.py')
-        transformer.plot_all()
+        # transformer.boilerplate_maker('./transform.py')
+        # transformer.plot_all(merge_df, df_Xs_keys, df_Ys_key)
 
         df = transformer.transform()
-        transformer.corr_heatmap()
+        # transformer.corr_heatmap()
 
         # transformer = HousePricesTransformer(merge_df[['col_00_1stFlrSF', df_Ys_key]], df_Xs_keys, df_Ys_key)
 
@@ -121,6 +122,14 @@ class HousePricesHelper:
 
             merged.to_csv(merged_path, index=False)
         return merged
+
+    @staticmethod
+    def type_casting(df):
+        type_caster = HousePriceTypeCasting(df, df_Xs_keys, df_Ys_key)
+        # type_caster.boilerplate_maker('./type_casting.py')
+        df_type_casted = type_caster.type_cast()
+
+        return df_type_casted
 
 
 class HousePrices_train(BaseDataset):
