@@ -1,10 +1,6 @@
-from pprint import pprint
-
-import pandas as pd
 import numpy as np
-import random
+import pandas as pd
 from script.data_handler.Base.Base_df_transformer import Base_df_transformer
-from script.util.PlotTools import PlotTools
 from script.util.numpy_utils import np_frequency_equal_bins
 
 DF = pd.DataFrame
@@ -27,19 +23,7 @@ def print_info(df, col_key, partial_df, series, Xs_keys, Ys_key):
     print()
 
 
-def df_group_values(values, new_values, df, col_key):
-    for value in values:
-        idxs = df.loc[:, col_key] == value
-        df.loc[idxs, col_key] = new_values
-
-    return df
-
-
 class HousePricesTransformer(Base_df_transformer):
-    def df_update_col(self, df, original_col_key, partial_df, ):
-        df = df.drop(columns=original_col_key)
-        df = pd.concat([df, partial_df], axis=1)
-        return df
 
     def col_00_1stFlrSF(self, df: DF, col_key: str, partial_df: DF, series: Series, Xs_key: list, Ys_key: list):
         bins = df_frequency_equal_bins(partial_df, col_key, 10)
@@ -425,8 +409,8 @@ class HousePricesTransformer(Base_df_transformer):
     def col_53_MSSubClass(self, df: DF, col_key: str, partial_df: DF, series: Series, Xs_key: list, Ys_key: list):
         # print_info(df, col_key, partial_df, series, Xs_key, Ys_key)
 
-        df = df_group_values([30, 40, 45], 40, df, col_key)
-        df = df_group_values([150, 160, 180, 190], 155, df, col_key)
+        df = self.df_group_values([30, 40, 45], 40, df, col_key)
+        df = self.df_group_values([150, 160, 180, 190], 155, df, col_key)
         # print(df_value_counts(df[[col_key]]))
 
         return df
@@ -471,14 +455,14 @@ class HousePricesTransformer(Base_df_transformer):
         return df
 
     def col_62_OverallCond(self, df: DF, col_key: str, partial_df: DF, series: Series, Xs_key: list, Ys_key: list):
-        df = df_group_values(['1', '2', '3'], '1~3', df, col_key)
+        df = self.df_group_values(['1', '2', '3'], '1~3', df, col_key)
         # print(df_value_counts(df[[col_key]]))
         # print_info(df, col_key, partial_df, series, Xs_key, Ys_key)
         return df
 
     def col_63_OverallQual(self, df: DF, col_key: str, partial_df: DF, series: Series, Xs_key: list, Ys_key: list):
         # print_info(df, col_key, partial_df, series, Xs_key, Ys_key)
-        df = df_group_values(['1', '2', '3'], '1~3', df, col_key)
+        df = self.df_group_values(['1', '2', '3'], '1~3', df, col_key)
         # print(df_value_counts(df[[col_key]]))
         return df
 
@@ -504,7 +488,7 @@ class HousePricesTransformer(Base_df_transformer):
     def col_71_SaleType(self, df: DF, col_key: str, partial_df: DF, series: Series, Xs_key: list, Ys_key: list):
         # print_info(df, col_key, partial_df, series, Xs_key, Ys_key)
         values = ['ConLD', 'CWD', 'ConLI', 'ConLw', 'Oth', 'Con', 'COD']
-        df = df_group_values(values, 'etc', df, col_key)
+        df = self.df_group_values(values, 'etc', df, col_key)
         # print(df_value_counts(df[[col_key]]))
 
         return df
@@ -527,8 +511,8 @@ class HousePricesTransformer(Base_df_transformer):
 
     def col_74_TotRmsAbvGrd(self, df: DF, col_key: str, partial_df: DF, series: Series, Xs_key: list, Ys_key: list):
         # print_info(df, col_key, partial_df, series, Xs_key, Ys_key)
-        df = df_group_values(['2', '3'], '2~3', df, col_key)
-        df = df_group_values(['11', '12', '13', '14', '15'], '11~15', df, col_key)
+        df = self.df_group_values(['2', '3'], '2~3', df, col_key)
+        df = self.df_group_values(['11', '12', '13', '14', '15'], '11~15', df, col_key)
 
         # print(df_value_counts(df[[col_key]]))
         return df
