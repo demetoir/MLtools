@@ -26,6 +26,22 @@ class transform_methodMixIn:
     def to_onehot(df: DF, col: list) -> DF:
         return df_to_onehot_embedding(df[col])
 
+    @staticmethod
+    def df_update_col(df, original_col_key, partial_df, ):
+        df = df.reset_index(drop=True)
+        partial_df = partial_df.reset_index(drop=True)
+
+        df = df.drop(columns=original_col_key)
+        df = pd.concat([df, partial_df], axis=1)
+        return df
+
+    @staticmethod
+    def df_group_values(values, new_values, df, col_key):
+        for value in values:
+            idxs = df.loc[:, col_key] == value
+            df.loc[idxs, col_key] = new_values
+
+        return df
 
 class Base_df_transformer(LoggerMixIn, df_plotterMixIn, transform_methodMixIn):
     def __init__(self, df: DF, df_Xs_keys, df_Ys_key, silent=False, verbose=0):
@@ -45,20 +61,20 @@ class Base_df_transformer(LoggerMixIn, df_plotterMixIn, transform_methodMixIn):
         base_class_name = super().__class__.__name__
 
         import_code = f"""
-        import pandas as pd
-        import numpy as np
-        import random
-        from script.data_handler.{base_class_name} import {base_class_name} 
+import pandas as pd
+import numpy as np
+import random
+from script.data_handler.{base_class_name} import {base_class_name} 
 
-        DF = pd.DataFrame
-        Series = pd.Series
+DF = pd.DataFrame
+Series = pd.Series
 
         """
         code = [import_code]
 
         base_class_name = self.__class__.__name__
         class_name = f"boiler_plate_{base_class_name}"
-        class_template = f"""class {class_name}({base_class_name}):"""
+        class_template = f"""class {self.__class__.__name__}({super().__class__.__name__}):"""
         code += [class_template.format(class_name=class_name)]
 
         method_template = inspect.getsource(self.__method_template)
