@@ -32,9 +32,9 @@ class VAE(AE):
     ]
 
     def __init__(self, batch_size=100, learning_rate=0.01, beta1=0.5, L1_norm_lambda=0.001, latent_code_size=32,
-                 z_size=32, encoder_net_shapes=(512,), decoder_net_shapes=(512,), with_noise=False, noise_intensity=1.,
+                 encoder_net_shapes=(512,), decoder_net_shapes=(512,), with_noise=False, noise_intensity=1.,
                  verbose=10):
-        super(VAE, self).__init__(batch_size, learning_rate, beta1, L1_norm_lambda, latent_code_size, z_size,
+        super(VAE, self).__init__(batch_size, learning_rate, beta1, L1_norm_lambda, latent_code_size,
                                   encoder_net_shapes, decoder_net_shapes, with_noise, noise_intensity, verbose)
 
     def _build_main_graph(self):
