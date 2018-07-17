@@ -45,13 +45,13 @@ def test_plot_tools_violine():
     tips = sns.load_dataset("tips")
 
     plt_tools = PlotTools()
-    plt_tools.violin_plot("day", "total_bill", tips, hue="sex", with_swarmplot=True)
+    plt_tools.violin_plot(tips, "day", "total_bill", with_swarmplot=True, hue="sex")
 
 
 def test_plt_joint_2d():
     tips = sns.load_dataset("tips")
     plt_tools = PlotTools()
-    plt_tools.joint_2d("total_bill", "tip", tips)
+    plt_tools.joint_2d(tips, "total_bill", "tip")
 
 
 def test_plt_tool_count():
