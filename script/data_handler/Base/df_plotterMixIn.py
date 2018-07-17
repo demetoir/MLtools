@@ -1,8 +1,6 @@
 from script.util.PlotTools import PlotTools
-import numpy as np
-import pandas as pd
-
 from script.util.Pool_context import Pool_context
+import pandas as pd
 
 DF = pd.DataFrame
 Series = pd.Series
@@ -58,7 +56,7 @@ class df_plotterMixIn:
                            path=None):
         title = f'{col_key}_plot_dist_groupby'
         self.plot.dist_groupby(df, Ys_key, col_key, df, title=title, path=f"./matplot/{title}.png")
-        self.plot.dist_groupby(df, col_key,Ys_key, df, title=title, path=f"./matplot/{title}.png")
+        self.plot.dist_groupby(df, col_key, Ys_key, df, title=title, path=f"./matplot/{title}.png")
 
     def _df_cols_plot(self, df, df_Xs_keys, df_Ys_key):
         with Pool_context() as pool:
