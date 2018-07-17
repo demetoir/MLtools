@@ -11,8 +11,7 @@ class EnsembleClfPack(BaseWrapperClfPack):
     }
 
     def __init__(self, clfs, meta_clf=None):
-        super().__init__()
-
+        super().__init__(pack_keys=[])
         self.pack = {
             'FoldingHardVote': FoldingHardVoteClf(clfs),
             'mlxStackingCVClf': mlxStackingCVClf(clfs, meta_clf),
