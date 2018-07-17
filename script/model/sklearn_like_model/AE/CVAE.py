@@ -1,11 +1,10 @@
-from script.model.sklearn_like_model.Mixin import Ys_MixIn
-from script.model.sklearn_like_model.BaseModel import BaseModel
+import numpy as np
+from tqdm import trange
 from script.model.sklearn_like_model.AE.AE import basicAEPropertyMixIn
+from script.model.sklearn_like_model.BaseModel import BaseModel
+from script.model.sklearn_like_model.Mixin import Ys_MixIn
 from script.util.Stacker import Stacker
 from script.util.tensor_ops import *
-from script.util.summary_func import *
-from tqdm import trange
-import numpy as np
 
 
 class CVAE_MixIn(basicAEPropertyMixIn, Ys_MixIn):
@@ -15,7 +14,85 @@ class CVAE_MixIn(basicAEPropertyMixIn, Ys_MixIn):
         Ys_MixIn.__init__(self)
 
 
-class CVAE(BaseModel, CVAE_MixIn):
+class VAE_loss_builder_MixIn:
+
+    def __init__(self):
+        cls = self.__class__
+        self._loss_builder_funcs = {
+            'VAE': cls.VAE_loss,
+            'MSE_with_KL': cls.MSE_with_KL_loss,
+            'RMSE_with_KL': cls.RMSE_with_KL_loss,
+            'recon_only': cls.recon_only_loss,
+            'MSE_only': cls.MSE_only_loss,
+            'RMSE_only': cls.RMSE_only_loss,
+        }
+
+    @staticmethod
+    def _recon_error(X, X_out):
+        cross_entropy = tf.reduce_sum(X * tf.log(X_out) + (1 - X) * tf.log(1 - X_out), axis=1)
+        recon_error = -1 * cross_entropy
+        return recon_error
+
+    @staticmethod
+    def _regularization_error(mean, std, KL_D_rate):
+        KL_Divergence = 0.5 * tf.reduce_sum(
+            1 - tf.log(tf.square(std) + 1e-8) + tf.square(mean) + tf.square(std), axis=1)
+
+        regularization_error = KL_Divergence * KL_D_rate
+        return regularization_error
+
+    @staticmethod
+    def _MSE(X, X_out):
+        MSE = tf.reduce_sum(tf.squared_difference(X, X_out), axis=1)
+        return MSE
+
+    @staticmethod
+    def _RMSE(X, X_out):
+        RMSE = tf.sqrt(tf.reduce_sum(tf.squared_difference(X, X_out), axis=1))
+        return RMSE
+
+    def VAE_loss(self, X, X_out, mean, std, KL_D_rate):
+        # in autoencoder's perspective loss can be divide to reconstruct error and regularization error
+        recon_error = self._recon_error(X, X_out)
+        regularization_error = self._regularization_error(mean, std, KL_D_rate)
+
+        loss = recon_error + regularization_error
+        return loss, recon_error, regularization_error
+
+    def MSE_with_KL_loss(self, X, X_out, mean, std, KL_D_rate):
+        regularization_error = self._regularization_error(mean, std, KL_D_rate)
+        MSE = self._MSE(X, X_out)
+
+        loss = MSE + regularization_error
+        return loss, MSE, regularization_error
+
+    def RMSE_with_KL_loss(self, X, X_out, mean, std, KL_D_rate):
+        RMSE = self._RMSE(X, X_out)
+        regularization_error = self._regularization_error(mean, std, KL_D_rate)
+
+        loss = RMSE + regularization_error
+        return loss, RMSE, regularization_error
+
+    def RMSE_only_loss(self, X, X_out, mean, std, KL_D_rate):
+        RMSE = self._RMSE(X, X_out)
+
+        return RMSE
+
+    def recon_only_loss(self, X, X_out, mean, std, KL_D_rate):
+        recon_error = self._recon_error(X, X_out)
+
+        return recon_error
+
+    def MSE_only_loss(self, X, X_out, mean, std, KL_D_rate):
+        MSE = self._MSE(X, X_out)
+
+        return MSE
+
+    def _build_VAE_loss(self, X, X_out, mean, std, KL_D_rate, loss_type='VAE'):
+        return self._loss_builder_funcs[loss_type](self, X, X_out, mean, std, KL_D_rate)
+
+
+class CVAE(BaseModel, CVAE_MixIn, VAE_loss_builder_MixIn):
     _params_keys = [
         'batch_size',
         'learning_rate',
@@ -33,10 +110,11 @@ class CVAE(BaseModel, CVAE_MixIn):
     ]
 
     def __init__(self, batch_size=100, learning_rate=0.01, beta1=0.5, L1_norm_lambda=0.001, latent_code_size=32,
-                 z_size=32, encoder_net_shapes=(512,), decoder_net_shapes=(512,), with_noise=False, noise_intensity=1.,
+                 encoder_net_shapes=(512,), decoder_net_shapes=(512,), with_noise=False, noise_intensity=1.,
                  loss_type='VAE', KL_D_rate=1.0, verbose=10):
         BaseModel.__init__(self, verbose)
         CVAE_MixIn.__init__(self)
+        VAE_loss_builder_MixIn.__init__(self)
 
         self.batch_size = batch_size
         self.learning_rate = learning_rate
@@ -118,24 +196,7 @@ class CVAE(BaseModel, CVAE_MixIn):
         X_out = flatten(self.Xs_recon)
         mean = self.mean
         std = self.std
-
-        self.cross_entropy = tf.reduce_sum(X * tf.log(X_out) + (1 - X) * tf.log(1 - X_out), axis=1)
-        self.KL_Divergence = 0.5 * tf.reduce_sum(
-            1 - tf.log(tf.square(std) + 1e-8) + tf.square(mean) + tf.square(std), axis=1)
-
-        # in autoencoder's perspective loss can be divide to reconstruct error and regularization error
-        self.recon_error = -1 * self.cross_entropy
-        self.regularization_error = self.KL_Divergence * self.KL_D_rate
-        self.MSE = tf.reduce_sum(tf.squared_difference(X, X_out), axis=1)
-
-        if self.loss_type == 'VAE':
-            self.loss = self.recon_error + self.regularization_error
-        elif self.loss_type == 'recon_only':
-            self.loss = -1 * self.cross_entropy
-        elif self.loss_type == 'MSE_with_KL':
-            self.loss = self.MSE + self.KL_Divergence
-        elif self.loss_type == 'MSE_only':
-            self.loss = self.MSE
+        self.loss = self._build_VAE_loss(X, X_out, std, mean, self.KL_D_rate, self.loss_type)
 
         self.loss_mean = tf.reduce_mean(self.loss, name='loss_mean')
 
