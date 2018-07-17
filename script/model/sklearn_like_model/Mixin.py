@@ -115,6 +115,12 @@ class zs_MixIn:
     def get_z_rand_normal(shape):
         return np.random.normal(size=shape)
 
+    def get_zs_rand_normal(self, size):
+        return np.random.normal(size=[size] + self.z_shape)
+
+    def get_zs_rand_uniform(self, size):
+        return np.random.uniform(-1.0, 1.0, size=[size] + self.z_shape)
+
 
 class noise_MixIn:
     _noise_shapes_key = 'noise'
