@@ -40,6 +40,10 @@ def test_CVAE():
     loss = np.mean(loss)
     # print("loss {:.4}".format(loss))
 
+    gen = model.generate(sample_Y)
+    # print(gen)
+
+
 
 def test_CVAE_with_noise():
     class_ = CVAE
@@ -77,3 +81,7 @@ def test_CVAE_with_noise():
     loss = model.metric(sample_X, sample_Y)
     loss = np.mean(loss)
     # print("loss {:.4}".format(loss))
+
+
+    gen = model.generate(sample_Y)
+        # print(gen)
