@@ -11,9 +11,11 @@ class BaseDatasetPack(LoggerMixIn):
     def __getitem__(self, item):
         return self.pack.__getitem__(item)
 
-    def load(self, path, **kwargs):
+    def load(self, path, limit=None, **kwargs):
         for k in self.pack:
-            self.pack[k].load(path, **kwargs)
+            self.pack[k].load(path, limit=limit, **kwargs)
+
+        return self
 
     def shuffle(self):
         for key in self.pack:
