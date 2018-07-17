@@ -288,11 +288,8 @@ class BaseDataset(LoggerMixIn, metaclass=MetaDataset):
 
         return batches[0] if len(batches) == 1 else batches
 
-    def split(self, ratio=None, shuffle=False):
+    def split(self, ratio=(7, 3), shuffle=False) -> ("BaseDataset", "BaseDataset"):
         """return split part of dataset"""
-
-        if ratio is None:
-            ratio = (7, 3)
 
         a_set = self._clone()
         b_set = self._clone()
