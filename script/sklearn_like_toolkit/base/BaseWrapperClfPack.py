@@ -105,6 +105,7 @@ class BaseWrapperClfPack(ClfWrapperMixIn, metaclass=meta_BaseWrapperClf):
         for key, clf in self.pack.items():
             current += 1
             try:
+                tqdm.write(f'HyperOpt at {key} {current}/{total}')
                 self.log.info(f'HyperOpt at {key} {current}/{total}')
                 opt = HyperOpt()
 
@@ -139,8 +140,7 @@ class BaseWrapperClfPack(ClfWrapperMixIn, metaclass=meta_BaseWrapperClf):
                     self.pack[key] = clf
 
             except BaseException as e:
-                log_error_trace(self.log.warn, e,
-                                head=f'while HyperOpt at {key}')
+                log_error_trace(self.log.warn, e, head=f'while HyperOpt at {key}')
                 self.log.warn(f'while, HyperOpt at {key}, raise ')
 
     def param_search(self, Xs, Ys):
@@ -193,8 +193,7 @@ class BaseWrapperClfPack(ClfWrapperMixIn, metaclass=meta_BaseWrapperClf):
 
     def _collect_predict(self, Xs):
         result = {}
-        for key in tqdm(self.pack):
-            tqdm.write(f'_collect_predict {key}')
+        for key in self.pack:
             try:
                 result[key] = self.pack[key].predict(Xs)
             except BaseException as e:
@@ -229,8 +228,7 @@ class BaseWrapperClfPack(ClfWrapperMixIn, metaclass=meta_BaseWrapperClf):
     def score(self, Xs, Ys, metric='accuracy'):
         Ys = self.np_arr_to_index(Ys)
         scores = {}
-        for clf_k, predict in tqdm(self._collect_predict(Xs).items()):
-            tqdm.write(f'score {clf_k}')
+        for clf_k, predict in self._collect_predict(Xs).items():
             scores[clf_k] = self._apply_metric(Ys, predict, metric)
         return scores
 
