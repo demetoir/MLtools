@@ -179,6 +179,7 @@ class PlotTools:
 
     @deco_rollback_plt
     def dist(self, df, column, bins=None, ax=None, axlabel=None, rug=False, path=None, **kwargs):
+        warnings.filterwarnings(module='matplotlib*', action='ignore', category=UserWarning)
 
         self.sns_setup()
 
@@ -188,6 +189,19 @@ class PlotTools:
                                      hist_kws={"color": "b", "label": 'hist'})
         fig = sns_plot.figure
 
+        self.plt_common_teardown(fig, path=path, **kwargs)
+
+    @deco_rollback_plt
+    def dist_groupby(self, df, col, groupby_col, path=None, ax=None, axlabel=None, **kwargs):
+        warnings.filterwarnings(module='matplotlib*', action='ignore', category=UserWarning)
+
+        self.sns_setup()
+
+        g = self.sns.FacetGrid(df, hue=groupby_col)
+        g.map(self.sns.distplot, col, label=groupby_col)
+        g.add_legend()
+
+        fig = g.fig
         self.plt_common_teardown(fig, path=path, **kwargs)
 
     @deco_rollback_plt
@@ -319,15 +333,4 @@ class PlotTools:
             sns_plot.add_legend()
 
         fig = sns_plot.fig
-        self.plt_common_teardown(fig, path=path, **kwargs)
-
-    @deco_rollback_plt
-    def dist_groupby(self, df, col, groupby_col, path=None, ax=None, axlabel=None, **kwargs):
-        self.sns_setup()
-
-        g = self.sns.FacetGrid(df, hue=groupby_col)
-        g.map(self.sns.distplot, col, label=groupby_col)
-        g.add_legend()
-
-        fig = g.fig
         self.plt_common_teardown(fig, path=path, **kwargs)
