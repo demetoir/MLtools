@@ -121,7 +121,7 @@ class CVAE(BaseModel, CVAE_MixIn, VAE_loss_builder_MixIn):
         self.beta1 = beta1
         self.L1_norm_lambda = L1_norm_lambda
         self.latent_code_size = latent_code_size
-        self.z_size = z_size
+        self.z_size = self.latent_code_size
         self.loss_type = loss_type
         self.encoder_net_shapes = encoder_net_shapes
         self.decoder_net_shapes = decoder_net_shapes
@@ -221,11 +221,11 @@ class CVAE(BaseModel, CVAE_MixIn, VAE_loss_builder_MixIn):
             for i in range(iter_per_epoch):
                 iter_num += 1
 
-                Xs, Ys = dataset.next_batch(batch_size, batch_keys=['Xs', 'Ys'])
+                Xs, Ys = dataset.next_batch(batch_size)
                 noise = self.get_noises(Xs.shape, self.noise_intensity)
                 self.sess.run(self._train_ops, feed_dict={self._Xs: Xs, self._Ys: Ys, self._noises: noise})
 
-            Xs, Ys = dataset.next_batch(batch_size, batch_keys=['Xs', 'Ys'], look_up=False)
+            Xs, Ys = dataset.next_batch(batch_size, look_up=False)
             noise = self.get_noises(Xs.shape)
             loss = self.sess.run(self._metric_ops, feed_dict={self._Xs: Xs, self._Ys: Ys, self._noises: noise})
             self.log.info("e:{e} loss : {loss}".format(e=e, loss=np.mean(loss)))
@@ -245,5 +245,7 @@ class CVAE(BaseModel, CVAE_MixIn, VAE_loss_builder_MixIn):
         noise = self.get_noises(Xs.shape)
         return self.get_tf_values(self._metric_ops, {self._Xs: Xs, self.Ys: Ys, self._noises: noise})
 
-    def generate(self, zs, Ys):
-        return self.get_tf_values(self._recon_ops, {self._Ys: Ys, self._zs: zs})
+    def generate(self, Ys, zs=None):
+        if zs is None:
+            zs = self.get_zs_rand_normal(len(Ys))
+        return self.get_tf_values(self._generate_ops, {self._Ys: Ys, self._zs: zs})
