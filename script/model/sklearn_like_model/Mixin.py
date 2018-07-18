@@ -1,6 +1,7 @@
 from functools import reduce
 from script.util.misc_util import load_json, dump_json
 import numpy as np
+import inspect
 
 
 class input_shapesMixIN:
@@ -234,7 +235,8 @@ class metadataMixIN:
 class paramsMixIn:
     def __init__(self):
         if not hasattr(self, '_params_keys'):
-            self._params_keys = []
+            argspec = inspect.getfullargspec(self.__init__)
+            self._params_keys = argspec.args
 
         for key in self._params_keys:
             setattr(self, key, None)
