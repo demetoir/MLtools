@@ -4,7 +4,11 @@ import warnings
 from PIL import Image
 from script.util.misc_util import time_stamp, path_join, setup_file
 
-color_set = ['b', 'r', 'g', 'c', 'm', 'y', 'k']
+color_set = [
+    '#4878cf', '#6acc65', '#d65f5f', '#b47cc7', '#c4ad66', '#77bedb',
+    '#610b05', '#614f05', '#2d6105', '#056122', '#055b61', '#051761', '#390561', '#610544'
+]
+
 marker_set = [
     # '.',
     # ',',
@@ -235,12 +239,13 @@ class PlotTools:
         self.plt_common_teardown(fig, path=path, **kwargs)
 
     @deco_rollback_plt
-    def scatter_2d(self, dots, marker_size=2, path=None, **kwargs):
+    def scatter_2d(self, *np_arr, labels=None, marker_size=3, path=None, **kwargs):
         self.sns_setup()
         fig = self.figure
 
-        for idx, (xy, (marker, color)) in enumerate(zip(dots, scatter_markers)):
-            x, y = xy
+        for idx, (xy, (marker, color)) in enumerate(zip(np_arr, scatter_markers)):
+            # print(xy)
+            x, y = xy[:, 0], xy[:, 1]
             self.plt.scatter(x, y, marker_size, color, marker, label=str(idx))
 
         self.plt.legend(loc='center left', bbox_to_anchor=(1, 0.5))
