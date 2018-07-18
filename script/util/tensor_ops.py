@@ -67,7 +67,7 @@ name_to_activation = {
     'lrelu': lrelu,
     'relu': relu,
     'elu': elu,
-    'None': tf.identity
+    'none': tf.identity
 }
 
 
