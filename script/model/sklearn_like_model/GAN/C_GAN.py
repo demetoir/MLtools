@@ -185,7 +185,8 @@ class C_GAN(BaseModel, basicC_GANPropertyMixIN, GAN_loss_builder_MixIn):
             if save_interval is not None and e % save_interval == 0:
                 self.save()
 
-    def generate(self, size, Ys):
+    def generate(self, Ys):
+        size = len(Ys)
         zs = self.get_z_rand_normal([size, self.n_noise])
         return self.get_tf_values(self._gen_ops, {self.zs: zs, self._Ys: Ys})
 
