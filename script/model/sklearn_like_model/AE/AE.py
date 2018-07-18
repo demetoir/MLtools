@@ -7,26 +7,66 @@ from script.util.summary_func import *
 import numpy as np
 
 
-def basicAE_Encoder(Xs, net_shapes, latent_code_size, reuse=False, name='encoder'):
-    with tf.variable_scope(name, reuse=reuse):
-        stack = Stacker(Xs)
-        stack.flatten()
-        for shape in net_shapes:
-            stack.linear_block(shape, relu)
+def common_linear_stack(stack: Stacker, net_shapes, bn=True, activation='relu') -> Stacker:
+    for shape in net_shapes:
+        stack.linear(shape)
+        if bn:
+            stack.bn()
+        stack.activation(activation)
+        stack.lrelu()
+    return stack
 
-        stack.linear_block(latent_code_size, relu)
+
+def common_AE_encoder_head(Xs) -> Stacker:
+    stack = Stacker(Xs)
+    stack.flatten()
+    return stack
+
+
+def common_AE_encoder_tail(stack: Stacker, latent_code_size, bn=False, activation='relu') -> Stacker:
+    stack.linear(latent_code_size)
+    if bn:
+        stack.bn()
+    stack.activation(activation)
+    return stack
+
+
+def basicAE_Encoder(
+        Xs, net_shapes, latent_code_size,
+        linear_stack_bn=False, linear_stack_activation='relu',
+        tail_bn=False, tail_activation='none',
+        reuse=False, name='encoder', ):
+    with tf.variable_scope(name, reuse=reuse):
+        stack = common_AE_encoder_head(Xs)
+        stack = common_linear_stack(stack, net_shapes, bn=linear_stack_bn, activation=linear_stack_activation)
+        stack = common_AE_encoder_tail(stack, latent_code_size, bn=tail_bn, activation=tail_activation)
 
     return stack.last_layer
 
 
-def basicAE_Decoder(zs, net_shapes, flatten_size, output_shape, reuse=False, name='decoder'):
-    with tf.variable_scope(name, reuse=reuse):
-        stack = Stacker(zs)
-        for shape in net_shapes:
-            stack.linear_block(shape, relu)
+def common_AE_decoder_head(latents) -> Stacker:
+    stack = Stacker(latents)
+    return stack
 
-        stack.linear_block(flatten_size, sigmoid)
-        stack.reshape(output_shape)
+
+def common_AE_decoder_tail(stack: Stacker, flatten_size, output_shape, bn=False, activation='sigmoid') -> Stacker:
+    stack.linear(flatten_size)
+    if bn:
+        stack.bn()
+    stack.activation(activation)
+    stack.reshape(output_shape)
+    return stack
+
+
+def basicAE_Decoder(
+        latents, net_shapes, flatten_size, output_shape,
+        linear_stack_bn=False, linear_stack_activation='relu',
+        tail_bn=False, tail_activation='sigmoid',
+        reuse=False, name='decoder'):
+    with tf.variable_scope(name, reuse=reuse):
+        stack = common_AE_decoder_head(latents)
+        stack = common_linear_stack(stack, net_shapes, bn=linear_stack_bn, activation=linear_stack_activation)
+        stack = common_AE_decoder_tail(stack, flatten_size, output_shape, bn=tail_bn, activation=tail_activation)
 
     return stack.last_layer
 
@@ -62,22 +102,9 @@ class basicAEPropertyMixIn(Xs_MixIn, zs_MixIn, noise_MixIn):
 
 
 class AE(BaseModel, basicAEPropertyMixIn):
-    _params_keys = [
-        'batch_size',
-        'learning_rate',
-        'beta1',
-        'L1_norm_lambda',
-        'K_average_top_k_loss',
-        'code_size',
-        'z_size',
-        'encoder_net_shapes',
-        'decoder_net_shapes',
-        'with_noise',
-        'noise_intensity',
-    ]
-
     def __init__(self, batch_size=100, learning_rate=0.01, beta1=0.5, L1_norm_lambda=0.001, latent_code_size=32,
                  encoder_net_shapes=(512,), decoder_net_shapes=(512,), with_noise=False, noise_intensity=1.,
+                 encoder_kwargs=None, decoder_kwargs=None,
                  verbose=10):
         BaseModel.__init__(self, verbose)
         basicAEPropertyMixIn.__init__(self)
@@ -87,7 +114,6 @@ class AE(BaseModel, basicAEPropertyMixIn):
         self.beta1 = beta1
         self.L1_norm_lambda = L1_norm_lambda
         self.latent_code_size = latent_code_size
-        self.z_size = self.latent_code_size
 
         self.encoder_net_shapes = encoder_net_shapes
         self.decoder_net_shapes = decoder_net_shapes
@@ -95,11 +121,19 @@ class AE(BaseModel, basicAEPropertyMixIn):
         self.with_noise = with_noise
         self.noise_intensity = noise_intensity
 
+        if encoder_kwargs is None:
+            encoder_kwargs = {}
+        self.encoder_kwargs = encoder_kwargs
+
+        if decoder_kwargs is None:
+            decoder_kwargs = {}
+        self.decoder_kwargs = decoder_kwargs
+
     def _build_input_shapes(self, shapes):
         ret = {}
         ret.update(self._build_Xs_input_shape(shapes))
 
-        shapes['zs'] = [None, self.z_size]
+        shapes['zs'] = [None, self.latent_code_size]
         ret.update(self._build_zs_input_shape(shapes))
 
         shapes['noise'] = [None] + list(ret['X_shape'])
@@ -118,9 +152,18 @@ class AE(BaseModel, basicAEPropertyMixIn):
         else:
             Xs = self.Xs
 
-        self.latent_code = basicAE_Encoder(Xs, self.encoder_net_shapes, self.latent_code_size)
-        self.Xs_recon = basicAE_Decoder(self.latent_code, self.decoder_net_shapes, self.X_flatten_size, self.Xs_shape)
-        self.Xs_gen = basicAE_Decoder(self.zs, self.decoder_net_shapes, self.X_flatten_size, self.Xs_shape, reuse=True)
+        self.latent_code = basicAE_Encoder(
+            Xs, self.encoder_net_shapes, self.latent_code_size,
+            **self.encoder_kwargs
+        )
+        self.Xs_recon = basicAE_Decoder(
+            self.latent_code, self.decoder_net_shapes, self.X_flatten_size, self.Xs_shape,
+            **self.decoder_kwargs
+
+        )
+        self.Xs_gen = basicAE_Decoder(
+            self.zs, self.decoder_net_shapes, self.X_flatten_size, self.Xs_shape,
+            reuse=True, **self.decoder_kwargs)
 
         head = get_scope()
         self.vars = collect_vars(join_scope(head, 'encoder'))
@@ -156,6 +199,8 @@ class AE(BaseModel, basicAEPropertyMixIn):
             Xs = dataset.next_batch(batch_size, batch_keys=['Xs'], look_up=False)
             loss = self.metric(Xs)
             self.log.info("e:{e} loss : {loss}".format(e=e, loss=np.mean(loss)))
+            # if np.isnan(np.mean(loss)) or np.inf(np.mean(loss)):
+            #     raise ValueError(f'training fail {loss}')
 
             if save_interval is not None and e % save_interval == 0:
                 self.save()
