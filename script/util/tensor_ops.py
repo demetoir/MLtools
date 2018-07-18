@@ -61,6 +61,16 @@ def elu(input_, name="elu"):
     return tf.nn.elu(features=input_, name=name)
 
 
+name_to_activation = {
+    'sigmoid': sigmoid,
+    'tanh': tanh,
+    'lrelu': lrelu,
+    'relu': relu,
+    'elu': elu,
+    'None': tf.identity
+}
+
+
 def linear(input_, output_size, name="linear", stddev=0.02, bias_start=0.0, with_w=False):
     """pre-activated linear layer
 
