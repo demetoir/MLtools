@@ -195,8 +195,8 @@ class BaseModel(LoggerMixIn, input_shapesMixIN, metadataMixIN, paramsMixIn, loss
 
     def load(self, path):
         self._load_metadata(os.path.join(path, 'meta.json'))
-        self._load_input_shapes(os.path.join(path, 'input_shapes.json'))
         self._load_params(os.path.join(path, 'params.json'))
+        self._load_input_shapes(os.path.join(path, 'input_shapes.json'))
 
         self._build()
 
