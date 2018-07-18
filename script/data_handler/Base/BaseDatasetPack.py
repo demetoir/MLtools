@@ -25,9 +25,10 @@ class BaseDatasetPack(LoggerMixIn):
         for key in keys:
             self.pack[key].shuffle(random_state=random_state)
 
-    def split(self, from_key, a_key, b_key, rate):
+    def split(self, from_key, a_key, b_key, rate, pop=False):
         from_set = self.pack[from_key]
-        self.pack.pop(from_key)
+        if pop:
+            self.pack.pop(from_key)
 
         a_set, b_set = from_set.split(rate)
         self.pack[a_key] = a_set
