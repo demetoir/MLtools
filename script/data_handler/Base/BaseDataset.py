@@ -6,6 +6,7 @@ import os
 import sklearn.utils
 import pandas as pd
 from script.util.MixIn import LoggerMixIn
+from script.util.numpy_utils import reformat_np_arr
 
 
 class MetaDataset(type):
@@ -390,3 +391,21 @@ class BaseDataset(LoggerMixIn, metaclass=MetaDataset):
             dataset.add_data(key, self.data[key])
 
         return dataset
+
+    @property
+    def Ys(self):
+        return self.data['Ys']
+
+    @property
+    def Xs(self):
+        return self.data['Xs']
+
+    @property
+    def Ys_index_label(self):
+        return reformat_np_arr(self.Ys, 'index')
+
+    @property
+    def Ys_onehot_label(self):
+        return reformat_np_arr(self.Ys, 'onehot')
+
+
