@@ -190,7 +190,11 @@ class C_GAN(BaseModel, basicC_GANPropertyMixIN, GAN_loss_builder_MixIn):
         zs = self.get_z_rand_normal([size, self.n_noise])
         return self.get_tf_values(self._gen_ops, {self.zs: zs, self._Ys: Ys})
 
-    def metric(self, Xs, Ys):
+    def to_mean(self, d):
+        return {key: np.mean(val) for key, val in d.items()}
+
+    def metric(self, Xs, Ys, mean=True):
         zs = self.get_z_rand_normal([Xs.shape[0], self.n_noise])
         D_loss, G_loss = self.get_tf_values(self._metric_ops, {self._Xs: Xs, self._zs: zs, self._Ys: Ys})
-        return {'D_loss': D_loss, 'G_loss': G_loss}
+
+        return self.to_mean({'D_loss': np.mean(D_loss), 'G_loss': G_loss})
