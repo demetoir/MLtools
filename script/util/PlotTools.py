@@ -2,11 +2,30 @@ import itertools
 import numpy as np
 import warnings
 from PIL import Image
+from script.sklearn_like_toolkit.HyperOpt.HyperOpt import singletonPoolMixIn
 from script.util.misc_util import time_stamp, path_join, setup_file
 
 color_set = [
-    '#4878cf', '#6acc65', '#d65f5f', '#b47cc7', '#c4ad66', '#77bedb',
-    '#610b05', '#614f05', '#2d6105', '#056122', '#055b61', '#051761', '#390561', '#610544'
+    '#e6194b',
+    '#3cb44b',
+    '#ffe119',
+    '#0082c8',
+    '#f58231',
+    '#911eb4',
+    '#46f0f0',
+    '#f032e6',
+    '#d2f53c',
+    '#fabebe',
+    '#008080',
+    '#e6beff',
+    '#aa6e28',
+    '#fffac8',
+    '#800000',
+    '#aaffc3',
+    '#808000',
+    '#ffd8b1',
+    '#000080',
+    '#808080',
 ]
 
 marker_set = [
