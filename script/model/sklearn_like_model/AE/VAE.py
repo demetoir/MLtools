@@ -4,11 +4,25 @@ from script.util.tensor_ops import *
 from script.util.summary_func import *
 
 
+def tf_minmax_scaling(x, epsilon=1e-7):
+    min_ = tf.reduce_min(x)
+    max_ = tf.reduce_max(x)
+    return (x - min_) / (max_ - min_ + epsilon)
+
+
+def tf_z_score_normalize(x: tf.Tensor):
+    if len(x.shape) is not 1:
+        raise TypeError('x rank must be 1')
+    mean, stddev = tf.nn.moments(x, 0)
+    return (x - mean) / stddev
+
+
 def common_linear_stack(stack: Stacker, net_shapes, bn=True, activation='relu') -> Stacker:
     for shape in net_shapes:
         stack.linear(shape)
         if bn:
             stack.bn()
+
         stack.activation(activation)
         stack.lrelu()
     return stack
@@ -28,10 +42,11 @@ def encoder_tail(stack: Stacker, latent_code_size, bn=False, activation='none') 
     return stack
 
 
-def basicVAE_Encoder(Xs, net_shapes, latent_code_size,
-                     linear_stack_bn=False, linear_stack_activation='relu',
-                     tail_bn=False, tail_activation='none',
-                     reuse=False, name='encoder'):
+def basicVAE_Encoder(
+        Xs, net_shapes, latent_code_size,
+        linear_stack_bn=False, linear_stack_activation='relu',
+        tail_bn=False, tail_activation='none',
+        reuse=False, name='encoder'):
     with tf.variable_scope(name, reuse=reuse):
         stack = encoder_head(Xs)
         stack = common_linear_stack(stack, net_shapes, bn=linear_stack_bn, activation=linear_stack_activation)
@@ -178,9 +193,11 @@ class VAE(AE, VAE_loss_builder_MixIn):
         self.mean = tf.identity(self.h[:, :self.latent_code_size], 'mean')
         self.std = tf.identity(tf.nn.softplus(self.h[:, self.latent_code_size:]), 'std')
         # self.mean = tf.nn.tanh(self.mean)
-        self.std = tf.nn.leaky_relu(self.std)
+        # self.std = tf.nn.leaky_relu(self.std)
 
         self.latent_code = self.mean + self.std * tf.random_normal(tf.shape(self.mean), 0, 1, dtype=tf.float32)
+
+        self.latent_code = tf_minmax_scaling(self.latent_code)
 
         self.Xs_recon = basicVAE_Decoder(
             self.latent_code, self.decoder_net_shapes, self.X_flatten_size, self.Xs_shape,
