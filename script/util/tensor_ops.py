@@ -61,6 +61,7 @@ def elu(input_, name="elu"):
     return tf.nn.elu(features=input_, name=name)
 
 
+activation_names = ['none', 'sigmoid', 'tanh', 'relu', 'lrelu', 'elu']
 name_to_activation = {
     'sigmoid': sigmoid,
     'tanh': tanh,
