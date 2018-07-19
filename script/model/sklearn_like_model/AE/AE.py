@@ -213,9 +213,13 @@ class AE(BaseModel, basicAEPropertyMixIn):
         noise = self.get_noises(Xs.shape)
         return self.get_tf_values(self._recon_ops, {self._Xs: Xs, self._noises: noise})
 
-    def metric(self, Xs):
+    def metric(self, Xs, mean=True):
         noise = self.get_noises(Xs.shape)
-        return self.get_tf_values(self._metric_ops, {self._Xs: Xs, self._noises: noise})
+        metric = self.get_tf_values(self._metric_ops, {self._Xs: Xs, self._noises: noise})
+        if mean:
+            metric = np.mean(metric)
+
+        return metric
 
     def generate(self, zs):
         return self.get_tf_values(self._recon_ops, {self._zs: zs})
