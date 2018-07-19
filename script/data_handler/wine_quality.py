@@ -1,17 +1,10 @@
+import os
 from pprint import pprint
-
+import numpy as np
+import pandas as pd
 from script.data_handler.Base.BaseDataset import BaseDataset, path_join
 from script.data_handler.Base.BaseDatasetPack import BaseDatasetPack
-import pandas as pd
-import os
-import inspect
-
 from script.data_handler.Base.Base_df_transformer import Base_df_transformer
-from script.data_handler.Base.df_plotterMixIn import df_plotterMixIn
-from script.util.MixIn import LoggerMixIn
-import numpy as np
-
-from script.util.PlotTools import PlotTools
 from script.util.pandas_util import df_binning, df_minmax_normalize, df_to_onehot_embedding, df_to_np_dict
 
 DF = pd.DataFrame
@@ -33,19 +26,30 @@ df_Xs_keys = [
 df_Ys_key = 'col_11_quality'
 
 
-class transform_methodMixIn:
+def cut_hilowend(df):
+    col_key = 'col_11_quality'
+    df = df[df[col_key] != 3]
+    df = df[df[col_key] != 4]
+    df = df[df[col_key] != 8]
+    df = df[df[col_key] != 9]
+    return df
 
-    @staticmethod
-    def mixmax_normalize(df: DF, col: str) -> DF:
-        return df_minmax_normalize(df, col)
 
-    @staticmethod
-    def binning(df: DF, col: str, bin_seq: list, column_tail='_binning') -> DF:
-        return df_binning(df, col, bin_seq, column_tail)
+def to_binary_class(df):
+    col_key = 'col_11_quality'
+    values = [3, 4, 5, 6]
+    new_values = 0
+    for value in values:
+        idxs = df.loc[:, col_key] == value
+        df.loc[idxs, col_key] = new_values
 
-    @staticmethod
-    def to_onehot(df: DF, col: list) -> DF:
-        return df_to_onehot_embedding(df[col])
+    values = [7, 8, 9]
+    new_values = 1
+    for value in values:
+        idxs = df.loc[:, col_key] == value
+        df.loc[idxs, col_key] = new_values
+
+    return df
 
 
 class wine_quality_transformer(Base_df_transformer):
@@ -110,39 +114,14 @@ class wine_quality_transformer(Base_df_transformer):
         return df
 
     def col_11_quality(self, df: DF, col_key: str, partial_df: DF, series: Series, Xs_key: list, Ys_key: list):
-
-        def cut_hilowend(df):
-            col_key = 'col_11_quality'
-            df = df[df[col_key] != 3]
-            df = df[df[col_key] != 4]
-            df = df[df[col_key] != 8]
-            df = df[df[col_key] != 9]
-            return df
-
-        def to_binary_class(df):
-            col_key = 'col_11_quality'
-            values = [3, 4, 5, 6]
-            new_values = 0
-            for value in values:
-                idxs = df.loc[:, col_key] == value
-                df.loc[idxs, col_key] = new_values
-
-            values = [7, 8, 9]
-            new_values = 1
-            for value in values:
-                idxs = df.loc[:, col_key] == value
-                df.loc[idxs, col_key] = new_values
-
-            return df
-
         # df = to_binary_class(df)
+        # df = cut_hilowend(df)
 
         # print(df[col_key].value_counts())
         return df
 
     def col_12_color(self, df: DF, col_key: str, partial_df: DF, series: Series, Xs_key: list, Ys_key: list):
-        onehot_df = df_to_onehot_embedding(partial_df)
-        df = self.df_update_col(df, col_key, onehot_df)
+        df = self.drop(df, col_key)
         return df
 
 
