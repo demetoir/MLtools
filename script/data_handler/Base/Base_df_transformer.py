@@ -43,6 +43,11 @@ class transform_methodMixIn:
 
         return df
 
+    @staticmethod
+    def drop(df: DF, col: str):
+        return df.drop(columns=col)
+
+
 class Base_df_transformer(LoggerMixIn, df_plotterMixIn, transform_methodMixIn):
     def __init__(self, df: DF, df_Xs_keys, df_Ys_key, silent=False, verbose=0):
         LoggerMixIn.__init__(self, verbose)
