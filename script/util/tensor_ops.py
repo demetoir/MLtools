@@ -387,3 +387,18 @@ def placeholder(dtype, shape, name):
 
 def identity(input_, name):
     return tf.identity(input_, name)
+
+
+def tf_minmax_scaling(x, epsilon=1e-7, name='minmax_scaling'):
+    with tf.variable_scope(name, ):
+        min_ = tf.reduce_min(x)
+        max_ = tf.reduce_max(x)
+        return (x - min_) / (max_ - min_ + epsilon)
+
+
+def tf_z_score_normalize(x: tf.Tensor, name='z_score_normalize'):
+    with tf.variable_scope(name, ):
+        if len(x.shape) is not 1:
+            raise TypeError('x rank must be 1')
+        mean, stddev = tf.nn.moments(x, 0)
+        return (x - mean) / stddev
