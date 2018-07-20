@@ -4,7 +4,12 @@ from script.model.sklearn_like_model.BaseModel import BaseModel
 from script.util.Stacker import Stacker
 from script.util.tensor_ops import *
 from script.util.summary_func import *
+from pprint import pformat
 import numpy as np
+
+
+def param_to_dict(**kwargs):
+    return kwargs
 
 
 class basicAAEPropertyMixIn(Xs_MixIn, Ys_MixIn, zs_MixIn, noise_MixIn):
@@ -62,44 +67,75 @@ class basicAAEPropertyMixIn(Xs_MixIn, Ys_MixIn, zs_MixIn, noise_MixIn):
         return getattr(self, 'hs', None)
 
 
+def common_linear_stack(stack: Stacker, net_shapes, bn=True, activation='relu') -> Stacker:
+    for shape in net_shapes:
+        stack.linear(shape)
+        if bn:
+            stack.bn()
+
+        stack.activation(activation)
+
+    return stack
+
+
+def encoder_head(Xs):
+    stack = Stacker(Xs)
+    stack.flatten()
+    return stack
+
+
+def encoder_tail(stack: Stacker, Y_flatten_size, z_size, bn=False, activation='none'):
+    stack.linear(z_size + Y_flatten_size)
+    if bn:
+        stack.bn()
+    stack.activation(activation)
+
+    zs = stack.last_layer[:, :z_size]
+    Ys_gen = stack.last_layer[:, z_size:]
+    hs = softmax(Ys_gen)
+    return zs, Ys_gen, hs
+
+
+def AAE_encoder(Xs, net_shapes, z_size, Y_flatten_size,
+                linear_stack_bn=False, linear_stack_activation='relu',
+                tail_bn=False, tail_activation='none',
+                reuse=False, name='encoder', ):
+    with tf.variable_scope(name, reuse=reuse):
+        stack = encoder_head(Xs)
+        stack = common_linear_stack(stack, net_shapes, bn=linear_stack_bn, activation=linear_stack_activation)
+        zs, Ys_gen, hs = encoder_tail(stack, Y_flatten_size, z_size, bn=tail_bn, activation=tail_activation)
+
+    return zs, Ys_gen, hs
+
+
+def decoder_head(zs, Ys) -> Stacker:
+    stack = Stacker(concat((zs, Ys), axis=1))
+    return stack
+
+
+def decoder_tail(stack: Stacker, flatten_size, output_shape, bn=False, activation='sigmoid') -> Stacker:
+    stack.linear_block(flatten_size, sigmoid)
+    if bn:
+        stack.bn()
+    stack.activation(activation)
+    stack.reshape(output_shape)
+
+    return stack
+
+
+def AAE_decoder(zs, Ys, net_shapes, X_flatten_size, Xs_shape,
+                linear_stack_bn=False, linear_stack_activation='relu',
+                tail_bn=False, tail_activation='sigmoid',
+                reuse=False, name='decoder'):
+    with tf.variable_scope(name, reuse=reuse):
+        stack = decoder_head(zs, Ys)
+        stack = common_linear_stack(stack, net_shapes, bn=linear_stack_bn, activation=linear_stack_activation)
+        stack = decoder_tail(stack, X_flatten_size, Xs_shape, bn=tail_bn, activation=tail_activation)
+
+    return stack.last_layer
+
+
 class AAE(BaseModel, basicAAEPropertyMixIn):
-    _params_keys = [
-        'batch_size',
-        'learning_rate',
-        'beta1',
-        'L1_norm_lambda',
-        'K_average_top_k_loss',
-        'code_size',
-        'z_size',
-        'encoder_net_shapes',
-        'decoder_net_shapes',
-        'D_gauss_net_shapes',
-        'with_noise',
-        'noise_intensity',
-    ]
-
-    def __init__(self, batch_size=100, learning_rate=0.01, beta1=0.5, L1_norm_lambda=0.001, latent_code_size=32,
-                 z_size=32, encoder_net_shapes=(512,), decoder_net_shapes=(512,), D_gauss_net_shapes=(512,),
-                 D_cate_net_shapes=(512,), with_noise=False, noise_intensity=1.,
-                 verbose=10):
-        BaseModel.__init__(self, verbose)
-        basicAAEPropertyMixIn.__init__(self)
-
-        self.batch_size = batch_size
-        self.learning_rate = learning_rate
-        self.beta1 = beta1
-        self.L1_norm_lambda = L1_norm_lambda
-        self.latent_code_size = latent_code_size
-        self.z_size = z_size
-
-        self.encoder_net_shapes = encoder_net_shapes
-        self.decoder_net_shapes = decoder_net_shapes
-        self.D_cate_net_shapes = D_cate_net_shapes
-        self.D_gauss_net_shapes = D_gauss_net_shapes
-
-        self.with_noise = with_noise
-        self.noise_intensity = noise_intensity
-
     def _build_input_shapes(self, shapes):
         ret = {}
         ret.update(self._build_Xs_input_shape(shapes))
@@ -114,32 +150,36 @@ class AAE(BaseModel, basicAAEPropertyMixIn):
 
         return ret
 
-    def encoder(self, Xs, net_shapes, reuse=False, name='encoder'):
-        with tf.variable_scope(name, reuse=reuse):
-            stack = Stacker(Xs)
-            stack.flatten()
+    def __init__(self, batch_size=100, learning_rate=0.01, beta1=0.5, L1_norm_lambda=0.001, latent_code_size=32,
+                 encoder_net_shapes=(512,), decoder_net_shapes=(512,), D_gauss_net_shapes=(512, 512),
+                 D_cate_net_shapes=(512, 512), with_noise=False, noise_intensity=1.,
+                 encoder_kwargs=None, decoder_kwargs=None,
+                 verbose=10):
+        BaseModel.__init__(self, verbose)
+        basicAAEPropertyMixIn.__init__(self)
 
-            for shape in net_shapes:
-                stack.linear_block(shape, relu)
+        self.batch_size = batch_size
+        self.learning_rate = learning_rate
+        self.beta1 = beta1
+        self.L1_norm_lambda = L1_norm_lambda
+        self.latent_code_size = latent_code_size
+        self.z_size = latent_code_size
 
-            stack.linear_block(self.z_size + self.Y_flatten_size, relu)
-            zs = stack.last_layer[:, :self.z_size]
-            Ys_gen = stack.last_layer[:, self.z_size:]
+        self.encoder_net_shapes = encoder_net_shapes
+        self.decoder_net_shapes = decoder_net_shapes
+        self.D_cate_net_shapes = D_cate_net_shapes
+        self.D_gauss_net_shapes = D_gauss_net_shapes
 
-            hs = softmax(Ys_gen)
-        return zs, Ys_gen, hs
+        self.with_noise = with_noise
+        self.noise_intensity = noise_intensity
 
-    def decoder(self, zs, Ys, net_shapes, reuse=False, name='decoder'):
-        with tf.variable_scope(name, reuse=reuse):
-            stack = Stacker(concat((zs, Ys), axis=1))
+        if encoder_kwargs is None:
+            encoder_kwargs = {}
+        self.encoder_kwargs = encoder_kwargs
 
-            for shape in net_shapes:
-                stack.linear_block(shape, relu)
-
-            stack.linear_block(self.X_flatten_size, sigmoid)
-            stack.reshape(self.Xs_shape)
-
-        return stack.last_layer
+        if decoder_kwargs is None:
+            decoder_kwargs = {}
+        self.decoder_kwargs = decoder_kwargs
 
     @staticmethod
     def discriminator_gauss(zs, net_shapes, reuse=False, name='discriminator_gauss'):
@@ -177,10 +217,14 @@ class AAE(BaseModel, basicAAEPropertyMixIn):
         else:
             Xs = self.Xs
 
-        self.zs_gen, self.Ys_gen, self.hs = self.encoder(Xs, self.encoder_net_shapes)
+        self.zs_gen, self.Ys_gen, self.hs = AAE_encoder(Xs, self.encoder_net_shapes, self.z_size, self.Y_flatten_size)
         self.latent_code = self.zs_gen
-        self.Xs_recon = self.decoder(self.zs_gen, self.Ys_gen, self.decoder_net_shapes)
-        self.Xs_gen = self.decoder(self.zs, self.Ys, self.decoder_net_shapes, reuse=True)
+        self.latent_code = tf_minmax_scaling(self.latent_code)
+
+        self.Xs_recon = AAE_decoder(self.zs_gen, self.Ys_gen, self.decoder_net_shapes, self.X_flatten_size,
+                                    self.Xs_shape)
+        self.Xs_gen = AAE_decoder(self.zs, self.Ys, self.decoder_net_shapes, self.X_flatten_size, self.Xs_shape,
+                                  reuse=True)
 
         self.D_gauss_real = self.discriminator_gauss(self.zs, self.D_gauss_net_shapes)
         self.D_gauss_gen = self.discriminator_gauss(self.zs_gen, self.D_gauss_net_shapes, reuse=True)
@@ -311,12 +355,16 @@ class AAE(BaseModel, basicAAEPropertyMixIn):
 
         for e in trange(epoch):
             dataset.shuffle()
-            total_AE = 0
-            total_G_gauss = 0
-            total_G_cate = 0
-            total_D_gauss = 0
-            total_D_cate = 0
-            total_clf = 0
+
+            total = param_to_dict(
+                loss_AE=0,
+                loss_G_gauss=0,
+                loss_G_cate=0,
+                loss_D_cate=0,
+                loss_D_Gauss=0,
+                loss_clf=0
+            )
+
             for i in range(iter_per_epoch):
                 iter_num += 1
 
@@ -325,22 +373,20 @@ class AAE(BaseModel, basicAAEPropertyMixIn):
                 zs = self.get_z_rand_uniform([batch_size, self.z_size])
                 noise = self.get_noises(Xs.shape, self.noise_intensity)
                 self.sess.run(self._train_ops,
-                              feed_dict={self._Xs: Xs, self._Ys: Ys, self._zs: zs, self._noises: noise})
+                              feed_dict={
+                                  self._Xs: Xs,
+                                  self._Ys: Ys,
+                                  self._zs: zs,
+                                  self._noises: noise
+                              })
 
-                loss = self.sess.run(self._metric_ops,
-                                     feed_dict={self._Xs: Xs, self._Ys: Ys, self._zs: zs, self._noises: noise})
+                metric = self.metric(Xs, Ys)
+                total = {key: total[key] + metric[key] for key in total}
 
-                loss_AE, loss_G_gauss, loss_G_cate, loss_D_gauss, loss_D_cate, loss_clf = loss
-                total_AE += np.sum(loss_AE) / dataset.size
-                total_G_gauss += np.sum(loss_G_gauss) / dataset.size
-                total_G_cate += np.sum(loss_G_cate) / dataset.size
-                total_D_gauss += np.sum(loss_D_gauss) / dataset.size
-                total_D_cate += np.sum(loss_D_cate) / dataset.size
-                total_clf += np.sum(loss_clf) / dataset.size
+            total = {key: np.mean(val) for key, val in total.items()}
+            pformat(total)
+            self.log.info(total)
 
-            self.log.info(
-                "e:{} loss AE={}, G_gauss={}, G_cate={}, D_gauss={}, D_cate={}, "
-                "clf={}".format(e, total_AE, total_G_gauss, total_G_cate, total_D_gauss, total_D_cate, total_clf))
             # Xs, Ys = dataset.next_batch(batch_size, batch_keys=['Xs', 'Ys'], look_up=False)
             # zs = self.get_z_noise([batch_size, self.z_size])
             # loss = self.sess.run(self._metric_ops, feed_dict={self._Xs: Xs, self._Ys: Ys, self._zs: zs})
@@ -349,32 +395,64 @@ class AAE(BaseModel, basicAAEPropertyMixIn):
                 self.save()
 
     def code(self, Xs):
-        noise = self.get_noises(Xs.shape)
-        return self.get_tf_values(self._code_ops, {self._Xs: Xs, self._noises: noise})
+        return self.get_tf_values(self._code_ops, {
+            self._Xs: Xs,
+            self._noises: (self.get_noises(Xs.shape))
+        })
 
     def recon(self, Xs, Ys):
-        noise = self.get_noises(Xs.shape)
-        return self.get_tf_values(self._recon_ops, {self._Xs: Xs, self._Ys: Ys, self._noises: noise})
+        return self.get_tf_values(self._recon_ops, {
+            self._Xs: Xs,
+            self._Ys: Ys,
+            self._noises: (self.get_noises(Xs.shape))
+        })
 
-    def generate(self, zs, Ys):
-        return self.get_tf_values(self._recon_ops, {self._zs: zs, self._Ys: Ys})
+    def generate(self, size):
+        zs = self.get_zs_rand_normal(size)
+        return self.get_tf_values(self._recon_ops, {
+            self._zs: zs,
+            # self._Ys: Ys
+        })
 
-    def metric(self, Xs, Ys):
-        Xs = np.array(Xs)
-        zs = self.get_z_rand_uniform([Xs.shape[0], self.z_size])
-        noises = self.get_noises(Xs.shape)
-        return self.get_tf_values(self._metric_ops, {self._Xs: Xs, self._Ys: Ys, self._zs: zs, self._noises: noises})
+    def metric(self, Xs, Ys, mean=True):
+        metric = self.get_tf_values(self._metric_ops, {
+            self._Xs: np.array(Xs),
+            self._Ys: Ys,
+            self._zs: (self.get_z_rand_uniform([Xs.shape[0], self.z_size])),
+            self._noises: (self.get_noises(Xs.shape))
+        })
+        loss_AE, loss_G_gauss, loss_G_cate, loss_D_Gauss, loss_D_cate, loss_clf = metric
+        metric = param_to_dict(
+            loss_AE=loss_AE,
+            loss_G_gauss=loss_G_gauss,
+            loss_G_cate=loss_G_cate,
+            loss_D_cate=loss_D_cate,
+            loss_D_Gauss=loss_D_Gauss,
+            loss_clf=loss_clf
+        )
+        if mean:
+            metric = {key: np.mean(val) for key, val in metric.items()}
+        return metric
 
     def predict_proba(self, Xs):
-        noises = self.get_noises(Xs.shape)
-        return self.get_tf_values(self._predict_ops, {self._Xs: Xs, self._noises: noises})
+        return self.get_tf_values(self._predict_ops, {
+            self._Xs: Xs,
+            self._noises: (self.get_noises(Xs.shape))
+        })
 
     def predict(self, Xs):
-        noises = self.get_noises(Xs.shape)
-        return self.get_tf_values(self._predict_ops, {self._Xs: Xs, self._noises: noises})
+        return self.get_tf_values(self._predict_ops, {
+            self._Xs: Xs,
+            self._noises: (self.get_noises(Xs.shape))
+        })
 
     def score(self, Xs, Ys):
-        Xs = np.array(Xs)
-        zs = self.get_z_rand_uniform([Xs.shape[0], self.z_size])
-        noises = self.get_noises(Xs.shape)
-        return self.get_tf_values(self._score_ops, {self._Xs: Xs, self._Ys: Ys, self._zs: zs, self._noises: noises})
+        return self.get_tf_values(
+            self._score_ops,
+            {
+                self._Xs: np.array(Xs),
+                self._Ys: Ys,
+                self._zs: self.get_z_rand_uniform([Xs.shape[0], self.z_size]),
+                self._noises: self.get_noises(Xs.shape)
+            }
+        )
