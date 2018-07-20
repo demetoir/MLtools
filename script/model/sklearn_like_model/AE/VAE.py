@@ -4,19 +4,6 @@ from script.util.tensor_ops import *
 from script.util.summary_func import *
 
 
-def tf_minmax_scaling(x, epsilon=1e-7):
-    min_ = tf.reduce_min(x)
-    max_ = tf.reduce_max(x)
-    return (x - min_) / (max_ - min_ + epsilon)
-
-
-def tf_z_score_normalize(x: tf.Tensor):
-    if len(x.shape) is not 1:
-        raise TypeError('x rank must be 1')
-    mean, stddev = tf.nn.moments(x, 0)
-    return (x - mean) / stddev
-
-
 def common_linear_stack(stack: Stacker, net_shapes, bn=True, activation='relu') -> Stacker:
     for shape in net_shapes:
         stack.linear(shape)
