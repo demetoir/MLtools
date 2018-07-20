@@ -13,7 +13,6 @@ def common_linear_stack(stack: Stacker, net_shapes, bn=True, activation='relu') 
         if bn:
             stack.bn()
         stack.activation(activation)
-        stack.lrelu()
     return stack
 
 
