@@ -1,6 +1,7 @@
 import numpy as np
 from tqdm import trange
 from script.model.sklearn_like_model.AE.AE import basicAEPropertyMixIn
+from script.model.sklearn_like_model.AE.VAE import tf_minmax_scaling
 from script.model.sklearn_like_model.BaseModel import BaseModel
 from script.model.sklearn_like_model.Mixin import Ys_MixIn
 from script.util.Stacker import Stacker
@@ -57,21 +58,21 @@ class VAE_loss_builder_MixIn:
         regularization_error = self._regularization_error(mean, std, KL_D_rate)
 
         loss = recon_error + regularization_error
-        return loss, recon_error, regularization_error
+        return loss
 
     def MSE_with_KL_loss(self, X, X_out, mean, std, KL_D_rate):
         regularization_error = self._regularization_error(mean, std, KL_D_rate)
         MSE = self._MSE(X, X_out)
 
         loss = MSE + regularization_error
-        return loss, MSE, regularization_error
+        return loss
 
     def RMSE_with_KL_loss(self, X, X_out, mean, std, KL_D_rate):
         RMSE = self._RMSE(X, X_out)
         regularization_error = self._regularization_error(mean, std, KL_D_rate)
 
         loss = RMSE + regularization_error
-        return loss, RMSE, regularization_error
+        return loss
 
     def RMSE_only_loss(self, X, X_out, mean, std, KL_D_rate):
         RMSE = self._RMSE(X, X_out)
@@ -92,26 +93,74 @@ class VAE_loss_builder_MixIn:
         return self._loss_builder_funcs[loss_type](self, X, X_out, mean, std, KL_D_rate)
 
 
+def common_linear_stack(stack: Stacker, net_shapes, bn=True, activation='relu') -> Stacker:
+    for shape in net_shapes:
+        stack.linear(shape)
+        if bn:
+            stack.bn()
+
+        stack.activation(activation)
+        stack.lrelu()
+    return stack
+
+
+def encoder_head(Xs, Ys):
+    stack = Stacker(concat((flatten(Xs), Ys), axis=1))
+    return stack
+
+
+def encoder_tail(stack: Stacker, latent_code_size, bn=False, activation='none') -> Stacker:
+    stack.linear(latent_code_size * 2)
+    if bn:
+        stack.bn()
+    stack.activation(activation)
+    return stack
+
+
+def basicCVAE_Encoder(
+        Xs, Ys, net_shapes, latent_code_size,
+        linear_stack_bn=False, linear_stack_activation='relu',
+        tail_bn=False, tail_activation='none',
+        reuse=False, name='encoder'):
+    with tf.variable_scope(name, reuse=reuse):
+        stack = encoder_head(Xs, Ys)
+        stack = common_linear_stack(stack, net_shapes, bn=linear_stack_bn, activation=linear_stack_activation)
+        stack = encoder_tail(stack, latent_code_size, bn=tail_bn, activation=tail_activation)
+    return stack.last_layer
+
+
+def decoder_head(latents, Ys) -> Stacker:
+    stack = Stacker(concat((latents, Ys), axis=1))
+    return stack
+
+
+def decoder_tail(stack: Stacker, flatten_size, output_shape, bn=False, activation='sigmoid') -> Stacker:
+    stack.linear(flatten_size)
+    if bn:
+        stack.bn()
+    stack.activation(activation)
+    stack.reshape(output_shape)
+    return stack
+
+
+def basicCVAE_Decoder(latents, Ys, net_shapes, flatten_size, output_shape,
+                      linear_stack_bn=False, linear_stack_activation='relu',
+                      tail_bn=False, tail_activation='sigmoid',
+
+                      reuse=False, name='decoder'):
+    with tf.variable_scope(name, reuse=reuse):
+        stack = decoder_head(latents, Ys)
+        stack = common_linear_stack(stack, net_shapes, bn=linear_stack_bn, activation=linear_stack_activation)
+        stack = decoder_tail(stack, flatten_size, output_shape, bn=tail_bn, activation=tail_activation)
+
+    return stack.last_layer
+
+
 class CVAE(BaseModel, CVAE_MixIn, VAE_loss_builder_MixIn):
-    _params_keys = [
-        'batch_size',
-        'learning_rate',
-        'beta1',
-        'L1_norm_lambda',
-        'K_average_top_k_loss',
-        'code_size',
-        'z_size',
-        'encoder_net_shapes',
-        'decoder_net_shapes',
-        'with_noise',
-        'noise_intensity',
-        'loss_type',
-        'KL_D_rate'
-    ]
 
     def __init__(self, batch_size=100, learning_rate=0.01, beta1=0.5, L1_norm_lambda=0.001, latent_code_size=32,
                  encoder_net_shapes=(512,), decoder_net_shapes=(512,), with_noise=False, noise_intensity=1.,
-                 loss_type='VAE', KL_D_rate=1.0, verbose=10):
+                 loss_type='VAE', KL_D_rate=0.1, encoder_kwargs=None, decoder_kwargs=None, verbose=10):
         BaseModel.__init__(self, verbose)
         CVAE_MixIn.__init__(self)
         VAE_loss_builder_MixIn.__init__(self)
@@ -128,6 +177,14 @@ class CVAE(BaseModel, CVAE_MixIn, VAE_loss_builder_MixIn):
         self.with_noise = with_noise
         self.noise_intensity = noise_intensity
         self.KL_D_rate = KL_D_rate
+
+        if encoder_kwargs is None:
+            encoder_kwargs = {}
+        self.encoder_kwargs = encoder_kwargs
+
+        if decoder_kwargs is None:
+            decoder_kwargs = {}
+        self.decoder_kwargs = decoder_kwargs
 
     def _build_input_shapes(self, shapes):
         ret = {}
@@ -148,9 +205,10 @@ class CVAE(BaseModel, CVAE_MixIn, VAE_loss_builder_MixIn):
             stack = Stacker(concat((flatten(Xs), Ys), axis=1))
 
             for shape in net_shapes:
-                stack.linear_block(shape, relu)
+                stack.linear(shape)
+                stack.lrelu()
 
-            stack.linear_block(self.z_size * 2, relu)
+            stack.linear(self.z_size * 2)
 
         return stack.last_layer
 
@@ -159,9 +217,11 @@ class CVAE(BaseModel, CVAE_MixIn, VAE_loss_builder_MixIn):
             stack = Stacker(concat((zs, Ys), axis=1))
 
             for shape in net_shapes:
-                stack.linear_block(shape, relu)
+                stack.linear(shape)
+                stack.lrelu()
 
-            stack.linear_block(self.X_flatten_size, sigmoid)
+            stack.linear(self.X_flatten_size)
+            stack.sigmoid()
             stack.reshape(self.Xs_shape)
 
         return stack.last_layer
@@ -178,14 +238,23 @@ class CVAE(BaseModel, CVAE_MixIn, VAE_loss_builder_MixIn):
         else:
             Xs = self.Xs
 
-        self.h = self.encoder(Xs, self.Ys, self.encoder_net_shapes)
+        self.h = basicCVAE_Encoder(Xs, self.Ys, self.encoder_net_shapes, self.latent_code_size, **self.encoder_kwargs)
 
         self.mean = self.h[:, :self.z_size]
         self.std = tf.nn.softplus(self.h[:, self.z_size:])
-        self.latent_code = self.mean + self.std * tf.random_normal(tf.shape(self.mean), 0, 1, dtype=tf.float32)
+        # self.mean = tf.nn.tanh(self.mean)
+        # self.std = tf.nn.leaky_relu(self.std)
 
-        self.Xs_recon = self.decoder(self.latent_code, self.Ys, self.decoder_net_shapes)
-        self.Xs_gen = self.decoder(self.zs, self.Ys, self.decoder_net_shapes, reuse=True)
+        self.latent_code = self.mean + self.std * tf.random_normal(tf.shape(self.mean), 0, 1, dtype=tf.float32)
+        self.latent_code = tf_minmax_scaling(self.latent_code)
+
+        self.Xs_recon = basicCVAE_Decoder(
+            self.latent_code, self.Ys, self.decoder_net_shapes, self.X_flatten_size, self.Xs_shape,
+            **self.decoder_kwargs)
+        self.Xs_gen = basicCVAE_Decoder(
+            self.zs, self.Ys, self.decoder_net_shapes, self.X_flatten_size, self.Xs_shape, reuse=True,
+            **self.decoder_kwargs
+        )
 
         head = get_scope()
         self.vars = collect_vars(join_scope(head, 'encoder'))
@@ -241,9 +310,12 @@ class CVAE(BaseModel, CVAE_MixIn, VAE_loss_builder_MixIn):
         noise = self.get_noises(Xs.shape)
         return self.get_tf_values(self._recon_ops, {self._Xs: Xs, self.Ys: Ys, self._noises: noise})
 
-    def metric(self, Xs, Ys):
+    def metric(self, Xs, Ys, mean=True):
         noise = self.get_noises(Xs.shape)
-        return self.get_tf_values(self._metric_ops, {self._Xs: Xs, self.Ys: Ys, self._noises: noise})
+        metric = self.get_tf_values(self._metric_ops, {self._Xs: Xs, self.Ys: Ys, self._noises: noise})
+        if mean:
+            metric = np.mean(metric)
+        return metric
 
     def generate(self, Ys, zs=None):
         if zs is None:
