@@ -15,9 +15,7 @@ LABEL_SIZE = 10
 class MNIST_train(BaseDataset):
     SIZE = TRAIN_SIZE
     LABEL_SIZE = LABEL_SIZE
-    Xs = Xs
     Xs_img = Xs_img
-    Ys = Ys
     BATCH_KEYS = [
         Xs,
         Ys,
@@ -41,9 +39,7 @@ class MNIST_train(BaseDataset):
 class MNIST_test(BaseDataset):
     SIZE = TEST_SIZE
     LABEL_SIZE = LABEL_SIZE
-    Xs = Xs
     Xs_img = Xs_img
-    Ys = Ys
     BATCH_KEYS = [
         Xs,
         Ys,

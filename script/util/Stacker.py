@@ -130,3 +130,6 @@ class Stacker:
 
     def flatten(self):
         return self.add_layer(flatten)
+
+    def activation(self, name):
+        return self.add_layer(name_to_activation[name])

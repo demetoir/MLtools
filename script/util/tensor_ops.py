@@ -61,6 +61,18 @@ def elu(input_, name="elu"):
     return tf.nn.elu(features=input_, name=name)
 
 
+activation_names = ['none', 'sigmoid', 'tanh', 'relu', 'lrelu', 'elu']
+name_to_activation = {
+    'sigmoid': sigmoid,
+    'tanh': tanh,
+    'lrelu': lrelu,
+    'relu': relu,
+    'elu': elu,
+    'none': tf.identity,
+    'relu6': tf.nn.relu6
+}
+
+
 def linear(input_, output_size, name="linear", stddev=0.02, bias_start=0.0, with_w=False):
     """pre-activated linear layer
 
@@ -375,3 +387,18 @@ def placeholder(dtype, shape, name):
 
 def identity(input_, name):
     return tf.identity(input_, name)
+
+
+def tf_minmax_scaling(x, epsilon=1e-7, name='minmax_scaling'):
+    with tf.variable_scope(name, ):
+        min_ = tf.reduce_min(x)
+        max_ = tf.reduce_max(x)
+        return (x - min_) / (max_ - min_ + epsilon)
+
+
+def tf_z_score_normalize(x: tf.Tensor, name='z_score_normalize'):
+    with tf.variable_scope(name, ):
+        if len(x.shape) is not 1:
+            raise TypeError('x rank must be 1')
+        mean, stddev = tf.nn.moments(x, 0)
+        return (x - mean) / stddev

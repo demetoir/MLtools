@@ -1,5 +1,6 @@
 import os
 from pprint import pformat
+from tqdm import tqdm
 from env_settting import SKLEARN_PARAMS_SAVE_PATH
 from script.data_handler.DummyDataset import DummyDataset
 from script.sklearn_like_toolkit.HyperOpt.HyperOpt import HyperOpt, HyperOpt_fn
@@ -29,7 +30,6 @@ class clfpack_HyperOpt_fn(HyperOpt_fn):
         score = clf.score(test_Xs, test_Ys)
 
         return score
-
 
 
 class BaseWrapperClfPack(ClfWrapperMixIn, metaclass=meta_BaseWrapperClf):
@@ -105,6 +105,7 @@ class BaseWrapperClfPack(ClfWrapperMixIn, metaclass=meta_BaseWrapperClf):
         for key, clf in self.pack.items():
             current += 1
             try:
+                tqdm.write(f'HyperOpt at {key} {current}/{total}')
                 self.log.info(f'HyperOpt at {key} {current}/{total}')
                 opt = HyperOpt()
 
@@ -139,8 +140,7 @@ class BaseWrapperClfPack(ClfWrapperMixIn, metaclass=meta_BaseWrapperClf):
                     self.pack[key] = clf
 
             except BaseException as e:
-                log_error_trace(self.log.warn, e,
-                                head=f'while HyperOpt at {key}')
+                log_error_trace(self.log.warn, e, head=f'while HyperOpt at {key}')
                 self.log.warn(f'while, HyperOpt at {key}, raise ')
 
     def param_search(self, Xs, Ys):
@@ -182,7 +182,9 @@ class BaseWrapperClfPack(ClfWrapperMixIn, metaclass=meta_BaseWrapperClf):
 
     def fit(self, Xs, Ys):
         Ys = self.np_arr_to_index(Ys)
-        for key in self.pack:
+
+        for key in tqdm(self.pack):
+            tqdm.write(f'fit {key}')
             try:
                 self.pack[key].fit(Xs, Ys)
             except BaseException as e:
@@ -201,6 +203,28 @@ class BaseWrapperClfPack(ClfWrapperMixIn, metaclass=meta_BaseWrapperClf):
     def predict(self, Xs):
         return self._collect_predict(Xs)
 
+    def predict_proba(self, Xs):
+        result = {}
+        for key in tqdm(self.pack):
+            tqdm.write(f'predict_proba {key}')
+            try:
+                result[key] = self.pack[key].predict_proba(Xs)
+            except BaseException as e:
+                self.log.warn(f'while predict_proba, {key} raise {e}')
+        return result
+
+    def predict_confidence(self, Xs):
+        confidences = {}
+        for key, clf in tqdm(self.pack.items()):
+            tqdm.write(f'predict_confidence {key}')
+            try:
+                confidences[key] = clf.predict_confidence(Xs)
+            except BaseException as e:
+                log_error_trace(self.log.warn, e,
+                                f'while execute confidence at {key},\n')
+
+        return confidences
+
     def score(self, Xs, Ys, metric='accuracy'):
         Ys = self.np_arr_to_index(Ys)
         scores = {}
@@ -211,18 +235,11 @@ class BaseWrapperClfPack(ClfWrapperMixIn, metaclass=meta_BaseWrapperClf):
     def score_pack(self, Xs, Ys):
         Ys = self.np_arr_to_index(Ys)
         ret = {}
-        for clf_k, predict in self._collect_predict(Xs).items():
+        for clf_k, predict in tqdm(self._collect_predict(Xs).items()):
+            tqdm.write(f'score_pack {clf_k}')
+
             ret[clf_k] = self._apply_metric_pack(Ys, predict)
         return ret
-
-    def predict_proba(self, Xs):
-        result = {}
-        for key in self.pack:
-            try:
-                result[key] = self.pack[key].predict_proba(Xs)
-            except BaseException as e:
-                self.log.warn(f'while predict_proba, {key} raise {e}')
-        return result
 
     def import_params(self, params_pack):
         for key in self.pack:
@@ -258,17 +275,6 @@ class BaseWrapperClfPack(ClfWrapperMixIn, metaclass=meta_BaseWrapperClf):
     def dump(self, path):
         self.log.info(f'pickle save at {path}')
         super().dump(path)
-
-    def predict_confidence(self, Xs):
-        confidences = {}
-        for key, clf in self.pack.items():
-            try:
-                confidences[key] = clf.predict_confidence(Xs)
-            except BaseException as e:
-                log_error_trace(self.log.warn, e,
-                                f'while execute confidence at {key},\n')
-
-        return confidences
 
     def drop(self, key):
         self.pack.pop(key)

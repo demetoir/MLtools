@@ -6,6 +6,7 @@ import os
 import sklearn.utils
 import pandas as pd
 from script.util.MixIn import LoggerMixIn
+from script.util.numpy_utils import reformat_np_arr
 
 
 class MetaDataset(type):
@@ -23,7 +24,7 @@ class MetaDataset(type):
                 try:
                     self.if_need_download(path)
                     cls_dict['load'](self, path, limit)
-                    self.after_load(limit)
+                    self._after_load(limit)
                 except Exception:
                     exc_type, exc_value, exc_traceback = sys.exc_info()
                     err_msg = traceback.format_exception(exc_type, exc_value, exc_traceback)
@@ -95,21 +96,20 @@ class BaseDataset(LoggerMixIn, metaclass=MetaDataset):
             size = max(len(self.data[key]), size)
         return size
 
+    def __getitem__(self, item):
+        return self.data.__getitem__(item)
+
+    def __setitem__(self, key, value):
+        return self.data.__setitem__(key, value)
+
     def add_data(self, key, data):
         self.data[key] = data
         self.cursor = 0
         self.data_size = len(data)
         self.batch_keys += [key]
 
-    def get_data(self, key):
-        """return data
-
-        :param key:
-        :type key: str
-
-        :return:
-        """
-        return self.data[key]
+    def keys(self):
+        return self.data.keys()
 
     def if_need_download(self, path):
         """check dataset is valid and if dataset is not valid download dataset
@@ -144,6 +144,42 @@ class BaseDataset(LoggerMixIn, metaclass=MetaDataset):
 
         return validation
 
+    def _clone(self):
+        obj = self.__class__(self.verbose)
+        return obj
+
+    def _append_data(self, batch_key, data):
+        if batch_key not in self.data:
+            self.data[batch_key] = np.array(data)
+        else:
+            self.data[batch_key] = np.concatenate((self.data[batch_key], data))
+
+    def _iter_batch(self, data, batch_size):
+        cursor = self.cursor
+        data_size = len(data)
+
+        # if batch size exceeds the size of data set
+        over_data = batch_size // (data_size + 1)
+        if over_data > 0:
+            whole_data = np.concatenate((data[cursor:], data[:cursor]))
+            batch_to_append = np.repeat(whole_data, over_data, axis=0)
+            batch_size -= data_size * over_data
+        else:
+            batch_to_append = None
+
+        begin, end = cursor, (cursor + batch_size) % data_size
+
+        if begin < end:
+            batch = data[begin:end]
+        else:
+            first, second = data[begin:], data[:end]
+            batch = np.concatenate((first, second))
+
+        if batch_to_append:
+            batch = np.concatenate((batch_to_append, batch))
+
+        return batch
+
     def download_data(self, path, downloadInfos):
         """donwnload data if need
 
@@ -161,7 +197,7 @@ class BaseDataset(LoggerMixIn, metaclass=MetaDataset):
             self.log.info("extract %s at %s" % (downloadInfos.download_file_name, path))
             extract_file(download_file, path)
 
-    def after_load(self, limit=None):
+    def _after_load(self, limit=None):
         """after task for dataset and do execute preprocess for dataset
 
         init cursor for each batch_key
@@ -220,39 +256,7 @@ class BaseDataset(LoggerMixIn, metaclass=MetaDataset):
         """
         pass
 
-    def _append_data(self, batch_key, data):
-        if batch_key not in self.data:
-            self.data[batch_key] = np.array(data)
-        else:
-            self.data[batch_key] = np.concatenate((self.data[batch_key], data))
-
-    def _iter_batch(self, data, batch_size):
-        cursor = self.cursor
-        data_size = len(data)
-
-        # if batch size exceeds the size of data set
-        over_data = batch_size // (data_size + 1)
-        if over_data > 0:
-            whole_data = np.concatenate((data[cursor:], data[:cursor]))
-            batch_to_append = np.repeat(whole_data, over_data, axis=0)
-            batch_size -= data_size * over_data
-        else:
-            batch_to_append = None
-
-        begin, end = cursor, (cursor + batch_size) % data_size
-
-        if begin < end:
-            batch = data[begin:end]
-        else:
-            first, second = data[begin:], data[:end]
-            batch = np.concatenate((first, second))
-
-        if batch_to_append:
-            batch = np.concatenate((batch_to_append, batch))
-
-        return batch
-
-    def next_batch(self, batch_size, batch_keys=None, look_up=False):
+    def next_batch(self, batch_size, batch_keys=('Xs', 'Ys'), look_up=False):
         """return iter mini batch
 
         ex)
@@ -273,9 +277,6 @@ class BaseDataset(LoggerMixIn, metaclass=MetaDataset):
         :return: (numpy array type) list of mini batch, order is same with batch_keys
         """
 
-        if batch_keys is None:
-            batch_keys = self.batch_keys
-
         if type(batch_keys) is str:
             batch_keys = [batch_keys]
 
@@ -288,11 +289,18 @@ class BaseDataset(LoggerMixIn, metaclass=MetaDataset):
 
         return batches[0] if len(batches) == 1 else batches
 
-    def split(self, ratio=None, shuffle=False):
-        """return split part of dataset"""
+    def full_batch(self, batch_keys=('Xs', 'Ys')):
+        if type(batch_keys) is str:
+            batch_keys = [batch_keys]
 
-        if ratio is None:
-            ratio = (7, 3)
+        batches = []
+        for key in batch_keys:
+            batches += [self.data[key]]
+
+        return batches[0] if len(batches) == 1 else batches
+
+    def split(self, ratio=(7, 3), shuffle=False) -> ("BaseDataset", "BaseDataset"):
+        """return split part of dataset"""
 
         a_set = self._clone()
         b_set = self._clone()
@@ -337,19 +345,6 @@ class BaseDataset(LoggerMixIn, metaclass=MetaDataset):
         """reset cursor"""
         self.cursor = 0
 
-    def full_batch(self, batch_keys=None):
-        if batch_keys is None:
-            batch_keys = self.batch_keys
-
-        if type(batch_keys) is str:
-            batch_keys = [batch_keys]
-
-        batches = []
-        for key in batch_keys:
-            batches += [self.data[key]]
-
-        return batches[0] if len(batches) == 1 else batches
-
     def sort(self, sort_key=None):
         if sort_key is None:
             sort_key = 'id_'
@@ -364,10 +359,6 @@ class BaseDataset(LoggerMixIn, metaclass=MetaDataset):
             self.data[key] = np.array(data)
 
         self.data[sort_key] = np.array(sorted(self.data[sort_key]))
-
-    def _clone(self):
-        obj = self.__class__(self.verbose)
-        return obj
 
     def to_DataFrame(self, keys=None):
         if keys is None:
@@ -400,3 +391,21 @@ class BaseDataset(LoggerMixIn, metaclass=MetaDataset):
             dataset.add_data(key, self.data[key])
 
         return dataset
+
+    @property
+    def Ys(self):
+        return self.data['Ys']
+
+    @property
+    def Xs(self):
+        return self.data['Xs']
+
+    @property
+    def Ys_index_label(self):
+        return reformat_np_arr(self.Ys, 'index')
+
+    @property
+    def Ys_onehot_label(self):
+        return reformat_np_arr(self.Ys, 'onehot')
+
+

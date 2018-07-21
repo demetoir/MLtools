@@ -1,31 +1,23 @@
 from pprint import pprint
 import pandas as pd
-from script.data_handler.HousePrices import HousePrices_load_merge_set, HousePrices_cleaning, HousePrices_transform, HousePrices_train_test_split
+
+from script.data_handler.HousePrices import HousePricesHelper
+from script.util.deco import deco_timeit
 from script.util.misc_util import path_join
 
 
-def test_train_test_split():
+@deco_timeit
+def test_HousePrices_dataset():
     dataset_path = """C:\\Users\\demetoir_desktop\\PycharmProjects\\MLtools\\data\\HousePrices"""
 
-    merge_df = HousePrices_load_merge_set(dataset_path)
+    merge_df = HousePricesHelper.load_merge_set(dataset_path)
 
-    merge_null_clean = HousePrices_cleaning(merge_df)
-    transformed = HousePrices_transform(merge_null_clean)
-    train_df, test_df = HousePrices_train_test_split(transformed)
-    test_df = test_df.reset_index()
+    merge_null_clean = HousePricesHelper.null_cleaning(merge_df)
 
-    train_path = path_join(dataset_path, 'train.csv')
-    train_origin = pd.read_csv(train_path)
+    merge_type_cast = HousePricesHelper.type_casting(merge_null_clean)
 
-    test_path = path_join(dataset_path, 'test.csv')
-    test_origin = pd.read_csv(test_path)
-    test_origin = test_origin.reset_index()
+    transformed = HousePricesHelper.transform(merge_type_cast)
 
-    pprint(train_origin[['1stFlrSF']].head(5))
-    pprint(train_df[['col_00_1stFlrSF']].head(5))
-
-    pprint(test_origin[['1stFlrSF']].head(5))
-    pprint(test_df[['col_00_1stFlrSF']].head(5))
-
-    assert train_origin['1stFlrSF'].equals(train_df['col_00_1stFlrSF'])
-    assert test_origin['1stFlrSF'].equals(test_df['col_00_1stFlrSF'])
+    train_df, test_df = HousePricesHelper.train_test_split(transformed)
+    train_df.to_csv(path_join(dataset_path, 'transformed_train.csv'), index=False)
+    test_df.to_csv(path_join(dataset_path, 'transformed_test.csv'), index=False)

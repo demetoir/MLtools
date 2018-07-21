@@ -8,6 +8,7 @@ from skimage import color, io
 import math
 import numpy as np
 from scipy.stats import rankdata
+from script.util.misc_util import setup_file
 
 NpArr = np.array
 
@@ -255,3 +256,20 @@ def np_width_equal_bins(np_x: NpArr, width: int, ) -> NpArr:
     max_ = np.max(np_x) + 1
     bins = np.concatenate([np.arange(min_, max_, width), [max_]])
     return bins
+
+
+def np_image_save(np_img, path):
+    """save np_img file in visualizer path
+
+    :type np_img: numpy.Array
+    :type file_name: strs
+    :param np_img: np_img to save
+    :param file_name: save file name
+    default None
+    if file_name is None, file name of np_img will be 'output_count.png'
+    """
+
+    pil_img = np_img_to_PIL_img(np_img)
+    setup_file(path)
+    with open(path, 'wb') as fp:
+        pil_img.save(fp)

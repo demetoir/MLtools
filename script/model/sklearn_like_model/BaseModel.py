@@ -195,8 +195,8 @@ class BaseModel(LoggerMixIn, input_shapesMixIN, metadataMixIN, paramsMixIn, loss
 
     def load(self, path):
         self._load_metadata(os.path.join(path, 'meta.json'))
-        self._load_input_shapes(os.path.join(path, 'input_shapes.json'))
         self._load_params(os.path.join(path, 'params.json'))
+        self._load_input_shapes(os.path.join(path, 'input_shapes.json'))
 
         self._build()
 
@@ -208,10 +208,15 @@ class BaseModel(LoggerMixIn, input_shapesMixIN, metadataMixIN, paramsMixIn, loss
         self.saver.restore(self.sess, self.check_point_path)
         return self
 
-    def get_tf_values(self, fetches, feet_dict):
+    def get_tf_values(self, fetches, feet_dict, wrap_dict=False):
         self._check_build()
 
-        return self.sess.run(fetches, feet_dict)
+        if wrap_dict:
+            ret = self.sess.run(list(fetches.values()), feet_dict)
+            return dict(zip(fetches.keys(), ret))
+
+        else:
+            return self.sess.run(fetches, feet_dict)
 
     def _check_build(self):
         if not self.__is_built:

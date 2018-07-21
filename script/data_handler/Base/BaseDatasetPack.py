@@ -1,3 +1,4 @@
+from script.data_handler.Base import BaseDataset
 from script.util.MixIn import LoggerMixIn
 
 
@@ -8,20 +9,26 @@ class BaseDatasetPack(LoggerMixIn):
         self.caching = caching
         self.pack = {}
 
-    def __getitem__(self, item):
+    def __getitem__(self, item) -> BaseDataset:
         return self.pack.__getitem__(item)
 
-    def load(self, path, **kwargs):
+    def load(self, path, limit=None, **kwargs):
         for k in self.pack:
-            self.pack[k].load(path, **kwargs)
+            self.pack[k].load(path, limit=limit, **kwargs)
 
-    def shuffle(self):
-        for key in self.pack:
-            self.pack[key].shuffle()
+        return self
 
-    def split(self, from_key, a_key, b_key, rate):
+    def shuffle(self, keys=None, random_state=None):
+        if keys is None:
+            keys = self.pack.keys()
+
+        for key in keys:
+            self.pack[key].shuffle(random_state=random_state)
+
+    def split(self, from_key, a_key, b_key, rate, pop=False):
         from_set = self.pack[from_key]
-        self.pack.pop(from_key)
+        if pop:
+            self.pack.pop(from_key)
 
         a_set, b_set = from_set.split(rate)
         self.pack[a_key] = a_set
