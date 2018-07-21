@@ -1,71 +1,74 @@
 from pprint import pprint
+import numpy as np
 from script.data_handler.DatasetPackLoader import DatasetPackLoader
-from script.data_handler.MNIST import MNIST
 from script.model.sklearn_like_model.AE.AAE import AAE
 from script.sklearn_like_toolkit.param_grid import param_grid_full
 from script.util.PlotTools import PlotTools
 from script.util.misc_util import params_to_dict, setup_file
 from script.util.numpy_utils import np_image_save, np_img_float32_to_uint8, np_img_to_tile
 from script.util.pandas_util import DF
-import numpy as np
+
+class_ = AAE
+data_pack = DatasetPackLoader().load_dataset("MNIST")
+train_set = data_pack['train']
+full_Xs, full_Ys = train_set.full_batch()
+sample_Xs = full_Xs[:2]
+sample_Ys = full_Ys[:2]
 
 
-def test_AAE():
-    class_ = AAE
-    data_pack = DatasetPackLoader().load_dataset("MNIST")
-    dataset = data_pack['train']
-    Xs, Ys = dataset.full_batch(['Xs', 'Ys'])
-    sample_X = Xs[:2]
-    sample_Y = Ys[:2]
+def AAE_total_execute(model):
+    model.train(full_Xs, full_Ys, epoch=1)
 
-    model = class_()
-    model.train(Xs, Ys, epoch=1)
+    code = model.code(sample_Xs)
+    print("code {code}".format(code=code))
 
-    code = model.code(sample_X)
-    # print("code {code}".format(code=code))
+    recon = model.recon(sample_Xs, sample_Ys)
+    print("recon {recon}".format(recon=recon))
 
-    recon = model.recon(sample_X, sample_Y)
-    # print("recon {recon}".format(recon=recon))
+    loss = model.metric(sample_Xs, sample_Ys)
+    print("loss {}".format(loss))
 
-    loss = model.metric(sample_X, sample_Y)
-    # print("loss {}".format(loss))
+    # generate(zs, Ys)
 
-    # generate(self, zs, Ys)
+    proba = model.predict_proba(sample_Xs)
+    print("proba {}".format(proba))
 
-    proba = model.predict_proba(sample_X)
-    # print("proba {}".format(proba))
+    predict = model.predict(sample_Xs)
+    print("predict {}".format(predict))
 
-    predict = model.predict(sample_X)
-    # print("predict {}".format(predict))
-
-    score = model.score(sample_X, sample_Y)
-    # print("score {}".format(score))
+    score = model.score(sample_Xs, sample_Ys)
+    print("score {}".format(score))
 
     path = model.save()
 
     model = class_()
     model.load(path)
-    # print('model reloaded')
+    print('model reloaded')
 
-    code = model.code(sample_X)
-    # print("code {code}".format(code=code))
+    code = model.code(sample_Xs)
+    print("code {code}".format(code=code))
 
-    recon = model.recon(sample_X, sample_Y)
-    # print("recon {recon}".format(recon=recon))
+    recon = model.recon(sample_Xs, sample_Ys)
+    print("recon {recon}".format(recon=recon))
 
-    loss = model.metric(sample_X, sample_Y)
-    # print("loss {}".format(loss))
+    loss = model.metric(sample_Xs, sample_Ys)
+    print("loss {}".format(loss))
 
     # generate(self, zs, Ys)
 
-    proba = model.predict_proba(sample_X)
-    # print("proba {}".format(proba))
+    proba = model.predict_proba(sample_Xs)
+    print("proba {}".format(proba))
 
-    predict = model.predict(sample_X)
-    # print("predict {}".format(predict))
+    predict = model.predict(sample_Xs)
+    print("predict {}".format(predict))
 
-    score = model.score(sample_X, sample_Y)
-    # print("score {}".format(score))
+    score = model.score(sample_Xs, sample_Ys)
+    print("score {}".format(score))
+
+
+def test_AAE():
+    model = class_()
+    AAE_total_execute(model)
 
 
 def test_AAE_with_noise():
@@ -77,63 +80,10 @@ def test_AAE_with_noise():
     sample_Y = Ys[:2]
 
     model = class_(with_noise=True)
-    model.train(Xs, Ys, epoch=1)
-
-    code = model.code(sample_X)
-    # print("code {code}".format(code=code))
-
-    recon = model.recon(sample_X, sample_Y)
-    # print("recon {recon}".format(recon=recon))
-
-    loss = model.metric(sample_X, sample_Y)
-    # print("loss {}".format(loss))
-
-    # generate(self, zs, Ys)
-
-    proba = model.predict_proba(sample_X)
-    # print("proba {}".format(proba))
-
-    predict = model.predict(sample_X)
-    # print("predict {}".format(predict))
-
-    score = model.score(sample_X, sample_Y)
-    # print("score {}".format(score))
-
-    path = model.save()
-
-    model = class_()
-    model.load(path)
-    # print('model reloaded')
-
-    code = model.code(sample_X)
-    # print("code {code}".format(code=code))
-
-    recon = model.recon(sample_X, sample_Y)
-    # print("recon {recon}".format(recon=recon))
-
-    loss = model.metric(sample_X, sample_Y)
-    # print("loss {}".format(loss))
-
-    # generate(self, zs, Ys)
-
-    proba = model.predict_proba(sample_X)
-    # print("proba {}".format(proba))
-
-    predict = model.predict(sample_X)
-    # print("predict {}".format(predict))
-
-    score = model.score(sample_X, sample_Y)
-    # print("score {}".format(score))
+    AAE_total_execute(model)
 
 
 def test_AAE_latent_space():
-    dataset_path = """C:\\Users\\demetoir_desktop\\PycharmProjects\\MLtools\\data\\MNIST"""
-    dataset_pack = MNIST().load(dataset_path)
-    dataset_pack.shuffle()
-    train_set = dataset_pack['train']
-    full_Xs, full_Ys = train_set.full_batch()
-    sample_Xs, sample_Ys = full_Xs[:5], full_Ys[:5]
-
     x = train_set.Ys_index_label
     idxs_labels = []
     for i in range(10):
@@ -203,7 +153,6 @@ def test_AAE_latent_space():
             np_img = np.concatenate([sample_Xs, recon, recon_sharpen, gen, code_walk])
 
             def plot_image(np_img, path):
-
                 setup_file(path)
                 np_image_save(np_img, path)
 
@@ -211,8 +160,6 @@ def test_AAE_latent_space():
                 setup_file(path)
                 np_img_tile = np_img_to_tile(np_imgs, column_size=column)
                 np_image_save(np_img_tile, path)
-
-                pass
 
             np_img = np_img_float32_to_uint8(np_img)
             file_name = f'./matplot/param_idx_{param_idx}/aae_img_epoch_{i}.png'

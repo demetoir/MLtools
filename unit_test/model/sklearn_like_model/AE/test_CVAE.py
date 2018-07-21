@@ -8,96 +8,58 @@ from script.util.misc_util import params_to_dict
 from script.util.numpy_utils import np_img_float32_to_uint8, np_img_to_tile, np_image_save
 from script.workbench.bench_code import print, DF, pprint
 
+class_ = CVAE
+data_pack = DatasetPackLoader().load_dataset("MNIST")
+train_set = data_pack['train']
+full_Xs, full_Ys = train_set.full_batch(['Xs', 'Ys'])
+sample_Xs = full_Xs[:2]
+sample_Ys = full_Ys[:2]
 
-def test_CVAE():
-    class_ = CVAE
-    data_pack = DatasetPackLoader().load_dataset("MNIST")
-    dataset = data_pack['train']
-    Xs, Ys = dataset.full_batch(['Xs', 'Ys'])
-    sample_X = Xs[:2]
-    sample_Y = Ys[:2]
 
-    model = class_()
-    model.train(Xs, Ys, epoch=1)
+def CVAE_total_execute(model):
+    model.train(full_Xs, full_Ys, epoch=1)
 
-    code = model.code(sample_X, sample_Y)
-    # print("code {code}".format(code=code))
+    code = model.code(sample_Xs, sample_Ys)
+    print("code {code}".format(code=code))
 
-    recon = model.recon(sample_X, sample_Y)
-    # print("recon {recon}".format(recon=recon))
+    recon = model.recon(sample_Xs, sample_Ys)
+    print("recon {recon}".format(recon=recon))
 
-    loss = model.metric(sample_X, sample_Y)
-    loss = np.mean(loss)
-    # print("loss {:.4}".format(loss))
+    loss = model.metric(sample_Xs, sample_Ys)
+    print("loss {:.4}".format(np.mean(loss)))
 
     path = model.save()
 
+    class_ = model.__class__
+    del model
+
+    model = class_().load(path)
+    print('model reloaded')
+
+    code = model.code(sample_Xs, sample_Ys)
+    print("code {code}".format(code=code))
+
+    recon = model.recon(sample_Xs, sample_Ys)
+    print("recon {recon}".format(recon=recon))
+
+    loss = model.metric(sample_Xs, sample_Ys)
+    print("loss {:.4}".format(np.mean(loss)))
+
+    gen = model.generate(sample_Ys)
+    print(gen)
+
+
+def test_CVAE():
     model = class_()
-    model.load(path)
-    # print('model reloaded')
-
-    code = model.code(sample_X, sample_Y)
-    # print("code {code}".format(code=code))
-
-    recon = model.recon(sample_X, sample_Y)
-    # print("recon {recon}".format(recon=recon))
-
-    loss = model.metric(sample_X, sample_Y)
-    loss = np.mean(loss)
-    # print("loss {:.4}".format(loss))
-
-    gen = model.generate(sample_Y)
-    # print(gen)
+    CVAE_total_execute(model)
 
 
 def test_CVAE_with_noise():
-    class_ = CVAE
-    data_pack = DatasetPackLoader().load_dataset("MNIST")
-    dataset = data_pack['train']
-    Xs, Ys = dataset.full_batch(['Xs', 'Ys'])
-    sample_X = Xs[:2]
-    sample_Y = Ys[:2]
-
-    model = class_(with_noise=True)
-    model.train(Xs, Ys, epoch=1)
-
-    code = model.code(sample_X, sample_Y)
-    # print("code {code}".format(code=code))
-
-    recon = model.recon(sample_X, sample_Y)
-    # print("recon {recon}".format(recon=recon))
-
-    loss = model.metric(sample_X, sample_Y)
-    loss = np.mean(loss)
-    # print("loss {:.4}".format(loss))
-
-    path = model.save()
-
-    model = class_()
-    model.load(path)
-    # print('model reloaded')
-
-    code = model.code(sample_X, sample_Y)
-    # print("code {code}".format(code=code))
-
-    recon = model.recon(sample_X, sample_Y)
-    # print("recon {recon}".format(recon=recon))
-
-    loss = model.metric(sample_X, sample_Y)
-    loss = np.mean(loss)
-    # print("loss {:.4}".format(loss))
-
-    gen = model.generate(sample_Y)
-    # print(gen)
+    model = CVAE(with_noise=True)
+    CVAE_total_execute(model)
 
 
 def test_CVAE_latent_space():
-    dataset_path = """C:\\Users\\demetoir_desktop\\PycharmProjects\\MLtools\\data\\MNIST"""
-    dataset_pack = MNIST().load(dataset_path)
-    dataset_pack.shuffle()
-    train_set = dataset_pack['train']
-    full_Xs, full_Ys = train_set.full_batch()
-
     x = train_set.Ys_index_label
     idxs_labels = []
     for i in range(10):
@@ -128,14 +90,7 @@ def test_CVAE_latent_space():
         'batch_size':         256,
         # 'KL_D_rate': 0.01
     }
-    # params = {'loss_type': 'VAE', 'learning_rate': 0.01, 'latent_code_size': 2,
-    #           'encoder_net_shapes': (512, 256, 128, 64, 32),
-    #           'encoder_kwargs': {'tail_bn': True, 'tail_activation': 'elu', 'linear_stack_bn': True,
-    #                              'linear_stack_activation': 'lrelu'},
-    #           'decoder_net_shapes': (32, 64, 128, 256, 512),
-    #           'decoder_kwargs': {'tail_bn': True, 'tail_activation': 'relu', 'linear_stack_bn': True,
-    #                              'linear_stack_activation': 'tanh'}, 'batch_size': 256, 'KL_D_rate': 0.01
-    #           }
+
     ae = model(**params)
     n_iter = 50
     for i in range(n_iter):
@@ -160,13 +115,6 @@ def test_CVAE_latent_space():
 
 
 def test_CVAE_latent_space_grid_search():
-    dataset_path = """C:\\Users\\demetoir_desktop\\PycharmProjects\\MLtools\\data\\MNIST"""
-    dataset_pack = MNIST().load(dataset_path)
-    dataset_pack.shuffle()
-    train_set = dataset_pack['train']
-    full_Xs, full_Ys = train_set.full_batch()
-    sample_Xs, sample_Ys = full_Xs[:5], full_Ys[:5]
-
     x = train_set.Ys_index_label
     idxs_labels = []
     for i in range(10):

@@ -7,91 +7,55 @@ from script.util.PlotTools import PlotTools
 from script.util.misc_util import params_to_dict
 from script.workbench.bench_code import DF, pprint, print
 
+class_ = VAE
+data_pack = DatasetPackLoader().load_dataset("MNIST")
+dataset = data_pack['train']
+Xs, Ys = dataset.full_batch(['Xs', 'Ys'])
+sample_X = Xs[:2]
 
-def test_VAE():
-    class_ = VAE
-    data_pack = DatasetPackLoader().load_dataset("MNIST")
-    dataset = data_pack['train']
-    Xs, Ys = dataset.full_batch(['Xs', 'Ys'])
-    sample_X = Xs[:2]
-    # sample_Y = Ys[:2]
 
-    model = class_()
+def VAE_total_execute(model):
     model.train(Xs, epoch=1)
 
     metric = model.metric(sample_X)
-    # print(metric)
+    print(metric)
 
     code = model.code(sample_X)
-    # print(code)
+    print(code)
 
     recon = model.recon(sample_X)
-    # print(recon)
+    print(recon)
 
     path = model.save()
 
     model = class_()
     model.load(path)
 
-    for i in range(2):
-        model.train(Xs, epoch=1)
+    model.train(Xs, epoch=1)
 
     metric = model.metric(sample_X)
-    # print(metric)
+    print(metric)
 
     metric = model.metric(sample_X)
-    # print(metric)
+    print(metric)
 
     code = model.code(sample_X)
-    # print(code)
+    print(code)
 
     recon = model.recon(sample_X)
-    # print(recon)
+    print(recon)
 
     model.save()
+
+
+def test_VAE():
+    model = class_()
+    VAE_total_execute(model)
 
 
 def test_VAE_with_noise():
-    class_ = VAE
-    data_pack = DatasetPackLoader().load_dataset("MNIST")
-    dataset = data_pack['train']
-    Xs, Ys = dataset.full_batch(['Xs', 'Ys'])
-    sample_X = Xs[:2]
-    # sample_Y = Ys[:2]
-
     model = class_(with_noise=True)
-    model.train(Xs, epoch=1)
-
-    metric = model.metric(sample_X)
-    # print(metric)
-
-    code = model.code(sample_X)
-    # print(code)
-
-    recon = model.recon(sample_X)
-    # print(recon)
-
-    path = model.save()
-
-    model = class_()
-    model.load(path)
-
-    for i in range(2):
-        model.train(Xs, epoch=1)
-
-    metric = model.metric(sample_X)
-    # print(metric)
-
-    metric = model.metric(sample_X)
-    # print(metric)
-
-    code = model.code(sample_X)
-    # print(code)
-
-    recon = model.recon(sample_X)
-    # print(recon)
-
-    model.save()
+    VAE_total_execute(model)
 
 
 def test_VAE_latent_space_grid_search(n_iter=6):

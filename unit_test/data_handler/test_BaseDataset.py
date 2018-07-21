@@ -1,5 +1,3 @@
-from pprint import pprint
-
 from script.data_handler.wine_quality import wine_qualityPack
 
 
