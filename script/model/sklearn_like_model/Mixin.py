@@ -64,8 +64,8 @@ class Xs_MixIn:
         X_flatten_size = self._flatten_shape(X_shape)
 
         return {
-            'X_shape': X_shape,
-            'Xs_shape': Xs_shape,
+            'X_shape':        X_shape,
+            'Xs_shape':       Xs_shape,
             'X_flatten_size': X_flatten_size,
         }
 
@@ -100,7 +100,7 @@ class zs_MixIn:
         zs_shape = [None] + list(z_shape)
 
         return {
-            'z_shape': z_shape,
+            'z_shape':  z_shape,
             'zs_shape': zs_shape
         }
 
@@ -117,10 +117,13 @@ class zs_MixIn:
         return np.random.normal(size=shape)
 
     def get_zs_rand_normal(self, size):
-        return np.random.normal(size=[size] + self.z_shape)
+        return np.random.normal(0, .3, size=[size] + self.z_shape)
 
     def get_zs_rand_uniform(self, size):
         return np.random.uniform(-1.0, 1.0, size=[size] + self.z_shape)
+
+    def get_zs_rand_beta(self, size):
+        return np.random.beta(4, 4, size=[size] + self.z_shape)
 
 
 class noise_MixIn:
@@ -145,7 +148,7 @@ class noise_MixIn:
         noises_shape = [None] + list(noise_shape)
 
         return {
-            'noise_shape': noise_shape,
+            'noise_shape':  noise_shape,
             'noises_shape': noises_shape
         }
 
@@ -188,8 +191,8 @@ class Ys_MixIn:
         Y_flatten_size = self._flatten_shape(Y_shape)
 
         return {
-            'Y_shape': Y_shape,
-            'Ys_shape': Ys_shape,
+            'Y_shape':        Y_shape,
+            'Ys_shape':       Ys_shape,
             'Y_flatten_size': Y_flatten_size,
         }
 
@@ -311,7 +314,7 @@ class cs_MixIn:
         cs_shape = [None] + list(c_shape)
 
         return {
-            'c_shape': c_shape,
+            'c_shape':  c_shape,
             'cs_shape': cs_shape
         }
 
