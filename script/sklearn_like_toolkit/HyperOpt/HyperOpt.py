@@ -2,11 +2,11 @@ import multiprocessing as mp
 import time
 import numpy as np
 from functools import wraps
-from multiprocessing.pool import Pool
 from hyperopt import fmin, tpe, STATUS_OK, STATUS_FAIL, hp
 from hyperopt.mongoexp import MongoTrials
 from tqdm import tqdm
 from script.sklearn_like_toolkit.HyperOpt.FreeTrials import FreeTrials
+from script.util.MixIn import singletonPoolMixIn
 from script.util.misc_util import log_error_trace
 
 
@@ -67,25 +67,6 @@ class HyperOpt_fn:
 
 
 CPU_COUNT = mp.cpu_count() - 1
-
-
-class singletonPoolMixIn:
-    _pool_singleton = None
-    _n_job = None
-
-    def __init__(self, n_job=1):
-        self.__class__._n_job = n_job
-
-    @property
-    def pool(self):
-        if self.__class__._pool_singleton is None:
-            self.__class__._pool_singleton = Pool(
-                processes=self.__class__._n_job)
-
-        return self.__class__._pool_singleton
-
-    def close_pool(self):
-        pass
 
 
 class HyperOpt(singletonPoolMixIn):

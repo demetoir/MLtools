@@ -274,3 +274,7 @@ def log_error_trace(log_func, e, head=""):
         e,
     )
     log_func(msg)
+
+
+def params_to_dict(**param):
+    return param

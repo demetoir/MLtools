@@ -1,5 +1,5 @@
 from script.util.PlotTools import PlotTools
-from script.util.Pool_context import Pool_context
+from script.util.JobPool import JobPool
 import pandas as pd
 
 DF = pd.DataFrame
@@ -59,7 +59,7 @@ class df_plotterMixIn:
         self.plot.dist_groupby(df, col_key, Ys_key, df, title=title, path=f"./matplot/{title}.png")
 
     def _df_cols_plot(self, df, df_Xs_keys, df_Ys_key):
-        with Pool_context() as pool:
+        with JobPool() as pool:
             for key in df_Xs_keys:
                 col = df[[key]]
                 series = df[key]

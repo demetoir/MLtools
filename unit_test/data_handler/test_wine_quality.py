@@ -1,3 +1,4 @@
+from pprint import pprint
 from script.data_handler.wine_quality import load_merge_data, wine_quality_transformer, wine_qualityPack
 
 
@@ -48,3 +49,8 @@ def test_wine_quality_dataset_pack():
 
     train_Xs, train_Ys = train_set.full_batch(['Xs', 'Ys'])
     test_Xs, test_Ys = train_set.full_batch(['Xs', 'Ys'])
+
+    pprint(train_Xs.shape)
+    pprint(train_Ys.shape)
+    pprint(test_Xs.shape)
+    pprint(test_Ys.shape)

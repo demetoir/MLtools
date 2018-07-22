@@ -4,6 +4,7 @@ import pandas as pd
 from script.util.PlotTools import PlotTools
 from script.util.deco import deco_timeit
 from script.util.pandas_util import df_binning, df_minmax_normalize, df_to_onehot_embedding
+
 DF = pd.DataFrame
 
 
@@ -14,7 +15,9 @@ def test_df_minmax_normalize():
         x += [normal]
     x = np.concatenate(x)
 
-    df = DF({'x': x})
+    df = DF({
+        'x': x
+    })
 
     pprint(df.head())
     df = df_minmax_normalize(df, 'x')
@@ -30,7 +33,9 @@ def test_df_binning():
         x += [normal]
     x = np.concatenate(x)
 
-    df = DF({'x': x})
+    df = DF({
+        'x': x
+    })
     plot = PlotTools(show=True, save=False)
     # plot.dist(df, title='before')
 
@@ -51,7 +56,9 @@ def test_df_to_onehot_embedding():
         x += [normal]
     x = np.concatenate(x)
 
-    df = DF({'x': x})
+    df = DF({
+        'x': x
+    })
     plot = PlotTools(show=True, save=False)
     # plot.dist(df, title='before')
 
@@ -71,3 +78,16 @@ def test_df_to_onehot_embedding():
     # pprint(df)
 
     pass
+
+
+def df_corr_to_value_tuple(corr):
+    values = []
+
+    keys = corr.keys()
+    for i in range(len(keys)):
+        for j in range(i):
+            a, b = keys[i], keys[j]
+            if a is not b:
+                values += [(corr.loc[b, a], a, b)]
+
+    return values

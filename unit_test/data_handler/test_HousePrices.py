@@ -1,6 +1,3 @@
-from pprint import pprint
-import pandas as pd
-
 from script.data_handler.HousePrices import HousePricesHelper
 from script.util.deco import deco_timeit
 from script.util.misc_util import path_join
