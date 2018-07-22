@@ -1,9 +1,10 @@
 import itertools
-import numpy as np
 import warnings
+import numpy as np
+from inspect import signature
 from PIL import Image
-from script.sklearn_like_toolkit.HyperOpt.HyperOpt import singletonPoolMixIn
 from script.util.misc_util import time_stamp, path_join, setup_file
+from script.util.numpy_utils import np_image_save, np_img_to_tile
 
 color_set = [
     '#e6194b',
@@ -74,13 +75,22 @@ line_marker = map(lambda x: "".join(x), line_marker)
 
 
 def deco_rollback_plt(func):
-    def wrapper(*args, **kwargs):
+    # @wraps
+    def wrapper(self, *args, **kwargs):
         try:
-            func(*args, **kwargs)
+            func(self, *args, **kwargs)
         except BaseException as e:
             self = args[0]
             self.plt.clf()
             raise e
+
+    # override name
+    wrapper.__name__ = 'deco_rollback_plt_' + func.__name__
+
+    # override function signature
+    sig = signature(func)
+    sig = sig.replace(parameters=tuple(sig.parameters.values()))
+    wrapper.__signature__ = sig
 
     return wrapper
 
@@ -165,7 +175,7 @@ class PlotTools:
         w, h, d = buf.shape
         return Image.frombytes("RGBA", (w, h), buf.tostring())
 
-    def plot_teardown(self, fig, path=None, show=None, title=None, extend=None, dpi=None, save=None):
+    def teardown_matplot(self, fig, path=None, show=None, title=None, extend=None, dpi=None, save=None):
         if extend is None:
             extend = self.extend
 
@@ -195,7 +205,7 @@ class PlotTools:
 
         self.plt.close(fig)
 
-    def plot_setup(self):
+    def setup_matplot(self):
         self.sns.set()
         self.sns.set_style('whitegrid')
         self.sns.set_color_codes()
@@ -204,32 +214,42 @@ class PlotTools:
     def dist(self, df, column, bins=None, ax=None, axlabel=None, rug=False, path=None, **kwargs):
         warnings.filterwarnings(module='matplotlib*', action='ignore', category=UserWarning)
 
-        self.plot_setup()
+        self.setup_matplot()
 
-        sns_plot = self.sns.distplot(np.array(df[column]), bins=bins, rug=rug, hist=True, ax=ax, axlabel=axlabel,
-                                     rug_kws={"color": "g", 'label': 'rug'},
-                                     kde_kws={"color": "r", "label": "KDE"},
-                                     hist_kws={"color": "b", "label": 'hist'})
+        sns_plot = self.sns.distplot(
+            np.array(df[column]), bins=bins, rug=rug, hist=True, ax=ax, axlabel=axlabel,
+            rug_kws={
+                "color": "g",
+                'label': 'rug'
+            },
+            kde_kws={
+                "color": "r",
+                "label": "KDE"
+            },
+            hist_kws={
+                "color": "b",
+                "label": 'hist'
+            })
         fig = sns_plot.figure
 
-        self.plot_teardown(fig, path=path, **kwargs)
+        self.teardown_matplot(fig, path=path, **kwargs)
 
     @deco_rollback_plt
     def dist_groupby(self, df, col, groupby_col, path=None, ax=None, axlabel=None, **kwargs):
         warnings.filterwarnings(module='matplotlib*', action='ignore', category=UserWarning)
 
-        self.plot_setup()
+        self.setup_matplot()
 
         g = self.sns.FacetGrid(df, hue=groupby_col)
         g.map(self.sns.distplot, col, label=groupby_col)
         g.add_legend()
 
         fig = g.fig
-        self.plot_teardown(fig, path=path, **kwargs)
+        self.teardown_matplot(fig, path=path, **kwargs)
 
     @deco_rollback_plt
     def count(self, df, column, groupby_col=None, path=None, **kwargs):
-        self.plot_setup()
+        self.setup_matplot()
 
         order = sorted(df[column].value_counts().index)
         sns_plot = self.sns.countplot(x=column, data=df, hue=groupby_col, order=order)
@@ -239,11 +259,11 @@ class PlotTools:
         # self.plt.tight_layout()
         fig = sns_plot.figure
 
-        self.plot_teardown(fig, path=path, **kwargs)
+        self.teardown_matplot(fig, path=path, **kwargs)
 
     @deco_rollback_plt
     def line(self, dots, linewidth=1, path=None, **kwargs):
-        self.plot_setup()
+        self.setup_matplot()
         fig = self.figure
 
         if type(dots) is np.array:
@@ -255,11 +275,11 @@ class PlotTools:
 
         self.plt.legend(loc='center left', bbox_to_anchor=(1, 0.5))
 
-        self.plot_teardown(fig, path=path, **kwargs)
+        self.teardown_matplot(fig, path=path, **kwargs)
 
     @deco_rollback_plt
     def scatter_2d(self, *np_arr, labels=None, marker_size=3, path=None, **kwargs):
-        self.plot_setup()
+        self.setup_matplot()
         fig = self.figure
 
         for idx, (xy, (marker, color)) in enumerate(zip(np_arr, scatter_markers)):
@@ -269,19 +289,19 @@ class PlotTools:
 
         self.plt.legend(loc='center left', bbox_to_anchor=(1, 0.5))
 
-        self.plot_teardown(fig, path=path, **kwargs)
+        self.teardown_matplot(fig, path=path, **kwargs)
 
     @deco_rollback_plt
     def joint_2d(self, df, x_col, y_col, kind='reg', path=None, **kwargs):
 
-        self.plot_setup()
+        self.setup_matplot()
         sns_plot = self.sns.jointplot(x_col, y_col, data=df, kind=kind)
         fig = sns_plot.fig
-        self.plot_teardown(fig, path=path, **kwargs)
+        self.teardown_matplot(fig, path=path, **kwargs)
 
     @deco_rollback_plt
     def violin_plot(self, df, x_col, y_col, grouby_col=None, with_swarmplot=False, path=None, **kwargs):
-        self.plot_setup()
+        self.setup_matplot()
 
         order = sorted(df[x_col].value_counts().index)
         sns_plot = self.sns.violinplot(x_col, y_col, hue=grouby_col, data=df, order=order)
@@ -296,12 +316,12 @@ class PlotTools:
 
         fig = sns_plot.figure
 
-        self.plot_teardown(fig, path=path, **kwargs)
+        self.teardown_matplot(fig, path=path, **kwargs)
 
     @deco_rollback_plt
     def heatmap(self, np_arr, vmin=-1.0, vmax=1.0, center=0, annot=False, fmt='.2f', cmap="BrBG_r", mask=False,
                 mask_color='white', path=None, **kwargs):
-        self.plot_setup()
+        self.setup_matplot()
 
         dim = len(np_arr.shape)
         if dim == 1:
@@ -315,17 +335,19 @@ class PlotTools:
             with self.sns.axes_style(mask_color):
                 sns_plot = self.sns.heatmap(np_arr, mask=mask, vmax=vmax, vmin=vmin, center=center, fmt=fmt,
                                             cmap=cmap,
-                                            annot=annot, annot_kws={'fontsize': 'xx-small'})
+                                            annot=annot, annot_kws={
+                        'fontsize': 'xx-small'
+                    })
         else:
             sns_plot = self.sns.heatmap(np_arr, mask=mask, vmax=vmax, vmin=vmin, center=center, fmt=fmt, cmap=cmap,
                                         annot=annot)
         fig = sns_plot.figure
 
-        self.plot_teardown(fig, path=path, **kwargs)
+        self.teardown_matplot(fig, path=path, **kwargs)
 
     @deco_rollback_plt
     def cluster_map(self, df, row_group_key=None, col_group_key=None, metric='correlation', path=None, **kwargs):
-        self.plot_setup()
+        self.setup_matplot()
 
         # if row_group_key is not None:
         #     row = df[row_group_key]
@@ -344,11 +366,11 @@ class PlotTools:
         sns_plot = self.sns.clustermap(df, metric=metric)
         fig = sns_plot.fig
 
-        self.plot_teardown(fig, path=path, **kwargs)
+        self.teardown_matplot(fig, path=path, **kwargs)
 
     @deco_rollback_plt
     def pair_plot(self, df, groupby_col=None, path=None, **kwargs):
-        self.plot_setup()
+        self.setup_matplot()
 
         sns_plot = self.sns.pairplot(df, hue=groupby_col)
         sns_plot.map_diag(self.plt.hist)
@@ -357,4 +379,25 @@ class PlotTools:
             sns_plot.add_legend()
 
         fig = sns_plot.fig
-        self.plot_teardown(fig, path=path, **kwargs)
+        self.teardown_matplot(fig, path=path, **kwargs)
+
+    def plot_image(self, np_img, title=None, path=None, **kwargs):
+        if title is None:
+            title = time_stamp() + self.finger_print(6)
+
+        extend = self.extend
+        if path is None:
+            path = path_join('.', 'matplot', title + extend)
+        setup_file(path)
+
+        np_image_save(np_img, path)
+
+    def plot_image_tile(self, np_imgs, column=10, path=None, title=None, **kwargs):
+        if title is None:
+            title = time_stamp() + self.finger_print(6)
+
+        extend = self.extend
+        if path is None:
+            path = path_join('.', 'matplot', title + extend)
+        np_img_tile = np_img_to_tile(np_imgs, column_size=column)
+        np_image_save(np_img_tile, path)
