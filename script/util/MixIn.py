@@ -1,3 +1,4 @@
+from multiprocessing.pool import Pool
 from script.util.Logger import Logger
 from script.util.misc_util import dump_pickle, load_pickle
 
@@ -24,3 +25,22 @@ class PickleMixIn:
         for key, items in load_obj.__dict__.items():
             setattr(new_obj, key, items)
         return new_obj
+
+
+class singletonPoolMixIn:
+    _pool_singleton = None
+    _n_job = None
+
+    def __init__(self, n_job=1):
+        self.__class__._n_job = n_job
+
+    @property
+    def pool(self):
+        if self.__class__._pool_singleton is None:
+            self.__class__._pool_singleton = Pool(
+                processes=self.__class__._n_job)
+
+        return self.__class__._pool_singleton
+
+    def close_pool(self):
+        pass
