@@ -5,11 +5,33 @@ from multiprocessing_on_dill.pool import Pool as _Pool
 from multiprocessing_on_dill.context import TimeoutError
 from queue import Queue
 
+from script.util.MixIn import LoggerMixIn
+from script.util.misc_util import log_error_trace
+
 CPU_COUNT = mp.cpu_count() - 1
 
 
-class Pool_context:
+def warmup_fn():
+    return [i for i in range(5)]
+
+
+class JobPool(LoggerMixIn):
     _singleton_pool = None
+    TIMEOUT = 0.01
+
+    def __init__(self, processes=CPU_COUNT, verbose=30) -> None:
+        super().__init__(verbose)
+        self.processes = processes
+        self.childs = IdDict()
+
+        self._id_count = 0
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        print("join process")
+        self.join()
 
     @property
     def pool(self):
@@ -18,19 +40,7 @@ class Pool_context:
 
         return self.__class__._singleton_pool
 
-    def __init__(self, processes=CPU_COUNT) -> None:
-        super().__init__()
-        self.processes = processes
-        self.childs = IdDict()
-        self.tic = 0.01
-        self._id_count = 0
-
-    def __enter__(self):
-        return self
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        print("waiting process")
-
+    def join(self):
         pbar = tqdm.tqdm(total=len(self.childs))
 
         q = Queue()
@@ -40,18 +50,18 @@ class Pool_context:
         while q.qsize() > 0:
             id_, child = q.get()
             try:
-                child.get(self.tic)
+                child.get(self.TIMEOUT)
                 pbar.update(1)
             except TimeoutError:
                 q.put((id_, child))
+            except KeyboardInterrupt:
+                raise KeyboardInterrupt
+            except BaseException as e:
+                pbar.update(1)
+                self.log.warn(f'job fail')
+                log_error_trace(self.log.info, e)
 
         pbar.close()
-
-    def put_child(self, child):
-        return self.childs.put(child)
-
-    def get_child(self, id_):
-        return self.childs[id_]
 
     def apply(self, func, args=None, kwargs=None):
         if args is None:
@@ -74,3 +84,9 @@ class Pool_context:
     def get(self, child_id, timeout=None):
         child = self.childs[child_id]
         return child.get(timeout)
+
+    def put_child(self, child):
+        return self.childs.put(child)
+
+    def get_child(self, id_):
+        return self.childs[id_]
