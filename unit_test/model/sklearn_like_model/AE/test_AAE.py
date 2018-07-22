@@ -151,19 +151,10 @@ def test_AAE_latent_space():
             code_walk = np.concatenate([ae.augmentation(sample_Xs, sample_Ys) for _ in range(5)], axis=0)
             recon_sharpen = ae.recon_sharpen(sample_Xs, sample_Ys)
             np_img = np.concatenate([sample_Xs, recon, recon_sharpen, gen, code_walk])
-
-            def plot_image(np_img, path):
-                setup_file(path)
-                np_image_save(np_img, path)
-
-            def plot_image_tile(np_imgs, path, column=10):
-                setup_file(path)
-                np_img_tile = np_img_to_tile(np_imgs, column_size=column)
-                np_image_save(np_img_tile, path)
-
             np_img = np_img_float32_to_uint8(np_img)
+
             file_name = f'./matplot/param_idx_{param_idx}/aae_img_epoch_{i}.png'
-            plot_image_tile(np_img, file_name, column=5)
+            plot.plot_image_tile(np_img, file_name, column=5)
             # sample_imgs = Xs_gen
 
         del ae
