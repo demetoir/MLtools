@@ -41,6 +41,3 @@ class singletonPoolMixIn:
                 processes=self.__class__._n_job)
 
         return self.__class__._pool_singleton
-
-    def close_pool(self):
-        pass
