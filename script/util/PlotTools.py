@@ -80,7 +80,6 @@ def deco_rollback_plt(func):
         try:
             func(self, *args, **kwargs)
         except BaseException as e:
-            self = args[0]
             self.plt.clf()
             raise e
 
