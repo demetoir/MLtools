@@ -70,7 +70,7 @@ def load_merge_set(cache=True):
         merged_df = pd.concat([train_df, test_df], axis=0, sort=True)
         merged_df = df_add_col_num(merged_df)
 
-        merged_df.to_csv(merge_set_path)
+        merged_df.to_csv(merge_set_path, index=False)
     else:
         merged_df = pd.read_csv(merge_set_path)
 
