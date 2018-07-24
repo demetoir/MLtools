@@ -27,12 +27,20 @@ class transform_methodMixIn:
         return df_to_onehot_embedding(df[col])
 
     @staticmethod
-    def df_update_col(df, original_col_key, partial_df, ):
+    def df_update_col(df, old_column, new_df, ):
         df = df.reset_index(drop=True)
-        partial_df = partial_df.reset_index(drop=True)
+        new_df = new_df.reset_index(drop=True)
 
-        df = df.drop(columns=original_col_key)
-        df = pd.concat([df, partial_df], axis=1)
+        df = df.drop(columns=old_column)
+        df = pd.concat([df, new_df], axis=1)
+        return df
+
+    @staticmethod
+    def df_concat_column(df, new_df):
+        df = df.reset_index(drop=True)
+        new_df = new_df.reset_index(drop=True)
+
+        df = pd.concat([df, new_df], axis=1)
         return df
 
     @staticmethod
@@ -49,6 +57,17 @@ class transform_methodMixIn:
 
 
 class Base_df_transformer(LoggerMixIn, df_plotterMixIn, transform_methodMixIn):
+    import_code = f"""
+    import pandas as pd
+    import numpy as np
+    import random
+    from script.data_handler.Base_df_transformer import Base_df_transformer
+
+    DF = pd.DataFrame
+    Series = pd.Series
+"""
+    class_code = """class boiler_plate(Base_df_transformer):"""
+
     def __init__(self, df: DF, df_Xs_keys, df_Ys_key, silent=False, verbose=0):
         LoggerMixIn.__init__(self, verbose)
         df_plotterMixIn.__init__(self)
@@ -62,33 +81,22 @@ class Base_df_transformer(LoggerMixIn, df_plotterMixIn, transform_methodMixIn):
     def __method_template(self, df: DF, col_key: str, partial_df: DF, series: Series, Xs_key: list, Ys_key: list):
         return df
 
+    @property
+    def method_template(self):
+        func = self.__method_template
+        method_template = inspect.getsource(func)
+        method_template = method_template.replace(func.__name__, '{col_name}')
+        return method_template
+
     def boilerplate_maker(self, path=None, encoding='UTF8'):
-        base_class_name = super().__class__.__name__
+        code = [self.import_code]
+        code += [self.class_code]
 
-        import_code = f"""
-import pandas as pd
-import numpy as np
-import random
-from script.data_handler.{base_class_name} import {base_class_name} 
-
-DF = pd.DataFrame
-Series = pd.Series
-
-        """
-        code = [import_code]
-
-        base_class_name = self.__class__.__name__
-        class_name = f"boiler_plate_{base_class_name}"
-        class_template = f"""class {self.__class__.__name__}({super().__class__.__name__}):"""
-        code += [class_template.format(class_name=class_name)]
-
-        method_template = inspect.getsource(self.__method_template)
-        method_template = method_template.replace('__method_template', '{col_name}')
         for key in self.df.keys():
-            method_code = method_template.format(col_name=key)
-            code += [method_code]
+            code += [self.method_template.format(col_name=key)]
 
         code = "\n".join(code)
+
         if path is not None:
             with open(path, mode='w', encoding=encoding) as f:
                 f.write(code)
@@ -97,15 +105,10 @@ Series = pd.Series
 
     def corr_heatmap(self):
         plot = PlotTools(save=False, show=True)
+        corr = self.df.corr()
+        plot.heatmap(corr)
 
-        from scipy.stats import pearsonr
-        keys = self.df.keys()
-
-        # corr = self.df.corr()
-        # print(corr.info())
-        # plot.heatmap(corr)
-
-    def _execute_method(self, caller_name) -> DF:
+    def transform(self):
         for key, func in self.__class__.__dict__.items():
             if key in self.df.keys():
                 col = self.df[[key]]
@@ -113,7 +116,20 @@ Series = pd.Series
 
                 self.df = func(self, self.df, key, col, series, self.df_Xs_keys, self.df_Ys_key)
 
-        return self.df
+        for key, func in self.__class__.__dict__.items():
+            if callable(func) and 'col_new_' in key:
+                ret = func(self, self.df, self.df_Xs_keys, self.df_Ys_key)
+                if ret is None:
+                    raise ValueError
+                self.df = ret
 
-    def transform(self):
-        return self._execute_method('transform')
+        # TODO rename_col_num
+        # column = self.df.columns
+        # for col in column:
+        #     if 'col_new_' in col:
+        #
+        # print(column)
+
+        self.df = self.df.sort_index(axis=1)
+
+        return self.df
