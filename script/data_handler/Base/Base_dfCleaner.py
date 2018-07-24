@@ -1,6 +1,5 @@
 import pandas as pd
 import numpy as np
-import random
 import inspect
 
 from script.data_handler.Base.df_plotterMixIn import df_plotterMixIn
@@ -38,6 +37,21 @@ class null_clean_methodMixIn:
 
 
 class Base_dfCleaner(LoggerMixIn, null_clean_methodMixIn, df_plotterMixIn):
+    import_code = """
+    import pandas as pd
+    import numpy as np
+    import random
+    from script.data_handler.Base_dfCleaner import Base_dfCleaner 
+
+    DF = pd.DataFrame
+    Series = pd.Series
+    
+"""
+
+    class_template = """
+class dfCleaner(Base_dfCleaner):
+"""
+
     def __init__(self, df: DF, df_Xs_keys, df_Ys_key, silent=False, verbose=0):
         LoggerMixIn.__init__(self, verbose)
         null_clean_methodMixIn.__init__(self)
@@ -49,37 +63,24 @@ class Base_dfCleaner(LoggerMixIn, null_clean_methodMixIn, df_plotterMixIn):
         self.df_Ys_key = df_Ys_key
         self.plot = PlotTools()
 
-    def __method_template(self, df: DF, key: str, col: DF, series: Series, Xs_key: list, Ys_key: list):
+    def __method_template(self, df: DF, col_key: str, col: DF, series: Series, Xs_key: list, Ys_key: list):
         return df
 
-    def boilerplate_maker(self, path=None, encoding='UTF8'):
-        base_class_name = self.__class__.__name__
-
-        import_code = f"""
-        import pandas as pd
-        import numpy as np
-        import random
-        from script.data_handler.{base_class_name} import {base_class_name} 
-
-        DF = pd.DataFrame
-        Series = pd.Series
-
-        """
-        code = [import_code]
-
-        class_name = f"boiler_plate_{base_class_name}"
-        class_template = f"""class {class_name}({base_class_name}):"""
-        code += [class_template.format(class_name=class_name)]
-
+    @property
+    def method_template(self):
         method_template = inspect.getsource(self.__method_template)
         method_template = method_template.replace('__method_template', '{col_name}')
+        return method_template
+
+    def boilerplate_maker(self, path=None, encoding='UTF8'):
+        code = [self.import_code]
+        code += [self.class_template]
+
         df_only_null = self._df_null_include(self.df)
         for key in df_only_null.keys():
-            method_code = method_template.format(col_name=key)
-            code += [method_code]
+            code += [self.method_template.format(col_name=key)]
 
         code = "\n".join(code)
-
         if path is not None:
             with open(path, mode='w', encoding=encoding) as f:
                 f.write(code)
@@ -109,7 +110,8 @@ class Base_dfCleaner(LoggerMixIn, null_clean_methodMixIn, df_plotterMixIn):
         df_only_null = self._df_null_include(self.df)
         self._df_cols_plot(df_only_null, list(df_only_null.keys()), self.df_Ys_key)
 
-    def _df_null_include(self, df: DF) -> DF:
+    @staticmethod
+    def _df_null_include(df: DF) -> DF:
         null_column = df.columns[df.isna().any()].tolist()
         return df.loc[:, null_column]
 
