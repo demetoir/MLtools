@@ -239,11 +239,21 @@ class PlotTools:
 
         self.setup_matplot()
 
-        g = self.sns.FacetGrid(df, hue=groupby_col)
-        g.map(self.sns.distplot, col, label=groupby_col)
-        g.add_legend()
+        sns_plot = None
+        idx = df[df[groupby_col].notna()].index
+        df = df.loc[idx, :]
 
-        fig = g.fig
+        for val in df[groupby_col].unique():
+            idx = df[df[groupby_col] == val].index
+            part_serial = df.loc[idx, col]
+            # df[col]
+            # part_serial
+
+            sns_plot = self.sns.distplot(part_serial, rug=False)
+
+
+        fig = sns_plot.figure
+
         self.teardown_matplot(fig, path=path, **kwargs)
 
     @deco_rollback_plt
@@ -251,7 +261,7 @@ class PlotTools:
         self.setup_matplot()
 
         order = sorted(df[column].value_counts().index)
-        sns_plot = self.sns.countplot(x=column, data=df, hue=groupby_col, order=order)
+        sns_plot = self.sns.countplot(x=column, data=df, hue=groupby_col, order=order, )
         # sns_plot.set_xticklabels(sns_plot.get_xticklabels(), rotation=self.xticklabel_rotation)
         sns_plot.set_xticklabels(sns_plot.get_xticklabels(), rotation=self.xticklabel_rotation, ha="left",
                                  rotation_mode='anchor')
