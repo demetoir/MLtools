@@ -8,7 +8,9 @@ NpArr = np.array
 
 
 def df_bucketize(df, key, bucket_range, column='bucket', na='None', null='None'):
-    new_df = pd.DataFrame({column: df[key]})
+    new_df = pd.DataFrame({
+        column: df[key]
+    })
 
     for i in range(len(bucket_range) - 1):
         a, b = bucket_range[i: i + 2]
@@ -38,7 +40,9 @@ def df_to_np_dict(df, dtype=None):
 
 
 def df_to_onehot_embedding(df: DF) -> DF:
-    ret = pd.DataFrame({'_idx': np.zeros(len(df))})
+    ret = pd.DataFrame({
+        '_idx': np.zeros(len(df))
+    })
 
     for df_key in df.keys():
         np_arr = np.array(df[df_key])
@@ -60,22 +64,25 @@ def df_to_np_onehot_embedding(df):
     return ret
 
 
-def df_binning(df: DF, key: str, bin_seq: list, column_tail='_binning') -> DF:
+def df_binning(df: DF, key: str, bin_seq: list, column_tail='_binning', with_intensity=False) -> DF:
     col_bucketed = key + column_tail
     col_intensity = key + '_intensity'
     new_df = pd.DataFrame({
-        col_bucketed: df[key],
+        col_bucketed:  df[key],
         col_intensity: np.zeros(len(df[key]))
     })
 
     for i in range(len(bin_seq) - 1):
         a, b = bin_seq[i: i + 2]
-        name = f'bin{str(i).zfill(int(math.log10(len(bin_seq))) + 1)}_{a}~{b}'
+        name = f'bin{str(i).zfill(int(math.log10(len(bin_seq))) + 1)}_[{a}~{b})'
 
         query = f'{a} <= {key} < {b}'
         idx = list(df.query(query).index.values)
         new_df.loc[idx, col_bucketed] = name
         new_df.loc[idx, col_intensity] = (df.loc[idx, key] - a) / (b - a)
+
+    if not with_intensity:
+        new_df = new_df.drop(columns=col_intensity)
 
     return new_df
 
@@ -83,5 +90,7 @@ def df_binning(df: DF, key: str, bin_seq: list, column_tail='_binning') -> DF:
 def df_minmax_normalize(df: DF, key: str, min=None, max=None, col_tail='_normailized') -> DF:
     np_x = NpArr(df[key])
     np_x_normalized = np_minmax_normalize(np_x, min, max)
-    new_df = DF({key + col_tail: np_x_normalized})
+    new_df = DF({
+        key + col_tail: np_x_normalized
+    })
     return new_df
