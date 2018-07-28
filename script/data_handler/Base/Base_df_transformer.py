@@ -1,6 +1,7 @@
 import inspect
 import pandas as pd
 import numpy as np
+from tqdm import trange
 from script.data_handler.Base.df_plotterMixIn import df_plotterMixIn
 from script.util.MixIn import LoggerMixIn
 from script.util.PlotTools import PlotTools
@@ -33,6 +34,29 @@ class df_PreprocessingMixIn:
 
 
 class transform_methodMixIn:
+
+    def corr_maximize_bins(self, df, x_col, y_col, n_iter, size):
+        best = 0
+        best_bins = None
+        for _ in trange(n_iter):
+            seed = np.arange(min(df[x_col]), max(df[x_col]), 0.1)
+            rand_bins = np.random.choice(seed, size=size)
+
+            bins = [min(df[x_col]) - 1] + list(sorted(rand_bins)) + [max(df[x_col]) + 1]
+            col_binning = x_col + '_binning'
+            binning_df = self.binning(df, x_col, bins)
+
+            col_encode = col_binning + '_encoded'
+            encoding_df = self.LabelEncoder(binning_df, col_binning)
+            part = self.df_concat(df[[y_col]], encoding_df)
+
+            corr = DF(part.corr())
+            new_val = float(corr.loc[y_col, col_encode])
+            if best < np.abs(new_val):
+                best = np.abs(new_val)
+                best_bins = bins
+
+        return best_bins, best
 
     @staticmethod
     def mixmax_scale(df: DF, col: str) -> DF:
