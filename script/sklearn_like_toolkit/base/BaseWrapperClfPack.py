@@ -106,7 +106,7 @@ class BaseWrapperClfPack(ClfWrapperMixIn, metaclass=meta_BaseWrapperClf):
             current += 1
             try:
                 tqdm.write(f'HyperOpt at {key} {current}/{total}')
-                self.log.info(f'HyperOpt at {key} {current}/{total}')
+                # self.log.info(f'HyperOpt at {key} {current}/{total}')
                 opt = HyperOpt()
 
                 if parallel:
@@ -236,7 +236,7 @@ class BaseWrapperClfPack(ClfWrapperMixIn, metaclass=meta_BaseWrapperClf):
         Ys = self.np_arr_to_index(Ys)
         ret = {}
         for clf_k, predict in tqdm(self._collect_predict(Xs).items()):
-            tqdm.write(f'score_pack {clf_k}')
+            tqdm.write(f'executing score_pack {clf_k}')
 
             ret[clf_k] = self._apply_metric_pack(Ys, predict)
         return ret
@@ -271,6 +271,10 @@ class BaseWrapperClfPack(ClfWrapperMixIn, metaclass=meta_BaseWrapperClf):
         params = load_pickle(path)
 
         self.import_params(params)
+
+    def save(self, path):
+        self.log.info(f'pickle save at {path}')
+        super().dump(path)
 
     def dump(self, path):
         self.log.info(f'pickle save at {path}')
