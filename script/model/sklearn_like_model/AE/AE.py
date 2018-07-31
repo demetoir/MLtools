@@ -155,6 +155,8 @@ class AE(BaseModel, basicAEPropertyMixIn):
             Xs, self.encoder_net_shapes, self.latent_code_size,
             **self.encoder_kwargs
         )
+        self.latent_code = tf_minmax_scaling(self.latent_code)
+
         self.Xs_recon = basicAE_Decoder(
             self.latent_code, self.decoder_net_shapes, self.X_flatten_size, self.Xs_shape,
             **self.decoder_kwargs

@@ -70,7 +70,7 @@ def load_merge_set(cache=True):
         merged_df = pd.concat([train_df, test_df], axis=0, sort=True)
         merged_df = df_add_col_num(merged_df)
 
-        merged_df.to_csv(merge_set_path)
+        merged_df.to_csv(merge_set_path, index=False)
     else:
         merged_df = pd.read_csv(merge_set_path)
 
@@ -79,7 +79,11 @@ def load_merge_set(cache=True):
 
 class titanic_null_cleaner(Base_dfCleaner):
     def col_00_Age(self, df: DF, key: str, col: DF, series: Series, Xs_key: list, Ys_key: list):
-        df = self.fill_random_value_cate(df, key)
+        # print(df.info())
+
+        df[key] = df[key].fillna(999)
+        # df = self.fill_random_value_cate(df, key)
+
         return df
 
     def col_01_Cabin(self, df: DF, key: str, col: DF, series: Series, Xs_key: list, Ys_key: list):
@@ -139,35 +143,75 @@ class titanic_typecasting(base_df_typecasting):
 
 class titanic_transformer(Base_df_transformer):
     def col_00_Age(self, df: DF, col_key: str, partial_df: DF, series: Series, Xs_key: list, Ys_key: list):
-        bins = [0, 1, 3, 6, 12, 15, 19, 30, 40, 50, 60, 80 + 1]
+        # bins = [0, 1, 3, 6, 12, 15, 19, 30, 40, 50, 60, 80 + 1, 1000]
+
+        bins = [0, 15, 19, 30, 40, 50, 60, 80 + 1, 1000]
+        # print(series.value_counts())
         binning_df = self.binning(df, col_key, bins)
-        df = self.df_concat_column(df, binning_df)
+
+        col_key_binning = col_key + '_binning'
+
+        binning_df[binning_df[col_key_binning] == 'bin7_[81~1000)'] = 'bin8_missing'
+        # print(binning_df[col_key_binning].value_counts())
+
+        df = self.df_concat(df, binning_df)
+
+        encoded_df = self.LabelEncoder(binning_df, col_key + '_binning')
+        df = self.df_concat(df, encoded_df)
 
         return df
 
     def col_01_Cabin(self, df: DF, col_key: str, partial_df: DF, series: Series, Xs_key: list, Ys_key: list):
-        cabin = pd.DataFrame(partial_df)
+        col_key = 'col_01_Cabin_head'
+        cabin_head = pd.DataFrame({
+            'col_01_Cabin_head': series
+        })
 
-        cabin_head = cabin.query(f'{col_key} != "none"')
-        cabin_head = cabin_head[col_key].astype(str)
-        cabin_head = cabin_head.str.slice(0, 1)
+        head_alphabet = cabin_head.query(f'{col_key} != "none"')
+        head_alphabet = head_alphabet[col_key].astype(str)
+        head_alphabet = head_alphabet.str.slice(0, 1)
+        cabin_head.loc[head_alphabet.index, col_key] = head_alphabet
 
-        na = cabin.query(f'{col_key}.isna()')
+        head_na = cabin_head.query(f'{col_key}.isna()')
+        cabin_head.loc[head_na.index, col_key] = 'None'
+        df = self.df_concat(df, cabin_head)
 
-        cabin.loc[na.index, col_key] = 'None'
-        cabin.loc[cabin_head.index, col_key] = cabin_head
-
-        df = self.df_update_col(df, col_key, cabin)
+        encoded_df = self.LabelEncoder(cabin_head, col_key)
+        df = self.df_concat(df, encoded_df)
 
         return df
 
     def col_02_Embarked(self, df: DF, col_key: str, partial_df: DF, series: Series, Xs_key: list, Ys_key: list):
+        encoded_df = self.LabelEncoder(df, col_key)
+        df = self.df_concat(df, encoded_df)
+
         return df
 
     def col_03_Fare(self, df: DF, col_key: str, partial_df: DF, series: Series, Xs_key: list, Ys_key: list):
-        bins = [0, 10, 20, 30, 120, 6000]
+        # bins = [0, 5, 10, 20, 30, 120, 6000]
+        bins = [0, 10.9, 74.7, 514]
+
+        # val = np.array(list(df[col_key].astype(float)))
+        # log_scale_df = DF({
+        #     'log_scale': np.log(val + 1),
+        #     Ys_key:      df[Ys_key],
+        #     'origin':    series
+        # })
+        # print(log_scale_df.corr())
+        #
+        # col_log_scale = 'log_scale'
+        # log_scale_df = DF({
+        #     'log_scale': np.log(val + 1),
+        #     # Ys_key:      df[Ys_key],
+        #     # 'origin': series
+        # })
+        # df = self.df_concat(df, log_scale_df)
+        # print(log_scale_df.describe())
+
         binning_df = self.binning(df, col_key, bins)
-        df = self.df_concat_column(df, binning_df)
+        df = self.df_concat(df, binning_df)
+        encode_df = self.LabelEncoder(df, col_key + '_binning')
+        df = self.df_concat(df, encode_df)
 
         return df
 
@@ -191,26 +235,28 @@ class titanic_transformer(Base_df_transformer):
             col_key + "_Honorific":  Honorific.astype(str),
             col_key + "_last_name":  last_name.astype(str)
         })
-        df = self.df_concat_column(df, name_df)
+        df = self.df_concat(df, name_df)
 
         col_Honorific = 'col_04_Name_Honorific'
         Honorific = DF(df[col_Honorific])
+        Honorific_rare_values = [
+            'theCountess', 'Sir', 'Ms', 'Mme', 'Mlle', 'Lady',
+            'Capt', 'Don', 'Jonkheer', 'Rev', 'Dona',
+            'Col', 'Dr', 'Major'
+        ]
+        Honorific.loc[Honorific[col_Honorific].isin(Honorific_rare_values), col_Honorific] = 'rare'
 
-        # most survived
-        merge_most_survived = ['theCountess', 'Sir', 'Ms', 'Mme', 'Mlle', 'Lady']
+        col_Honorific_binned = 'col_04_Name_Honorific_binned'
+        Honorific_binned = DF({
+            col_Honorific_binned: Honorific[col_Honorific]
+        })
+        # print(df.info())
+        # print(Honorific_binned[col_Honorific_binned].value_counts())
+        df = self.df_concat(df, Honorific_binned)
+        # print(df.info())
 
-        # most died
-        merge_most_died = ['Capt', 'Don', 'Jonkheer', 'Rev', 'Dona']
-
-        # half died
-        merge_half_died = ['Col', 'Dr', 'Major']
-
-        Honorific.loc[Honorific[col_Honorific].isin(merge_most_survived), [col_Honorific]] = 'Honorific_survived'
-        Honorific.loc[Honorific[col_Honorific].isin(merge_most_died), [col_Honorific]] = 'Honorific_most_died'
-        Honorific.loc[Honorific[col_Honorific].isin(merge_half_died), [col_Honorific]] = 'Honorific_half_died'
-        # print(Honorific[col_key].value_counts())
-
-        df = self.df_update_col(df, col_Honorific, Honorific)
+        encoded_df = self.LabelEncoder(Honorific_binned, col_Honorific_binned)
+        df = self.df_concat(df, encoded_df)
         return df
 
     def col_05_Parch(self, df: DF, col_key: str, partial_df: DF, series: Series, Xs_key: list, Ys_key: list):
@@ -220,11 +266,11 @@ class titanic_transformer(Base_df_transformer):
         return df
 
     def col_07_Pclass(self, df: DF, col_key: str, partial_df: DF, series: Series, Xs_key: list, Ys_key: list):
-        pass
         return df
 
     def col_08_Sex(self, df: DF, col_key: str, partial_df: DF, series: Series, Xs_key: list, Ys_key: list):
-        pass
+        encoded_df = self.LabelEncoder(df, col_key)
+        df = self.df_concat(df, encoded_df)
         return df
 
     def col_09_SibSp(self, df: DF, col_key: str, partial_df: DF, series: Series, Xs_key: list, Ys_key: list):
@@ -302,79 +348,107 @@ class titanic_transformer(Base_df_transformer):
             })
 
         ticket_head_df, ticket_num_df = split_ticket(partial_df)
-        ticket_num_df = trans_ticket_number(df, ticket_num_df)
-        new_df = pd.concat([ticket_head_df, ticket_num_df], axis=1)
-        df = pd.concat([df, new_df], axis=1)
+        df = self.df_concat(df, ticket_head_df)
 
-        # df = self.df_update_col(df, col_key, new_df)
+        ticket_num_df = trans_ticket_number(df, ticket_num_df)
+        df = self.df_concat(df, ticket_num_df)
+
         return df
 
     def col_new_0_family_size(self, df: DF, Xs_key: list, Ys_key: list):
+        col = 'col_12_family_size'
         family_size_df = DF({
-            'family_size': df['col_09_SibSp'] + df['col_05_Parch'] + 1
+            col: df['col_09_SibSp'] + df['col_05_Parch'] + 1
         })
-        df = pd.concat([df, family_size_df], axis=1)
+        df = self.df_concat(df, family_size_df)
+
+        bins = [1, 2, 5, 12]
+        binned = self.binning(family_size_df, col, bins)
+        df = self.df_concat(df, binned)
+
+        encoded_df = self.LabelEncoder(binned, col + '_binning')
+        df = self.df_concat(df, encoded_df)
 
         return df
 
-    def col_new_1_roommate_size(self, df: DF, Xs_key: list, Ys_key: list):
-        roommate_size = 'roommate_size'
+    def col_new_1_party_size(self, df: DF, Xs_key: list, Ys_key: list):
+        col = 'col_13_party_size'
 
-        groupby = df.groupby(['col_11_Ticket'])['col_06_PassengerId'].count()
-        groupby_df = DF(groupby)
-        groupby_df['col_11_Ticket'] = groupby_df.index
-        groupby_df[roommate_size] = groupby_df['col_06_PassengerId']
-        groupby_df = groupby_df.drop(columns='col_06_PassengerId')
+        col_ticket = 'col_11_Ticket'
+        col_id = 'col_06_PassengerId'
+        groupby_df = DF(df.groupby([col_ticket])[col_id].count())
+        groupby_df[col_ticket] = groupby_df.index
+        groupby_df[col] = groupby_df[col_id]
+        groupby_df = groupby_df.drop(columns=col_id)
         groupby_df = groupby_df.reset_index(drop=True)
 
-        partial = df[['col_11_Ticket', 'col_06_PassengerId']]
-        merged = pd.merge(groupby_df, partial, on=['col_11_Ticket'])
-        merged = merged.drop(columns='col_11_Ticket')
-        merged = merged.sort_values(by='col_06_PassengerId')
+        partial = df[[col_ticket, col_id]]
+        merged = pd.merge(groupby_df, partial, on=[col_ticket])
+        merged = merged.drop(columns=col_ticket)
+        merged = merged.sort_values(by=col_id)
         merged = merged.reset_index(drop=True)
-        roommate_size_df = DF(merged[[roommate_size]])
 
-        df = pd.concat([df, roommate_size_df], axis=1)
+        roommate_size_df = DF({
+            col: merged[col]
+        })
+        df = self.df_concat(df, roommate_size_df)
+
+        # bins = [1, 2, 5, 12]
+        # binned = self.binning(roommate_size_df, col, bins)
+        # df = self.df_concat(df, binned)
+        #
+        # encoded_df = self.LabelEncoder(binned, col + '_binning')
+        # df = self.df_concat(df, encoded_df)
+
+        bins = [1, 2, 5, 12]
+        binned = self.binning(roommate_size_df, col, bins)
+        df = self.df_concat(df, binned)
+
+        encoded_df = self.LabelEncoder(binned, col + '_binning')
+        df = self.df_concat(df, encoded_df)
 
         return df
 
     def col_new_2_group_first_name_count(self, df: DF, Xs_key: list, Ys_key: list):
+        col = 'col_14_group_first_name_count'
 
-        groupby = df.groupby(['col_11_Ticket'])['col_04_Name_first_name'].value_counts()
+        col_ticket = 'col_11_Ticket'
+        col_first_name = 'col_04_Name_first_name'
+        groupby = df.groupby([col_ticket])[col_first_name].value_counts()
         groupby_df = DF(groupby)
-        # groupby_df = groupby_df.stack()
-
-        # print(groupby_df.info())
-        # print(groupby_df.head())
-
-        groupby_df['col_11_Ticket'] = groupby_df.index
-        groupby_df = groupby_df.reset_index(drop=True)
-        groupby_df['group_first_name_count'] = groupby_df['col_04_Name_first_name']
-
-        groupby_df[['col_11_Ticket', 'col_04_Name_first_name']] = groupby_df['col_11_Ticket'].apply(pd.Series)
-        # print(groupby_df.info())
-        # print(groupby_df.head())
         # print(groupby_df)
 
-        partial = df[['col_04_Name_first_name', 'col_11_Ticket', 'col_06_PassengerId']]
-        merged_df = pd.merge(partial, groupby_df, on=['col_04_Name_first_name', 'col_11_Ticket'])
-        merged_df = merged_df.drop(columns=['col_04_Name_first_name', 'col_11_Ticket'])
-        merged_df = merged_df.sort_values('col_06_PassengerId')
+        groupby_df[col_ticket] = groupby_df.index
+        groupby_df = groupby_df.reset_index(drop=True)
+        groupby_df[col] = groupby_df[col_first_name]
+        groupby_df[[col_ticket, col_first_name]] = groupby_df[col_ticket].apply(pd.Series)
+
+        col_id = 'col_06_PassengerId'
+        partial = df[[col_first_name, col_ticket, col_id]]
+        merged_df = pd.merge(partial, groupby_df, on=[col_first_name, col_ticket])
+        merged_df = merged_df.drop(columns=[col_first_name, col_ticket])
+        merged_df = merged_df.sort_values(col_id)
         merged_df = merged_df.reset_index(drop=True)
-        first_name_count = merged_df.drop(columns=['col_06_PassengerId'])
+        first_name_count = merged_df.drop(columns=[col_id])
+        first_name_count = DF({
+            col: first_name_count[col]
+        })
+
         # print(first_name_count)
 
         df = pd.concat([df, first_name_count], axis=1)
 
         return df
 
-    def col_new_3_trans_with_not_only_family(self, df: DF, Xs_key: list, Ys_key: list):
-
+    def col_new_3_trans_with_only_family(self, df: DF, Xs_key: list, Ys_key: list):
+        col = 'col_15_with_only_family'
         with_not_only_family = pd.DataFrame({
-            'with_not_only_family': [0] * len(df)
+            col: [0] * len(df)
         })
-        idxs = df.query(f""" roommate_size != group_first_name_count""").index
-        with_not_only_family.loc[idxs, 'with_not_only_family'] = 1
+        idxs = df.query(f""" col_13_party_size != col_14_group_first_name_count""").index
+        with_not_only_family.loc[idxs, col] = 1
+
+        df = self.df_concat(df, with_not_only_family)
 
         return df
 
@@ -423,34 +497,31 @@ class titanic_train(BaseDataset):
         pass
 
     def transform(self):
-        df = self.to_DataFrame()
-
-        id_ = pd.DataFrame(df.pop('id_'))
-        self.add_data('id_', np.array(id_))
-
-        Ys_df = pd.DataFrame(df.pop(df_Ys_key))
-        Ys_df = DF(Ys_df.astype(int))
-        Ys_df = df_to_onehot_embedding(Ys_df)
-        self.add_data('Ys', np.array(Ys_df))
-
-        Xs_df = DF(df)
-
-        Xs_df = Xs_df.drop(columns='col_06_PassengerId')
-        Xs_df = Xs_df.drop(columns='col_11_Ticket')
-        Xs_df = Xs_df.drop(columns='col_11_Ticket_head')
-        Xs_df = Xs_df.drop(columns='col_11_Ticket_num')
-        Xs_df = Xs_df.drop(columns='col_04_Name_first_name')
-        Xs_df = Xs_df.drop(columns='col_04_Name_last_name')
-        Xs_df = Xs_df.drop(columns='col_00_Age')
-        Xs_df = Xs_df.drop(columns='col_03_Fare')
-        Xs_df = Xs_df.drop(columns='col_04_Name')
-
-        Xs_df = Xs_df.drop(columns='col_00_Age_intensity')
-        Xs_df = Xs_df.drop(columns='col_03_Fare_intensity')
-        onehot_df = df_to_onehot_embedding(Xs_df)
-
+        Xs_col = [
+            'col_00_Age_binning_encoded',
+            'col_01_Cabin_head_encoded',
+            'col_02_Embarked_encoded',
+            'col_03_Fare_binning_encoded',
+            'col_04_Name_Honorific_binned_encoded',
+            'col_05_Parch',
+            'col_07_Pclass',
+            'col_08_Sex_encoded',
+            'col_09_SibSp',
+            'col_12_family_size_binning_encoded',
+            'col_13_party_size_binning_encoded',
+            'col_14_group_first_name_count',
+            'col_15_with_only_family'
+        ]
+        Xs_df = self.to_DataFrame(Xs_col)
         onehot_np_arr = df_to_np_onehot_embedding(Xs_df)
         self.add_data('Xs', onehot_np_arr)
+
+        id_ = self.to_DataFrame(['id_'])
+        self.add_data('id_', np.array(id_))
+
+        Ys_df = self.to_DataFrame(['col_10_Survived'])
+        Ys_df = df_to_onehot_embedding(Ys_df)
+        self.add_data('Ys', np.array(Ys_df))
 
 
 class titanic_test(BaseDataset):
@@ -469,25 +540,25 @@ class titanic_test(BaseDataset):
         pass
 
     def transform(self):
-        df = self.to_DataFrame()
-
-        id_ = pd.DataFrame(df.pop('id_'))
+        id_ = self.to_DataFrame(['id_'])
         self.add_data('id_', np.array(id_))
 
-        Xs_df = DF(df)
-        Xs_df = Xs_df.drop(columns='col_06_PassengerId')
-        Xs_df = Xs_df.drop(columns='col_11_Ticket')
-        Xs_df = Xs_df.drop(columns='col_11_Ticket_head')
-        Xs_df = Xs_df.drop(columns='col_11_Ticket_num')
-        Xs_df = Xs_df.drop(columns='col_04_Name_first_name')
-        Xs_df = Xs_df.drop(columns='col_04_Name_last_name')
-        Xs_df = Xs_df.drop(columns='col_00_Age')
-        Xs_df = Xs_df.drop(columns='col_03_Fare')
-        Xs_df = Xs_df.drop(columns='col_04_Name')
-        Xs_df = Xs_df.drop(columns='col_00_Age_intensity')
-        Xs_df = Xs_df.drop(columns='col_03_Fare_intensity')
-        onehot_df = df_to_onehot_embedding(Xs_df)
-
+        Xs_col = [
+            'col_00_Age_binning_encoded',
+            'col_01_Cabin_head_encoded',
+            'col_02_Embarked_encoded',
+            'col_03_Fare_binning_encoded',
+            'col_04_Name_Honorific_binned_encoded',
+            'col_05_Parch',
+            'col_07_Pclass',
+            'col_08_Sex_encoded',
+            'col_09_SibSp',
+            'col_12_family_size_binning_encoded',
+            'col_13_party_size_binning_encoded',
+            'col_14_group_first_name_count',
+            'col_15_with_only_family'
+        ]
+        Xs_df = self.to_DataFrame(Xs_col)
         onehot_np_arr = df_to_np_onehot_embedding(Xs_df)
         self.add_data('Xs', onehot_np_arr)
 

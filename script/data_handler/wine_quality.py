@@ -54,34 +54,34 @@ def to_binary_class(df):
 
 class wine_quality_transformer(Base_df_transformer):
     def col_0_fixed_acidity(self, df: DF, col_key: str, partial_df: DF, series: Series, Xs_key: list, Ys_key: list):
-        partial_df = self.mixmax_normalize(df, col_key)
+        partial_df = self.mixmax_scale(df, col_key)
 
         df = self.df_update_col(df, col_key, partial_df)
         return df
 
     def col_1_volatile_acidity(self, df: DF, col_key: str, partial_df: DF, series: Series, Xs_key: list, Ys_key: list):
-        partial_df = self.mixmax_normalize(df, col_key)
+        partial_df = self.mixmax_scale(df, col_key)
         df = self.df_update_col(df, col_key, partial_df)
         return df
 
     def col_2_citric_acid(self, df: DF, col_key: str, partial_df: DF, series: Series, Xs_key: list, Ys_key: list):
-        partial_df = self.mixmax_normalize(df, col_key)
+        partial_df = self.mixmax_scale(df, col_key)
         df = self.df_update_col(df, col_key, partial_df)
         return df
 
     def col_3_residual_sugar(self, df: DF, col_key: str, partial_df: DF, series: Series, Xs_key: list, Ys_key: list):
-        partial_df = self.mixmax_normalize(df, col_key)
+        partial_df = self.mixmax_scale(df, col_key)
         df = self.df_update_col(df, col_key, partial_df)
         return df
 
     def col_4_chlorides(self, df: DF, col_key: str, partial_df: DF, series: Series, Xs_key: list, Ys_key: list):
-        partial_df = self.mixmax_normalize(df, col_key)
+        partial_df = self.mixmax_scale(df, col_key)
         df = self.df_update_col(df, col_key, partial_df)
         return df
 
     def col_5_free_sulfur_dioxide(self, df: DF, col_key: str, partial_df: DF, series: Series, Xs_key: list,
                                   Ys_key: list):
-        partial_df = self.mixmax_normalize(df, col_key)
+        partial_df = self.mixmax_scale(df, col_key)
         df = self.df_update_col(df, col_key, partial_df)
         return df
 
@@ -94,22 +94,22 @@ class wine_quality_transformer(Base_df_transformer):
         return df
 
     def col_7_density(self, df: DF, col_key: str, partial_df: DF, series: Series, Xs_key: list, Ys_key: list):
-        partial_df = self.mixmax_normalize(df, col_key)
+        partial_df = self.mixmax_scale(df, col_key)
         df = self.df_update_col(df, col_key, partial_df)
         return df
 
     def col_8_pH(self, df: DF, col_key: str, partial_df: DF, series: Series, Xs_key: list, Ys_key: list):
-        partial_df = self.mixmax_normalize(df, col_key)
+        partial_df = self.mixmax_scale(df, col_key)
         df = self.df_update_col(df, col_key, partial_df)
         return df
 
     def col_9_sulphates(self, df: DF, col_key: str, partial_df: DF, series: Series, Xs_key: list, Ys_key: list):
-        partial_df = self.mixmax_normalize(df, col_key)
+        partial_df = self.mixmax_scale(df, col_key)
         df = self.df_update_col(df, col_key, partial_df)
         return df
 
     def col_10_alcohol(self, df: DF, col_key: str, partial_df: DF, series: Series, Xs_key: list, Ys_key: list):
-        partial_df = self.mixmax_normalize(df, col_key)
+        partial_df = self.mixmax_scale(df, col_key)
         df = self.df_update_col(df, col_key, partial_df)
         return df
 
