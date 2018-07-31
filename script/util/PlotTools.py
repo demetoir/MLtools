@@ -5,6 +5,9 @@ from inspect import signature
 from PIL import Image
 from script.util.misc_util import time_stamp, path_join, setup_file
 from script.util.numpy_utils import np_image_save, np_img_to_tile
+import pandas as pd
+
+DF = pd.DataFrame
 
 color_set = [
     '#e6194b',
@@ -96,7 +99,7 @@ def deco_rollback_plt(func):
 
 class PlotTools:
 
-    def __init__(self, dpi=300, save=True, show=False, extend='.png'):
+    def __init__(self, dpi=300, save=True, show=False, extend='.png', figsize=(7, 7)):
         warnings.filterwarnings(module='matplotlib*', action='ignore', category=UserWarning)
 
         self.fig_count = 0
@@ -106,6 +109,7 @@ class PlotTools:
         self.extend = extend
 
         self.xticklabel_rotation = -45
+        self.figsize = figsize
 
         import seaborn as _sns
         self.sns = _sns
@@ -209,6 +213,8 @@ class PlotTools:
         self.sns.set_style('whitegrid')
         self.sns.set_color_codes()
 
+        self.plt.subplots(figsize=self.figsize)
+
     @deco_rollback_plt
     def dist(self, df, column, bins=None, ax=None, axlabel=None, rug=False, path=None, **kwargs):
         warnings.filterwarnings(module='matplotlib*', action='ignore', category=UserWarning)
@@ -243,15 +249,15 @@ class PlotTools:
         idx = df[df[groupby_col].notna()].index
         df = df.loc[idx, :]
 
-        for val in df[groupby_col].unique():
+        unique = list(df[groupby_col].unique())
+        unique = [val for val in unique if not np.isnan(val)]
+        for val in list(sorted(unique)):
             idx = df[df[groupby_col] == val].index
             part_serial = df.loc[idx, col]
-            # df[col]
-            # part_serial
 
-            sns_plot = self.sns.distplot(part_serial, rug=False)
+            sns_plot = self.sns.distplot(part_serial, rug=False, label=str(val))
 
-
+        self.plt.legend()
         fig = sns_plot.figure
 
         self.teardown_matplot(fig, path=path, **kwargs)
@@ -261,10 +267,35 @@ class PlotTools:
         self.setup_matplot()
 
         order = sorted(df[column].value_counts().index)
-        sns_plot = self.sns.countplot(x=column, data=df, hue=groupby_col, order=order, )
+        sns_plot = self.sns.countplot(x=column, data=df, hue=groupby_col, order=order)
         # sns_plot.set_xticklabels(sns_plot.get_xticklabels(), rotation=self.xticklabel_rotation)
         sns_plot.set_xticklabels(sns_plot.get_xticklabels(), rotation=self.xticklabel_rotation, ha="left",
                                  rotation_mode='anchor')
+
+        # self.plt.ylabel('Frequency [%]')
+
+        # ax = (df[column].value_counts() / len(df) * 100).sort_index().plot(kind="bar", rot=0)
+        # ax.set_yticks(np.arange(0, 110, 10))
+
+        # ax2 = ax.twinx()
+        # ax = sns_plot.axes
+        # ax.set_yticks(df[column].value_counts().sort_index() / len(df) * 100)
+
+        # for p in ax.patches:
+        #     ax.annotate('{:.2f}%'.format(p.get_height()), (p.get_x() + 0.15, p.get_height() + 1))
+
+        # total = float(len(df[column]))
+        # ax = sns_plot.axes
+        # for p in ax.patches:
+        #     height = p.get_height()
+        #     if np.isnan(height):
+        #         print(height)
+        #         continue
+        #     ax.text(p.get_x() + p.get_width() / 2.,
+        #             height + 3,
+        #             '{:1.3f}'.format(height / total),
+        #             ha="center")
+
         # self.plt.tight_layout()
         fig = sns_plot.figure
 
@@ -410,3 +441,72 @@ class PlotTools:
             path = path_join('.', 'matplot', title + extend)
         np_img_tile = np_img_to_tile(np_imgs, column_size=column)
         np_image_save(np_img_tile, path)
+
+    def plot_percentage_stack_bar(self, df, col, stackby_col, path=None, **kwargs):
+        self.setup_matplot()
+
+        df = DF(df[[col, stackby_col]])
+        df['dummy'] = [0 for i in range(len(df))]
+
+        # for key in list(df.keys()):
+        #     df[key] = df[key].astype(str)
+        #     df[key] = df[key].fillna('none')
+        #
+        #
+        # print(df.info())
+
+        groupby_df = DF(df.groupby([col, stackby_col])['dummy'].count().unstack(fill_value=0).stack())
+        groupby_df['dummy'] = groupby_df[0]
+        groupby_df = groupby_df.drop(columns=0)
+        print(groupby_df)
+
+        groupby_df['index_col'] = groupby_df.index
+        groupby_df = groupby_df.reset_index(drop=True)
+        groupby_df['count'] = groupby_df['dummy']
+        groupby_df[[col, stackby_col]] = groupby_df['index_col'].apply(pd.Series)
+        groupby_df = groupby_df.drop(columns=['dummy', 'index_col'])
+        print(groupby_df)
+
+        unique = df[col].unique()
+        print(df.info())
+        print(df[col].value_counts())
+        r = [i for i in range(len(groupby_df[stackby_col].unique()))]
+        bars = []
+        for key in r:
+            val = groupby_df[groupby_df[stackby_col] == key]['count']
+            print(val)
+            bars += [list(val.values)]
+
+        print(bars)
+        bars = np.array(bars, dtype=float)
+        totals = np.sum(bars, axis=0)
+
+        bars = (bars / totals) * 100
+
+        cums = []
+        for i in range(len(bars)):
+            cums += [sum(bars[:i + 1])]
+        # print(cums)
+
+        print(unique)
+        self.plt.bar(unique, bars[0])
+        for i in range(1, len(bars)):
+            self.plt.bar(unique, bars[i], bottom=cums[i - 1])
+
+        self.plt.xticks(unique, unique)
+        self.plt.xlabel(col)
+        self.plt.ylabel(stackby_col)
+
+        self.plt.show()
+
+        fig = None
+
+        self.teardown_matplot(fig, path=path, **kwargs)
+
+    def plot_table(self, df, path=None, **kwargs):
+        self.setup_matplot()
+
+        # from pandas.tools.plotting import table
+        #     table(df)
+        # fig = self.figure
+        # self.teardown_matplot(fig, path=path, **kwargs)
