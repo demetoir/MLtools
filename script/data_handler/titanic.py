@@ -67,7 +67,7 @@ def load_merge_set(cache=True):
         train_df = pd.read_csv(train_path)
         test_df = pd.read_csv(test_path)
 
-        merged_df = pd.concat([train_df, test_df], axis=0, sort=True)
+        merged_df = pd.concat([train_df, test_df], axis=0)
         merged_df = df_add_col_num(merged_df)
 
         merged_df.to_csv(merge_set_path, index=False)
@@ -153,10 +153,9 @@ class titanic_transformer(Base_df_transformer):
 
         binning_df[binning_df[col_key_binning] == 'bin7_[81~1000)'] = 'bin8_missing'
         # print(binning_df[col_key_binning].value_counts())
-
         df = self.df_concat(df, binning_df)
 
-        encoded_df = self.LabelEncoder(binning_df, col_key + '_binning')
+        encoded_df = self.fetools.LabelEncoder(binning_df, col_key + '_binning')
         df = self.df_concat(df, encoded_df)
 
         return df
@@ -176,13 +175,13 @@ class titanic_transformer(Base_df_transformer):
         cabin_head.loc[head_na.index, col_key] = 'None'
         df = self.df_concat(df, cabin_head)
 
-        encoded_df = self.LabelEncoder(cabin_head, col_key)
+        encoded_df = self.fetools.LabelEncoder(cabin_head, col_key)
         df = self.df_concat(df, encoded_df)
 
         return df
 
     def col_02_Embarked(self, df: DF, col_key: str, partial_df: DF, series: Series, Xs_key: list, Ys_key: list):
-        encoded_df = self.LabelEncoder(df, col_key)
+        encoded_df = self.fetools.LabelEncoder(df, col_key)
         df = self.df_concat(df, encoded_df)
 
         return df
@@ -210,7 +209,7 @@ class titanic_transformer(Base_df_transformer):
 
         binning_df = self.binning(df, col_key, bins)
         df = self.df_concat(df, binning_df)
-        encode_df = self.LabelEncoder(df, col_key + '_binning')
+        encode_df = self.fetools.LabelEncoder(df, col_key + '_binning')
         df = self.df_concat(df, encode_df)
 
         return df
@@ -232,8 +231,8 @@ class titanic_transformer(Base_df_transformer):
 
         name_df = pd.DataFrame({
             col_key + "_first_name": first_name.astype(str),
-            col_key + "_Honorific":  Honorific.astype(str),
-            col_key + "_last_name":  last_name.astype(str)
+            col_key + "_Honorific": Honorific.astype(str),
+            col_key + "_last_name": last_name.astype(str)
         })
         df = self.df_concat(df, name_df)
 
@@ -255,7 +254,7 @@ class titanic_transformer(Base_df_transformer):
         df = self.df_concat(df, Honorific_binned)
         # print(df.info())
 
-        encoded_df = self.LabelEncoder(Honorific_binned, col_Honorific_binned)
+        encoded_df = self.fetools.LabelEncoder(Honorific_binned, col_Honorific_binned)
         df = self.df_concat(df, encoded_df)
         return df
 
@@ -269,7 +268,7 @@ class titanic_transformer(Base_df_transformer):
         return df
 
     def col_08_Sex(self, df: DF, col_key: str, partial_df: DF, series: Series, Xs_key: list, Ys_key: list):
-        encoded_df = self.LabelEncoder(df, col_key)
+        encoded_df = self.fetools.LabelEncoder(df, col_key)
         df = self.df_concat(df, encoded_df)
         return df
 
@@ -366,7 +365,7 @@ class titanic_transformer(Base_df_transformer):
         binned = self.binning(family_size_df, col, bins)
         df = self.df_concat(df, binned)
 
-        encoded_df = self.LabelEncoder(binned, col + '_binning')
+        encoded_df = self.fetools.LabelEncoder(binned, col + '_binning')
         df = self.df_concat(df, encoded_df)
 
         return df
@@ -380,7 +379,7 @@ class titanic_transformer(Base_df_transformer):
         groupby_df[col_ticket] = groupby_df.index
         groupby_df[col] = groupby_df[col_id]
         groupby_df = groupby_df.drop(columns=col_id)
-        groupby_df = groupby_df.reset_index(drop=True)
+        # groupby_df = groupby_df.reset_index(drop=True)
 
         partial = df[[col_ticket, col_id]]
         merged = pd.merge(groupby_df, partial, on=[col_ticket])
@@ -404,7 +403,7 @@ class titanic_transformer(Base_df_transformer):
         binned = self.binning(roommate_size_df, col, bins)
         df = self.df_concat(df, binned)
 
-        encoded_df = self.LabelEncoder(binned, col + '_binning')
+        encoded_df = self.fetools.LabelEncoder(binned, col + '_binning')
         df = self.df_concat(df, encoded_df)
 
         return df
