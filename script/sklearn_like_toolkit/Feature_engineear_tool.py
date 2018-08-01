@@ -4,69 +4,54 @@ from sklearn import preprocessing
 from sklearn.preprocessing import Imputer, LabelEncoder, OneHotEncoder
 from tqdm import trange
 from script.util.pandas_util import df_minmax_normalize, df_binning, df_to_onehot_embedding
+from sklearn.feature_selection import VarianceThreshold
+from sklearn.feature_selection import SelectKBest
+from sklearn.feature_selection import chi2
 
 DF = pd.DataFrame
 
 
 class scale_method:
-    @staticmethod
-    def MinMaxScaler(df, x_col):
-        scale = preprocessing.MinMaxScaler()
-        scale.fit(df[x_col])
-        return scale.transform(df[x_col])
+    def __scale_common(self, scale, df, x_col, tail):
+        return DF({x_col + '_' + tail: scale.fit(df[x_col])})
 
-    @staticmethod
-    def MaxAbsScaler(df, x_col):
-        scale = preprocessing.MaxAbsScaler()
-        scale.fit(df[x_col])
-        return scale.transform(df[x_col])
+    def scale_minmax(self, df, x_col):
+        return self.__scale_common(preprocessing.MinMaxScaler(), df, x_col, 'minmax_scale')
 
-    @staticmethod
-    def RobustScaler(df, x_col):
-        scale = preprocessing.RobustScaler()
-        scale.fit(df[x_col])
-        return scale.transform(df[x_col])
+    def scale_max_abs(self, df, x_col):
+        return self.__scale_common(preprocessing.MaxAbsScaler(), df, x_col, 'MaxAbs_scale')
 
-    @staticmethod
-    def StandardScaler(df, x_col):
-        scale = preprocessing.StandardScaler()
-        scale.fit(df[x_col])
-        return scale.transform(df[x_col])
+    def scale_robust(self, df, x_col):
+        return self.__scale_common(preprocessing.RobustScaler(), df, x_col, 'robust_scaler')
 
+    def scale_standard(self, df, x_col):
+        return self.__scale_common(preprocessing.StandardScaler(), df, x_col, 'standard_scale')
 
-class Impute_method:
-    def Imputer(self, df, x_col, missing_values="NaN", strategy="mean"):
-        imputer = Imputer(missing_values=missing_values, strategy=strategy)
-
+    def scale_log(self, df, x_col):
+        val = np.array(list(df[x_col].astype(float)))
         return DF({
-            x_col + 'impute_' + strategy: imputer.fit(df[x_col])
-
+            x_col + '_log_scale': np.log(val + 1),
         })
 
-    def _Imputer(self, df, x_col, y_col=None, missing_values="NaN", strategy="mean"):
+
+class impute_method:
+    @staticmethod
+    def _imputer(df, x_col, y_col=None, missing_values="NaN", strategy="mean"):
         imputer = Imputer(missing_values=missing_values, strategy=strategy)
         imputer.fit(x_col, y_col)
-        df[x_col] = imputer.transform(x_col)
+        return DF({x_col + '_' + strategy: imputer.transform(x_col)})
 
-        """        - If "mean", then replace missing values using the mean along
-          the axis.
-        - If "median", then replace missing values using the median along
-          the axis.
-        - If "most_frequent", then replace missing using the most frequent
-          value along the axis."""
-        return df
+    def impute_mean(self, df, x_col, y_col=None, missing_values='nan'):
+        return self._imputer(df, x_col, y_col, missing_values, strategy='mean')
 
-    def Imuter_mean(self, df, x_col, y_col=None, missing_values='nan'):
-        return self._Imputer(df, x_col, y_col, missing_values, strategy='mean')
+    def impute_median(self, df, x_col, y_col=None, missing_values='nan'):
+        return self._imputer(df, x_col, y_col, missing_values)
 
-    def Imuter_median(self, df, x_col, y_col=None, missing_values='nan'):
-        return self._Imputer(df, x_col, y_col, missing_values)
-
-    def Imuter_most_frequent(self, df, x_col, y_col=None, missing_value='nan'):
-        return self._Imputer(df, x_col, y_col, missing_value)
+    def impute_most_frequent(self, df, x_col, y_col=None, missing_value='nan'):
+        return self._imputer(df, x_col, y_col, missing_value)
 
 
-class label_encode:
+class encoding_method:
     def _Encoder_common(self, enc, df, col, with_mapper=False):
 
         col_encode = col + "_encoded"
@@ -104,7 +89,57 @@ class label_encode:
         )
 
 
-class Feature_engineer_tool(label_encode, Impute_method, scale_method):
+class clf_feature_selection:
+    def varianceThreshold(self, df, col, threshold=.8):
+        sel = VarianceThreshold(threshold=(threshold * (1 - threshold)))
+        return sel.fit_transform(df[col])
+
+    def kai2_select(self, df, x_col, y_col, k):
+        return SelectKBest(chi2, k=k).fit_transform(df[x_col], df[y_col])
+
+    def mutual_info_classif(self, df, x_col, y_col, k):
+        raise NotImplementedError
+        # return SelectKBest(chi2, k=k).fit_transform(df[x_col], df[y_col])
+
+    def f_classif(self, df, x_col, y_col, k):
+        raise NotImplementedError
+        # return SelectKBest(chi2, k=k).fit_transform(df[x_col], df[y_col])
+
+
+class reg_feature_selection:
+    def mutual_info_regression(self):
+        pass
+
+    def f_regression(self):
+        pass
+
+
+class typecast_method:
+
+    @staticmethod
+    def to_str(df, key):
+        df[key] = df[key].astype(str)
+        return df
+
+    @staticmethod
+    def to_float(df, key):
+        df[key] = df[key].astype(float)
+        return df
+
+    @staticmethod
+    def to_int(df, key):
+        df[key] = df[key].astype(int)
+        return df
+
+
+class FeatureEngineerTools(
+    encoding_method,
+    impute_method,
+    scale_method,
+    clf_feature_selection,
+    reg_feature_selection,
+    typecast_method,
+):
     def corr_maximize_bins(self, df, x_col, y_col, n_iter, size):
         best = 0
         best_bins = None
