@@ -3,9 +3,9 @@ import pandas as pd
 from sklearn import preprocessing
 from sklearn.preprocessing import Imputer, LabelEncoder, OneHotEncoder
 from tqdm import trange
-
-from script.data_handler.Base.Base_df_transformer import DF
 from script.util.pandas_util import df_minmax_normalize, df_binning, df_to_onehot_embedding
+
+DF = pd.DataFrame
 
 
 class scale_method:
