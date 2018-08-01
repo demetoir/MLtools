@@ -1,6 +1,7 @@
-from pprint import pprint
 import seaborn as sns
 import numpy as np
+from pprint import pprint
+from script.util.JobPool import JobPool
 from script.util.PlotTools import PlotTools
 
 
@@ -91,8 +92,7 @@ def test_plot_tool_async_timeit():
     rand_x_1d = np.random.normal(3, 5, [100])
     tool = PlotTools()
 
-    from multiprocessing_on_dill.pool import Pool
-    pool = Pool(processes=8)
+    pool = JobPool(processes=3)
 
     childs = []
     for i in range(10):
