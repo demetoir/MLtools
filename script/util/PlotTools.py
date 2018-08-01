@@ -443,65 +443,67 @@ class PlotTools:
         np_image_save(np_img_tile, path)
 
     def plot_percentage_stack_bar(self, df, col, stackby_col, path=None, **kwargs):
-        self.setup_matplot()
-
-        df = DF(df[[col, stackby_col]])
-        df['dummy'] = [0 for i in range(len(df))]
-
-        # for key in list(df.keys()):
-        #     df[key] = df[key].astype(str)
-        #     df[key] = df[key].fillna('none')
+        # TODO implement
+        raise NotImplemented
+        # self.setup_matplot()
         #
+        # df = DF(df[[col, stackby_col]])
+        # df['dummy'] = [0 for i in range(len(df))]
         #
+        # # for key in list(df.keys()):
+        # #     df[key] = df[key].astype(str)
+        # #     df[key] = df[key].fillna('none')
+        # #
+        # #
+        # # print(df.info())
+        #
+        # groupby_df = DF(df.groupby([col, stackby_col])['dummy'].count().unstack(fill_value=0).stack())
+        # groupby_df['dummy'] = groupby_df[0]
+        # groupby_df = groupby_df.drop(columns=0)
+        # print(groupby_df)
+        #
+        # groupby_df['index_col'] = groupby_df.index
+        # groupby_df = groupby_df.reset_index(drop=True)
+        # groupby_df['count'] = groupby_df['dummy']
+        # groupby_df[[col, stackby_col]] = groupby_df['index_col'].apply(pd.Series)
+        # groupby_df = groupby_df.drop(columns=['dummy', 'index_col'])
+        # print(groupby_df)
+        #
+        # unique = df[col].unique()
         # print(df.info())
-
-        groupby_df = DF(df.groupby([col, stackby_col])['dummy'].count().unstack(fill_value=0).stack())
-        groupby_df['dummy'] = groupby_df[0]
-        groupby_df = groupby_df.drop(columns=0)
-        print(groupby_df)
-
-        groupby_df['index_col'] = groupby_df.index
-        groupby_df = groupby_df.reset_index(drop=True)
-        groupby_df['count'] = groupby_df['dummy']
-        groupby_df[[col, stackby_col]] = groupby_df['index_col'].apply(pd.Series)
-        groupby_df = groupby_df.drop(columns=['dummy', 'index_col'])
-        print(groupby_df)
-
-        unique = df[col].unique()
-        print(df.info())
-        print(df[col].value_counts())
-        r = [i for i in range(len(groupby_df[stackby_col].unique()))]
-        bars = []
-        for key in r:
-            val = groupby_df[groupby_df[stackby_col] == key]['count']
-            print(val)
-            bars += [list(val.values)]
-
-        print(bars)
-        bars = np.array(bars, dtype=float)
-        totals = np.sum(bars, axis=0)
-
-        bars = (bars / totals) * 100
-
-        cums = []
-        for i in range(len(bars)):
-            cums += [sum(bars[:i + 1])]
-        # print(cums)
-
-        print(unique)
-        self.plt.bar(unique, bars[0])
-        for i in range(1, len(bars)):
-            self.plt.bar(unique, bars[i], bottom=cums[i - 1])
-
-        self.plt.xticks(unique, unique)
-        self.plt.xlabel(col)
-        self.plt.ylabel(stackby_col)
-
-        self.plt.show()
-
-        fig = None
-
-        self.teardown_matplot(fig, path=path, **kwargs)
+        # print(df[col].value_counts())
+        # r = [i for i in range(len(groupby_df[stackby_col].unique()))]
+        # bars = []
+        # for key in r:
+        #     val = groupby_df[groupby_df[stackby_col] == key]['count']
+        #     print(val)
+        #     bars += [list(val.values)]
+        #
+        # print(bars)
+        # bars = np.array(bars, dtype=float)
+        # totals = np.sum(bars, axis=0)
+        #
+        # bars = (bars / totals) * 100
+        #
+        # cums = []
+        # for i in range(len(bars)):
+        #     cums += [sum(bars[:i + 1])]
+        # # print(cums)
+        #
+        # print(unique)
+        # self.plt.bar(unique, bars[0])
+        # for i in range(1, len(bars)):
+        #     self.plt.bar(unique, bars[i], bottom=cums[i - 1])
+        #
+        # self.plt.xticks(unique, unique)
+        # self.plt.xlabel(col)
+        # self.plt.ylabel(stackby_col)
+        #
+        # self.plt.show()
+        #
+        # fig = None
+        #
+        # self.teardown_matplot(fig, path=path, **kwargs)
 
     def plot_table(self, df, path=None, **kwargs):
         self.setup_matplot()
