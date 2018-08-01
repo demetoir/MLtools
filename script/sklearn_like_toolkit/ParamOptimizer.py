@@ -1,6 +1,7 @@
-import progressbar
 import sklearn
 import pandas as pd
+from tqdm import tqdm
+
 from script.data_handler.Base.BaseDataset import BaseDataset
 from script.util.Logger import StdoutOnlyLogger
 from script.util.misc_util import time_stamp, path_join, log_error_trace, setup_file
@@ -101,7 +102,7 @@ class ParamOptimizer:
 
         class_ = self.estimator.__class__
         gen_param = self.gen_param()
-        for _ in progressbar.progressbar(range(param_grid_size), redirect_stdout=False):
+        for _ in tqdm(range(param_grid_size), redirect_stdout=False):
             try:
                 param = next(gen_param)
 

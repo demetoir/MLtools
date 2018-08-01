@@ -1,6 +1,6 @@
-from progressbar import ProgressBar
 from sklearn import model_selection
 from sklearn.externals.joblib import Parallel
+from tqdm import tqdm
 from script.sklearn_like_toolkit.base.MixIn import ClfWrapperMixIn, meta_BaseWrapperClf_with_ABC
 import multiprocessing
 
@@ -26,8 +26,9 @@ class GridSearchCVProgressBar(model_selection.GridSearchCV):
 
         class ParallelProgressBar(Parallel):
             def __call__(self, iterable):
-                bar = ProgressBar(max_value=max_value, title='GridSearchCV')
-                iterable = bar(iterable)
+                bar = tqdm(max_value=max_value, title='GridSearchCV')
+                bar.iterable = iterable
+                # iterable = bar(iterable)
                 return super(ParallelProgressBar, self).__call__(iterable)
 
         # Monkey patch
