@@ -1,9 +1,13 @@
 # -*- coding:utf-8 -*-
+import os
 
 import numpy as np
 import pandas as pd
+from tqdm import tqdm
 
+from script.sklearn_like_toolkit.FeatureEngineerTools import FeatureEngineerTools
 from script.util.Logger import pprint_logger, Logger
+from script.util.PlotTools import PlotTools
 from script.util.deco import deco_timeit
 
 # print(built-in function) is not good for logging
@@ -425,20 +429,430 @@ DF = pd.DataFrame
 #     df = train_set.to_DataFrame()
 #     print(df.info())
 
-
-def load_samsung():
-    path = "C:/Users/demetoir/PycharmProjects/MLtools/data/samsung_contest/maindata/data.csv"
-    df = pd.read_csv(path, encoding='euc-kr')
+def drop_rows(df, row_idxs):
+    return df.drop(row_idxs, axis=0)
 
 
-    print(df.info())
-    print(df.head())
+def load_samsung(path):
+    return pd.read_csv(path, encoding='euc-kr', engine='python')
 
 
+def save_samsung(df, path):
+    df.to_csv(path, encoding='euc-kr', index=False)
+
+
+def add_col_num(df, zfill=2):
+    df_cols = df.columns
+    new_cols = []
+    for i, col in enumerate(df_cols):
+        new_cols += ['c' + str(i).zfill(zfill) + '_' + col]
+    df.columns = new_cols
+    return df
+
+
+def print_df_unique(df, key=None):
+    if key is None:
+        for key in df.columns:
+            print(key)
+            unique = df[key].unique()
+            pprint(unique)
+            pprint(df[key].value_counts())
+            print(key, len(unique))
+    else:
+        unique = df[key].unique()
+        print(key)
+        pprint(unique)
+        pprint(len(unique))
+        pprint(df[key].value_counts())
+
+
+def common_label_and_onehot(df, key):
+    fe_tool = FeatureEngineerTools()
+    unique = list(df[key].unique())
+    unique += ['none']
+
+    labeled, labeled_col, enc, dec = fe_tool.to_label(df, key, unique=unique, with_mapper=True)
+    df = fe_tool.concat_df(df, labeled)
+
+    onehot_df = fe_tool.to_onehot(df, key, unique=unique)
+    df = fe_tool.concat_df(df, onehot_df)
+
+    return df
+
+
+def c_15(df, key='c15_당사자종별_2당_대분류'):
+    df.loc[df[key] == '0', key] = '없음'
+
+    df = common_label_and_onehot(df, key)
+    return df
+
+
+def c_14(df, key='c14_당사자종별_1당_대분류'):
+    df = common_label_and_onehot(df, key)
+    return df
+
+
+def c_13(df, key='c13_도로형태'):
+    df = common_label_and_onehot(df, key)
+    return df
+
+
+def c_12(df, key='c12_도로형태_대분류'):
+    df = common_label_and_onehot(df, key)
+    return df
+
+
+def c_11(df, key="c11_법규위반"):
+    df = common_label_and_onehot(df, key)
+    return df
+
+
+def c_10(df, key='c10_사고유형_중분류'):
+    df = common_label_and_onehot(df, key)
+    return df
+
+
+def c_09(df, key='c09_사고유형_대분류'):
+    df = common_label_and_onehot(df, key)
+    return df
+
+
+def c_08(df, key='c08_발생지시군구'):
+    df = common_label_and_onehot(df, key)
+    return df
+
+
+def c_07(df, key='c07_발생지시도'):
+    df = common_label_and_onehot(df, key)
+    return df
+
+
+def c_00(df, key='c01_요일'):
+    df = common_label_and_onehot(df, key)
+    return df
+
+
+def c_01(df, key='c00_주야'):
+    df = common_label_and_onehot(df, key)
+    return df
+
+
+def init_samsung():
+    path = "./data/samsung_contest/main/Train_교통사망사고정보(12.1~17.6).csv"
+    df = load_samsung(path)
+
+    # train columns to make like test columns
+    path = "./data/samsung_contest/test_kor.csv"
+    test_df = load_samsung(path)
+    test_cols = test_df.columns
+    df = DF(df[test_cols])
+    df = add_col_num(df, 2)
+
+    # drop null include rows
+    cols = [
+        'c00_주야',
+        'c01_요일',
+        'c02_사망자수',
+        'c03_사상자수',
+        'c04_중상자수',
+        'c05_경상자수',
+        'c06_부상신고자수',
+        'c07_발생지시도',
+        'c08_발생지시군구',
+        'c09_사고유형_대분류',
+        'c10_사고유형_중분류',
+        'c11_법규위반',
+        'c12_도로형태_대분류',
+        'c13_도로형태',
+        'c14_당사자종별_1당_대분류',
+        'c15_당사자종별_2당_대분류'
+    ]
+    idx = df[df['c15_당사자종별_2당_대분류'].isna()].index
+    df = drop_rows(df, idx)
+    df = DF(df)
+
+    path = "./data/samsung_contest/data_init.csv"
+    save_samsung(df, path)
+
+
+def samsung_transform(cache=False):
+    init_samsung()
+    path = "./data/samsung_contest/data_init.csv"
+    df = load_samsung(path)
+
+    id_col = 'c.._id'
+    path = "./data/samsung_contest/data_tansformed.csv"
+    if not os.path.exists(path) or not cache:
+        print('transform')
+        funcs = [c_15, c_14, c_13, c_12, c_11, c_10, c_09, c_08, c_07, c_01, c_00]
+        for func in tqdm(funcs):
+            df = func(df)
+
+        df = df.drop_duplicates(keep='first')
+
+        df[id_col] = np.arange(0, len(df))
+        save_samsung(df, path)
+
+    df = load_samsung(path)
+    reg_cols = [
+        'c02_사망자수',
+        'c03_사상자수',
+        'c04_중상자수',
+        'c05_경상자수',
+        'c06_부상신고자수',
+    ]
+
+    label_encoder_cols = []
+    for k in df.columns:
+        if '_label' in k:
+            label_encoder_cols += [k]
+
+    onehot_col = []
+    for k in df.columns:
+        if '_onehot' in k:
+            onehot_col += [k]
+
+    x_cols = reg_cols + onehot_col
+
+    origin_cols = [
+        'c00_주야',
+        'c01_요일',
+        'c02_사망자수',
+        'c03_사상자수',
+        'c04_중상자수',
+        'c05_경상자수',
+        'c06_부상신고자수',
+        'c07_발생지시도',
+        'c08_발생지시군구',
+        'c09_사고유형_대분류',
+        'c10_사고유형_중분류',
+        'c11_사고유형',
+        'c12_법규위반',
+        'c13_도로형태_대분류',
+        'c14_도로형태',
+        'c15_당사자종별_1당_대분류',
+        'c16_당사자종별_2당_대분류',
+    ]
+
+    # pprint(label_encoder_cols)
+    # pprint(onehot_col)
+    # pprint(x_cols)
+    # pprint(origin_cols)
+
+    # print(df.info())
+    path = "./data/samsung_contest/data_in_progress.csv"
+    save_samsung(df, path)
+
+    def random_col_nullify(df, n_iter, ):
+        rows = len(df)
+        cols = len(df.columns)
+
+        for _ in range(n_iter):
+            while True:
+                r = np.random.randint(0, rows)
+                c = np.random.randint(0, cols)
+                if df.loc[r, c] != 'none':
+                    df.loc[r, c] = 'none'
+                    break
+
+    def duplicated_count(df):
+        origin_df = DF(df[origin_cols])
+        origin_df['dummy'] = np.zeros(shape=[len(origin_df)])
+        pprint(origin_df.info())
+        groupby = origin_df.groupby(origin_cols)['dummy'].count()
+        # print(groupby)
+        print(groupby.value_counts())
+
+
+def dict_transpose(d):
+    return {val: key for key, val in d.items()}
+
+
+def get_nullify_type():
+    path = "./data/samsung_contest/result_kor.csv"
+    df = load_samsung(path)
+
+    # cols = df.columns
+    cols = ['열', '행', '값']
+
+    # print(df)
+    # print(df.info())
+    # groupby = df.groupby('열')['행'].count()
+    # print(groupby)
+
+    unique = df['열'].unique()
+    nullify_type_d = {}
+    nullify_type = {}
+    for val in unique:
+        t = sorted(list(df[df['열'] == val]['행']))
+        nullify_type[t.__repr__()] = t
+        t = t.__repr__()
+
+        if t in nullify_type_d:
+            nullify_type_d[t] += 1
+        else:
+            nullify_type_d[t] = 1
+
+    nullify_type = sorted(list(nullify_type.values()))
+
+    pprint(nullify_type_d)
+    pprint(nullify_type)
+    return nullify_type
+
+
+def col_mapper():
+    path = "./data/samsung_contest/test_kor.csv"
+    df = load_samsung(path)
+    df = add_col_num(df, 2)
+    cols = list(df.columns)
+    alpha = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P']
+    to_col_name = dict(zip(alpha, cols))
+    to_col_alpha = dict_transpose(to_col_name)
+
+    return to_col_name, to_col_alpha
+
+
+def nullify_df(df: DF, type_, null='none', copy=True):
+    if copy:
+        df = DF(df)
+
+    to_col_name, to_col_alpha = col_mapper()
+
+    df_cols = df.columns
+    for col_alpha in type_:
+        col_name = to_col_name[col_alpha]
+        if col_name not in df_cols:
+            raise ValueError(f"{col_name} not in df columns")
+
+        df[col_name] = null
+    return df
+
+
+def hyp_1(df):
+    # 대분류 예측으로 사망자 판단.. 그래프 확인하기
+
+    unique_val = {}
+    for a, b in zip(list(df['당사자종별_1당']), list(df['당사자종별_1당_대분류'])):
+        x = (a, b)
+        if x in unique_val:
+            unique_val[x] += 1
+        else:
+            unique_val[x] = 1
+    pprint(unique_val)
+    print('check val end')
+
+    unique_val = {}
+    for a, b in zip(list(df['당사자종별_2당']), list(df['당사자종별_2당_대분류'])):
+        x = (a, b)
+        if x in unique_val:
+            unique_val[x] += 1
+        else:
+            unique_val[x] = 1
+    pprint(unique_val)
+    print('check val end')
+
+
+def hyp_2():
+    # one type per one model
 
     pass
 
 
+def hype_3():
+    # one mlp to to all type
+    pass
+
+
+def hype_4():
+    # autoencoder or gan one model to all type
+    pass
+
+
+def test_nullify():
+    samsung_transform(cache=True)
+
+    to_col_name, to_col_alpha = col_mapper()
+    types = get_nullify_type()
+    for t in types:
+        for i in t:
+            print(i, to_col_name[i])
+    pprint(types)
+    t = types[0]
+
+    path = "./data/samsung_contest/data_tansformed.csv"
+    df = load_samsung(path)
+    df = df[:10]
+    pprint(df)
+    pprint(df.info())
+    df = nullify_df(df, t)
+    pprint(df)
+    pprint(df.info())
+
+
+def samsung_plot_all():
+    path = "./data/samsung_contest/data_tansformed.csv"
+    df = load_samsung(path)
+
+    reg_cols = [
+        'c02_사망자수',
+        'c03_사상자수',
+        'c04_중상자수',
+        'c05_경상자수',
+        'c06_부상신고자수',
+    ]
+
+    label_encoder_cols = []
+    for k in df.columns:
+        if '_label' in k:
+            label_encoder_cols += [k]
+
+    onehot_col = []
+    for k in df.columns:
+        if '_onehot' in k:
+            onehot_col += [k]
+
+    x_cols = reg_cols + onehot_col
+
+    origin_cols = [
+        'c00_주야',
+        'c01_요일',
+        'c02_사망자수',
+        'c03_사상자수',
+        'c04_중상자수',
+        'c05_경상자수',
+        'c06_부상신고자수',
+        'c07_발생지시도',
+        'c08_발생지시군구',
+        'c09_사고유형_대분류',
+        'c10_사고유형_중분류',
+        'c11_법규위반',
+        'c12_도로형태_대분류',
+        'c13_도로형태',
+        'c14_당사자종별_1당_대분류',
+        'c15_당사자종별_2당_대분류',
+    ]
+
+    # pprint(label_encoder_cols)
+    # pprint(onehot_col)
+    # pprint(x_cols)
+    # pprint(origin_cols)
+
+    plot = PlotTools()
+    for key in origin_cols:
+        # plot.dist(df, key, title=f'dist_{key}')
+        plot.count(df, key, title=f'count_{key}')
+
+    for a_key in origin_cols:
+        for b_key in origin_cols:
+            try:
+                plot.count(df, a_key, b_key, title=f'count_{a_key}_groupby_{b_key}')
+            except BaseException as e:
+                print(a_key, b_key, e)
+
+
+
 @deco_timeit
 def main():
-    load_samsung()
+    samsung_plot_all()
+
+    pass
