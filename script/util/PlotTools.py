@@ -213,6 +213,10 @@ class PlotTools:
         self.sns.set_style('whitegrid')
         self.sns.set_color_codes()
 
+        from matplotlib import font_manager, rc
+        font_name = font_manager.FontProperties(fname="c:/Windows/Fonts/malgun.ttf").get_name()
+        rc('font', family=font_name)
+
         self.plt.subplots(figsize=self.figsize)
 
     @deco_rollback_plt
