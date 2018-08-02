@@ -155,7 +155,7 @@ class titanic_transformer(Base_df_transformer):
         # print(binning_df[col_key_binning].value_counts())
         df = self.df_concat(df, binning_df)
 
-        encoded_df = self.fetools.LabelEncoder(binning_df, col_key + '_binning')
+        encoded_df = self.fetools.to_label(binning_df, col_key + '_binning')
         df = self.df_concat(df, encoded_df)
 
         return df
@@ -175,13 +175,13 @@ class titanic_transformer(Base_df_transformer):
         cabin_head.loc[head_na.index, col_key] = 'None'
         df = self.df_concat(df, cabin_head)
 
-        encoded_df = self.fetools.LabelEncoder(cabin_head, col_key)
+        encoded_df = self.fetools.to_label(cabin_head, col_key)
         df = self.df_concat(df, encoded_df)
 
         return df
 
     def col_02_Embarked(self, df: DF, col_key: str, partial_df: DF, series: Series, Xs_key: list, Ys_key: list):
-        encoded_df = self.fetools.LabelEncoder(df, col_key)
+        encoded_df = self.fetools.to_label(df, col_key)
         df = self.df_concat(df, encoded_df)
 
         return df
@@ -209,7 +209,7 @@ class titanic_transformer(Base_df_transformer):
 
         binning_df = self.binning(df, col_key, bins)
         df = self.df_concat(df, binning_df)
-        encode_df = self.fetools.LabelEncoder(df, col_key + '_binning')
+        encode_df = self.fetools.to_label(df, col_key + '_binning')
         df = self.df_concat(df, encode_df)
 
         return df
@@ -254,7 +254,7 @@ class titanic_transformer(Base_df_transformer):
         df = self.df_concat(df, Honorific_binned)
         # print(df.info())
 
-        encoded_df = self.fetools.LabelEncoder(Honorific_binned, col_Honorific_binned)
+        encoded_df = self.fetools.to_label(Honorific_binned, col_Honorific_binned)
         df = self.df_concat(df, encoded_df)
         return df
 
@@ -268,7 +268,7 @@ class titanic_transformer(Base_df_transformer):
         return df
 
     def col_08_Sex(self, df: DF, col_key: str, partial_df: DF, series: Series, Xs_key: list, Ys_key: list):
-        encoded_df = self.fetools.LabelEncoder(df, col_key)
+        encoded_df = self.fetools.to_label(df, col_key)
         df = self.df_concat(df, encoded_df)
         return df
 
@@ -365,7 +365,7 @@ class titanic_transformer(Base_df_transformer):
         binned = self.binning(family_size_df, col, bins)
         df = self.df_concat(df, binned)
 
-        encoded_df = self.fetools.LabelEncoder(binned, col + '_binning')
+        encoded_df = self.fetools.to_label(binned, col + '_binning')
         df = self.df_concat(df, encoded_df)
 
         return df
@@ -403,7 +403,7 @@ class titanic_transformer(Base_df_transformer):
         binned = self.binning(roommate_size_df, col, bins)
         df = self.df_concat(df, binned)
 
-        encoded_df = self.fetools.LabelEncoder(binned, col + '_binning')
+        encoded_df = self.fetools.to_label(binned, col + '_binning')
         df = self.df_concat(df, encoded_df)
 
         return df
