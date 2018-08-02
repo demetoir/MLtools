@@ -13,7 +13,9 @@ DF = pd.DataFrame
 
 class scale_method:
     def __scale_common(self, scale, df, x_col, tail):
-        return DF({x_col + '_' + tail: scale.fit(df[x_col])})
+        return DF({
+            x_col + '_' + tail: scale.fit(df[x_col])
+        })
 
     def scale_minmax(self, df, x_col):
         return self.__scale_common(preprocessing.MinMaxScaler(), df, x_col, 'minmax_scale')
@@ -39,7 +41,9 @@ class impute_method:
     def _imputer(df, x_col, y_col=None, missing_values="NaN", strategy="mean"):
         imputer = Imputer(missing_values=missing_values, strategy=strategy)
         imputer.fit(x_col, y_col)
-        return DF({x_col + '_' + strategy: imputer.transform(x_col)})
+        return DF({
+            x_col + '_' + strategy: imputer.transform(x_col)
+        })
 
     def impute_mean(self, df, x_col, y_col=None, missing_values='nan'):
         return self._imputer(df, x_col, y_col, missing_values, strategy='mean')
@@ -52,41 +56,65 @@ class impute_method:
 
 
 class encoding_method:
-    def _Encoder_common(self, enc, df, col, with_mapper=False):
+    def _Encoder_common(self, enc, df, col, unique=None, with_mapper=False):
+        if unique is None:
+            unique = df[col].unique()
 
         col_encode = col + "_encoded"
-        enc.fit(df[col])
+
+        enc.fit(unique)
 
         new_df = DF({
             col_encode: enc.transform(df[col])
         })
 
         if with_mapper:
-            unique = df[col].unique()
             mapped = enc.transform(unique)
-            encoder = {zip(unique, mapped)}
-            decoder = {zip(mapped, unique)}
+            encoder = dict(zip(unique, mapped))
+            decoder = dict(zip(mapped, unique))
 
-            return new_df, encoder, decoder
+            return new_df, col_encode, encoder, decoder
         else:
 
-            return new_df
+            return new_df, col_encode
 
-    def LabelEncoder(self, df, col, with_mapper=False):
-        return self._Encoder_common(
-            LabelEncoder(),
-            df,
-            col,
-            with_mapper=with_mapper
-        )
+    def to_label(self, df, col, unique=None, with_mapper=False):
+        if unique is None:
+            unique = df[col].unique()
 
-    def OnehotEncoder(self, df, col, with_mapper=False):
-        return self._Encoder_common(
-            OneHotEncoder(),
-            df,
-            col,
-            with_mapper=with_mapper
-        )
+        enc = LabelEncoder()
+        col_encode = col + "_label"
+
+        enc.fit(unique)
+
+        new_df = DF({
+            col_encode: enc.transform(df[col])
+        })
+
+        if with_mapper:
+            mapped = enc.transform(unique)
+            encoder = dict(zip(unique, mapped))
+            decoder = dict(zip(mapped, unique))
+
+            return new_df, col_encode, encoder, decoder
+        else:
+
+            return new_df, col_encode
+
+    def to_onehot(self, df, col, unique=None, with_mapper=False):
+        if unique is None:
+            unique = df[col].unique()
+
+        n = len(df)
+        d = {}
+        for key in sorted(unique):
+            np_arr = np.zeros(shape=[n])
+            np_arr[df[col] == key] = 1
+            d[col + '_onehot_' + key] = np_arr
+
+        df = DF(d)
+
+        return df
 
 
 class clf_feature_selection:
@@ -152,7 +180,7 @@ class FeatureEngineerTools(
             binning_df = self.binning(df, x_col, bins)
 
             col_encode = col_binning + '_encoded'
-            encoding_df = self.LabelEncoder(binning_df, col_binning)
+            encoding_df = self.to_label(binning_df, col_binning)
             part = self.concat_df(df[[y_col]], encoding_df)
 
             corr = DF(part.corr())
@@ -169,8 +197,8 @@ class FeatureEngineerTools(
     def binning(self, df: DF, col: str, bin_seq: list, column_tail='_binning', with_intensity=False) -> DF:
         return df_binning(df, col, bin_seq, column_tail, with_intensity=with_intensity)
 
-    def to_onehot(self, df: DF, col: list) -> DF:
-        return df_to_onehot_embedding(df[col])
+    # def to_onehot(self, df: DF, col: list) -> DF:
+    #     return df_to_onehot_embedding(df[col])
 
     def update_col(self, df, old_column, new_df):
         df = df.reset_index(drop=True)
