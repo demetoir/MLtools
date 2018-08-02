@@ -2,7 +2,7 @@ import inspect
 import pandas as pd
 import numpy as np
 from script.data_handler.Base.df_plotterMixIn import df_plotterMixIn
-from script.sklearn_like_toolkit.Feature_engineear_tool import Feature_engineer_tool
+from script.sklearn_like_toolkit.FeatureEngineerTools import FeatureEngineerTools
 from script.util.MixIn import LoggerMixIn
 from script.util.PlotTools import PlotTools
 from script.util.pandas_util import df_binning, df_minmax_normalize, df_to_onehot_embedding
@@ -94,7 +94,7 @@ class Base_df_transformer(LoggerMixIn, df_plotterMixIn, transform_methodMixIn):
         LoggerMixIn.__init__(self, verbose)
         df_plotterMixIn.__init__(self)
         transform_methodMixIn.__init__(self)
-        self.fetools = Feature_engineer_tool()
+        self.fetools = FeatureEngineerTools()
 
         self.df = df
         self.df_Xs_keys = df_Xs_keys
