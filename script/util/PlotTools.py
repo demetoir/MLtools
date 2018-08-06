@@ -1,11 +1,14 @@
 import itertools
 import warnings
 import numpy as np
-from inspect import signature
+import pandas as pd
+import os
 from PIL import Image
+from inspect import signature
+from matplotlib import font_manager, rc
+from script.util.MixIn import LoggerMixIn
 from script.util.misc_util import time_stamp, path_join, setup_file
 from script.util.numpy_utils import np_image_save, np_img_to_tile
-import pandas as pd
 
 DF = pd.DataFrame
 
@@ -97,9 +100,9 @@ def deco_rollback_plt(func):
     return wrapper
 
 
-class PlotTools:
-
-    def __init__(self, dpi=300, save=True, show=False, extend='.png', figsize=(7, 7)):
+class PlotTools(LoggerMixIn):
+    def __init__(self, dpi=300, save=True, show=False, extend='.png', figsize=(7, 7), verbose=0):
+        super().__init__(verbose)
         warnings.filterwarnings(module='matplotlib*', action='ignore', category=UserWarning)
 
         self.fig_count = 0
@@ -198,10 +201,10 @@ class PlotTools:
         setup_file(path)
 
         if dpi is None:
-            dpi = 300
+            dpi = self.dpi
 
         if save:
-            fig.savefig(path, dpi=300)
+            fig.savefig(path, dpi=dpi)
 
         if show:
             self.plt.show()
@@ -213,9 +216,12 @@ class PlotTools:
         self.sns.set_style('whitegrid')
         self.sns.set_color_codes()
 
-        from matplotlib import font_manager, rc
-        font_name = font_manager.FontProperties(fname="c:/Windows/Fonts/malgun.ttf").get_name()
-        rc('font', family=font_name)
+        font_path = "c:/Windows/Fonts/NotoSansMonoCJKkr-Regular.otf"
+        if os.path.exists(font_path):
+            font_name = font_manager.FontProperties(fname="c:/Windows/Fonts/NotoSansMonoCJKkr-Regular.otf").get_name()
+            rc('font', family=font_name)
+        else:
+            self.log.warn("font not found, font may broken")
 
         self.plt.subplots(figsize=self.figsize)
 
