@@ -241,6 +241,14 @@ class BaseWrapperClfPack(ClfWrapperMixIn, metaclass=meta_BaseWrapperClf):
             ret[clf_k] = self._apply_metric_pack(Ys, predict)
         return ret
 
+    @property
+    def feature_importances(self):
+        ret = {}
+        for key, clf in self.pack.items():
+            if hasattr(clf, 'feature_importances_'):
+                ret[key] = getattr(clf, 'feature_importances_')
+        return ret
+
     def import_params(self, params_pack):
         for key in self.pack:
             class_ = self.class_pack[key]
