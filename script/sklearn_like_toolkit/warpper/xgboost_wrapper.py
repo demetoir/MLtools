@@ -5,6 +5,7 @@ from script.sklearn_like_toolkit.base.MixIn import meta_BaseWrapperClf_with_ABC,
 from script.sklearn_like_toolkit.base.BaseWrapperReg import BaseWrapperReg
 import warnings
 import xgboost as xgb
+import numpy as np
 
 
 class XGBoostClf(xgb.XGBClassifier, BaseWrapperClf, metaclass=meta_BaseWrapperClf_with_ABC):
@@ -75,6 +76,10 @@ class XGBoostClf(xgb.XGBClassifier, BaseWrapperClf, metaclass=meta_BaseWrapperCl
         # params.update({'nthread': 1})
         # params.update({"silent": 1})
 
+    @property
+    def feature_importances(self):
+        return self.feature_importances_
+
 
 class XGBoostReg(xgb.XGBRegressor, BaseWrapperReg, metaclass=meta_BaseWrapperReg_with_ABC):
     HyperOpt_space = {
@@ -136,3 +141,7 @@ class XGBoostReg(xgb.XGBRegressor, BaseWrapperReg, metaclass=meta_BaseWrapperReg
         # params.update({"tree_method": 'gpu_exact'})
         # params.update({'nthread': 1})
         # params.update({"silent": 1})
+
+    @property
+    def feature_importances(self):
+        return self.feature_importances_

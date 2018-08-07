@@ -2,6 +2,7 @@ from hyperopt import hp
 from sklearn.ensemble import RandomForestClassifier as _skRandomForestClassifier
 from script.sklearn_like_toolkit.base.BaseWrapperClf import BaseWrapperClf
 from script.sklearn_like_toolkit.base.MixIn import meta_BaseWrapperClf_with_ABC
+import numpy as np
 
 
 class skRandomForestClf(BaseWrapperClf, _skRandomForestClassifier, metaclass=meta_BaseWrapperClf_with_ABC):
@@ -57,3 +58,18 @@ class skRandomForestClf(BaseWrapperClf, _skRandomForestClassifier, metaclass=met
         'max_leaf_nodes': None,
         'bootstrap': True,
     }
+
+    @property
+    def feature_importances(self):
+        return np.mean([
+            tree.feature_importances_ for tree in self.estimators_
+        ], axis=0)
+
+    @property
+    def feature_importances_pack(self):
+        return {
+            'mean': self.feature_importances,
+            'std': np.std([
+                tree.feature_importances_ for tree in self.estimators_
+            ], axis=0)
+        }

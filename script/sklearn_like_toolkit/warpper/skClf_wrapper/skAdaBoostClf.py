@@ -3,6 +3,7 @@ from sklearn.ensemble import AdaBoostClassifier as _skAdaBoostClassifier
 
 from script.sklearn_like_toolkit.base.BaseWrapperClf import BaseWrapperClf
 from script.sklearn_like_toolkit.base.MixIn import meta_BaseWrapperClf_with_ABC
+import numpy as np
 
 
 class skAdaBoostClf(BaseWrapperClf, _skAdaBoostClassifier, metaclass=meta_BaseWrapperClf_with_ABC):
@@ -27,3 +28,18 @@ class skAdaBoostClf(BaseWrapperClf, _skAdaBoostClassifier, metaclass=meta_BaseWr
         'random_state': None,
 
     }
+
+    @property
+    def feature_importances(self):
+        return np.mean([
+            tree.feature_importances_ for tree in self.estimators_
+        ], axis=0)
+
+    @property
+    def feature_importances_pack(self):
+        return {
+            'mean': self.feature_importances,
+            'std': np.std([
+                tree.feature_importances_ for tree in self.estimators_
+            ], axis=0)
+        }

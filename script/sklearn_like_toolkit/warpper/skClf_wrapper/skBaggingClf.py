@@ -3,6 +3,7 @@ from sklearn.ensemble import BaggingClassifier as _BaggingClassifier
 
 from script.sklearn_like_toolkit.base.BaseWrapperClf import BaseWrapperClf
 from script.sklearn_like_toolkit.base.MixIn import meta_BaseWrapperClf_with_ABC
+import numpy as np
 
 
 class skBaggingClf(BaseWrapperClf, _BaggingClassifier, metaclass=meta_BaseWrapperClf_with_ABC):
@@ -24,3 +25,18 @@ class skBaggingClf(BaseWrapperClf, _BaggingClassifier, metaclass=meta_BaseWrappe
 
     tuning_params = {
     }
+
+    @property
+    def feature_importances(self):
+        return np.mean([
+            tree.feature_importances_ for tree in self.estimators_
+        ], axis=0)
+
+    @property
+    def feature_importances_pack(self):
+        return {
+            'mean': self.feature_importances,
+            'std': np.std([
+                tree.feature_importances_ for tree in self.estimators_
+            ], axis=0)
+        }

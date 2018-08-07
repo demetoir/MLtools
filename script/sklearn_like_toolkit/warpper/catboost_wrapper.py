@@ -70,6 +70,10 @@ class CatBoostClf(BaseWrapperClf, _CatBoostClassifier, metaclass=meta_BaseWrappe
             colsample_bylevel, random_state, reg_lambda, objective, eta, max_bin, scale_pos_weight,
             gpu_cat_features_storage, data_partition, metadata)
 
+    @property
+    def feature_importances(self):
+        return self.feature_importances_
+
 
 class CatBoostReg(_CatBoostRegressor, BaseWrapperReg, metaclass=meta_BaseWrapperReg_with_ABC):
     HyperOpt_space = {
@@ -130,3 +134,7 @@ class CatBoostReg(_CatBoostRegressor, BaseWrapperReg, metaclass=meta_BaseWrapper
             colsample_bylevel, random_state, reg_lambda, objective, eta, max_bin, gpu_cat_features_storage,
             data_partition, metadata)
         BaseWrapperReg.__init__(self)
+
+    @property
+    def feature_importances(self):
+        return self.feature_importances_

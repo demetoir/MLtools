@@ -83,6 +83,10 @@ class LightGBMClf(lightgbm.LGBMClassifier, BaseWrapperClf, metaclass=meta_BaseWr
 
         BaseWrapperClf.__init__(self)
 
+    @property
+    def feature_importances(self):
+        return self.feature_importances_
+
 
 class LightGBMReg(lightgbm.LGBMRegressor, BaseWrapperReg, metaclass=meta_BaseWrapperReg_with_ABC):
     HyperOpt_space = {
@@ -158,3 +162,8 @@ class LightGBMReg(lightgbm.LGBMRegressor, BaseWrapperReg, metaclass=meta_BaseWra
             colsample_bytree, reg_alpha, reg_lambda, random_state, n_jobs, silent, **kwargs)
 
         BaseWrapperReg.__init__(self)
+
+
+    @property
+    def feature_importances(self):
+        return self.feature_importances_
