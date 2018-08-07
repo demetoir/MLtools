@@ -2,7 +2,7 @@ import multiprocessing as mp
 import time
 import numpy as np
 from functools import wraps
-from hyperopt import fmin, tpe, STATUS_OK, STATUS_FAIL, hp
+from hyperopt import fmin, tpe, STATUS_OK, STATUS_FAIL, hp, Trials
 from hyperopt.mongoexp import MongoTrials
 from tqdm import tqdm
 from script.sklearn_like_toolkit.HyperOpt.FreeTrials import FreeTrials
@@ -171,6 +171,7 @@ class HyperOpt(singletonPoolMixIn):
             trials=trials,
         )
 
+        pbar.close()
         self._trials = trials
         return self._trials
 
