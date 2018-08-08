@@ -3,6 +3,9 @@ import numpy as np
 from pprint import pprint
 from script.util.JobPool import JobPool
 from script.util.PlotTools import PlotTools
+import pandas
+
+DF = pandas.DataFrame
 
 
 def test_plot_tools_pair_plot():
@@ -101,3 +104,10 @@ def test_plot_tool_async_timeit():
 
     for child in childs:
         child.get()
+
+
+def test_plot_font():
+    df = DF({'한글': [0, 1, 2, 3], 'english': [4, 5, 6, 7]})
+    plot = PlotTools(save=True, show=False)
+    corr = df.corr()
+    plot.heatmap(corr, title='heatmap_labeled, 한글')
