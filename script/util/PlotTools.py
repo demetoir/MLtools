@@ -5,6 +5,7 @@ import pandas as pd
 import os
 from PIL import Image
 from inspect import signature
+import matplotlib
 from matplotlib import font_manager, rc
 from script.util.MixIn import LoggerMixIn
 from script.util.misc_util import time_stamp, path_join, setup_file
@@ -216,9 +217,13 @@ class PlotTools(LoggerMixIn):
         self.sns.set_style('whitegrid')
         self.sns.set_color_codes()
 
-        font_path = "c:/Windows/Fonts/NotoSansMonoCJKkr-Regular.otf"
+        # fix unicode minus
+        matplotlib.rcParams['axes.unicode_minus'] = False
+
+        # set korean font
+        font_path = "c:/Windows/Fonts/malgun.ttf"
         if os.path.exists(font_path):
-            font_name = font_manager.FontProperties(fname="c:/Windows/Fonts/NotoSansMonoCJKkr-Regular.otf").get_name()
+            font_name = font_manager.FontProperties(fname=font_path).get_name()
             rc('font', family=font_name)
         else:
             self.log.warn("font not found, font may broken")
