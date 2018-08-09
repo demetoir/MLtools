@@ -3,9 +3,10 @@ from pandas import DataFrame as DF
 from pandas import Series
 import pandas as pd
 import numpy as np
+from script.util.MixIn import PickleMixIn
 
 
-class DF_encoder:
+class DF_encoder(PickleMixIn):
     scale_method = {
         'minmax': preprocessing.MinMaxScaler,
         'maxabs': preprocessing.MaxAbsScaler,
