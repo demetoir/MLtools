@@ -1,12 +1,12 @@
 import numpy as np
 import pandas as pd
 from sklearn import preprocessing
-from sklearn.preprocessing import Imputer, LabelEncoder, OneHotEncoder
-from tqdm import trange
-from script.util.pandas_util import df_minmax_normalize, df_binning, df_to_onehot_embedding
-from sklearn.feature_selection import VarianceThreshold
 from sklearn.feature_selection import SelectKBest
+from sklearn.feature_selection import VarianceThreshold
 from sklearn.feature_selection import chi2
+from sklearn.preprocessing import Imputer, LabelEncoder
+
+from script.util.pandas_util import df_binning
 
 DF = pd.DataFrame
 
@@ -17,7 +17,7 @@ class scale_method:
             x_col + '_' + tail: scale.fit(df[x_col])
         })
 
-    def scale_minmax(self, df, x_col):
+    def scale_minmax(self, df, x_col, with_scaler):
         return self.__scale_common(preprocessing.MinMaxScaler(), df, x_col, 'minmax_scale')
 
     def scale_max_abs(self, df, x_col):
@@ -56,28 +56,6 @@ class impute_method:
 
 
 class encoding_method:
-    def _Encoder_common(self, enc, df, col, unique=None, with_mapper=False):
-        if unique is None:
-            unique = df[col].unique()
-
-        col_encode = col + "_encoded"
-
-        enc.fit(unique)
-
-        new_df = DF({
-            col_encode: enc.transform(df[col])
-        })
-
-        if with_mapper:
-            mapped = enc.transform(unique)
-            encoder = dict(zip(unique, mapped))
-            decoder = dict(zip(mapped, unique))
-
-            return new_df, col_encode, encoder, decoder
-        else:
-
-            return new_df, col_encode
-
     def to_label(self, df, col, unique=None, with_mapper=False):
         if unique is None:
             unique = df[col].unique()
@@ -93,10 +71,10 @@ class encoding_method:
 
         if with_mapper:
             mapped = enc.transform(unique)
-            encoder = dict(zip(unique, mapped))
-            decoder = dict(zip(mapped, unique))
+            encode_map = dict(zip(unique, mapped))
+            decode_map = dict(zip(mapped, unique))
 
-            return new_df, col_encode, encoder, decoder
+            return new_df, col_encode, encode_map, decode_map
         else:
 
             return new_df, col_encode
@@ -160,7 +138,7 @@ class typecast_method:
         return df
 
 
-class FeatureEngineerTools(
+class FETools(
     encoding_method,
     impute_method,
     scale_method,
@@ -168,37 +146,9 @@ class FeatureEngineerTools(
     reg_feature_selection,
     typecast_method,
 ):
-    def corr_maximize_bins(self, df, x_col, y_col, n_iter, size):
-        best = 0
-        best_bins = None
-        for _ in trange(n_iter):
-            seed = np.arange(min(df[x_col]), max(df[x_col]), 0.1)
-            rand_bins = np.random.choice(seed, size=size)
 
-            bins = [min(df[x_col]) - 1] + list(sorted(rand_bins)) + [max(df[x_col]) + 1]
-            col_binning = x_col + '_binning'
-            binning_df = self.binning(df, x_col, bins)
-
-            col_encode = col_binning + '_encoded'
-            encoding_df = self.to_label(binning_df, col_binning)
-            part = self.concat_df(df[[y_col]], encoding_df)
-
-            corr = DF(part.corr())
-            new_val = float(corr.loc[y_col, col_encode])
-            if best < np.abs(new_val):
-                best = np.abs(new_val)
-                best_bins = bins
-
-        return best_bins, best
-
-    def mixmax_scale(self, df: DF, col: str) -> DF:
-        return df_minmax_normalize(df, col)
-
-    def binning(self, df: DF, col: str, bin_seq: list, column_tail='_binning', with_intensity=False) -> DF:
+    def binning(self, df: DF, col: str, bin_seq: list, column_tail='_binning', with_intensity=False):
         return df_binning(df, col, bin_seq, column_tail, with_intensity=with_intensity)
-
-    # def to_onehot(self, df: DF, col: list) -> DF:
-    #     return df_to_onehot_embedding(df[col])
 
     def update_col(self, df, old_column, new_df):
         df = df.reset_index(drop=True)
