@@ -5,14 +5,16 @@ from pandas import DataFrame as DF
 
 def test_df_encoder():
     df = DF({
-        'A': ['a', 'b', 'c','a','c'],
+        'A': ['a', 'b', 'c', 'a', 'c'],
         'B': [1, 2, 3, 4, 5]
     })
 
     enc = DF_encoder()
     cate_cols = ['A']
     conti_cols = ['B']
-    encoder_df = enc.encode(df, cate_cols, conti_cols, scale_method='minmax')
+    enc.fit(df)
+
+    encoder_df = enc.encode(df)
     pprint(list(encoder_df.columns))
     pprint(encoder_df.head())
 
@@ -33,7 +35,7 @@ def test_df_encoder():
 
     cate_cols = ['A']
     conti_cols = ['B']
-    encoder_df = enc.encode(df, cate_cols, conti_cols, scale_method='minmax')
+    encoder_df = enc.encode(df)
     pprint(list(encoder_df.columns))
     pprint(encoder_df.head())
 
