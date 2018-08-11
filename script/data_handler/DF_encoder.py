@@ -34,15 +34,14 @@ class DF_encoder(PickleMixIn):
         self.cols = []
         self.encoded_cols = []
 
-        self.np_cols = []
-        self.np_dtypes = []
+        self.is_fit = False
 
     def _fit_cate(self, df):
         for col in df.columns:
             uniques = sorted(list(df[col].unique()))
             self.onehot_uniques[col] = uniques
 
-            onehot_cols = [col + '_onehot_' + unique_val for unique_val in uniques]
+            onehot_cols = [col + '_onehot_' + str(unique_val) for unique_val in uniques]
             self.onehot_cols_by_cate_cols[col] = onehot_cols
             self.cate_encoded_cols += onehot_cols
 
@@ -83,6 +82,7 @@ class DF_encoder(PickleMixIn):
         self._fit_cate(cate_df)
         self._fit_conti(conti_df, method=scale_method)
         self.encoded_cols = self.cate_encoded_cols + self.conti_encoded_cols
+        self.is_fit = True
 
     def _encode_cate(self, df: DF):
         n = len(df)
@@ -90,13 +90,10 @@ class DF_encoder(PickleMixIn):
         onehot_df = DF()
         for col in self.cate_cols:
             uniques = self.onehot_uniques[col]
-            print(uniques)
             for unique_val in uniques:
-                print(df[col])
-                print(df[col] == unique_val)
                 np_arr = np.zeros(shape=[n])
                 np_arr[df[col] == unique_val] = 1
-                onehot_df[col + '_onehot_' + unique_val] = np_arr
+                onehot_df[col + '_onehot_' + str(unique_val)] = np_arr
 
         return onehot_df
 
@@ -171,12 +168,17 @@ class DF_encoder(PickleMixIn):
 
         return decoded_df
 
+    def encode_to_np(self, df):
+        return self.to_np(self.encode(df))
+
+    def decode_from_np(self, np_arr):
+        return self.decode(self.from_np(np_arr, self.encoded_cols))
+
     def to_np(self, df: DF):
-        self.np_cols = list(df.columns)
-        self.np_dtypes = [df[key].dtype for key in df.keys()]
+        np_dtypes = [df[key].dtype for key in df.keys()]
 
         ret = {}
-        for key, dtype in zip(df.keys(), self.np_dtypes):
+        for key, dtype in zip(df.keys(), np_dtypes):
             np_arr = np.array(df[key].values, dtype=dtype)
             np_arr = np_arr.reshape([len(np_arr), 1])
             ret[key] = np_arr
@@ -185,7 +187,9 @@ class DF_encoder(PickleMixIn):
 
     def from_np(self, np_arr, np_cols=None):
         if np_cols is None:
-            np_cols = self.np_cols
+            np_cols = self.cols
+        print(np_cols)
+        print(np_arr.shape)
 
         df = DF()
         for idx, col in enumerate(np_cols):
