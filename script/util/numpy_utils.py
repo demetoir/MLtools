@@ -176,7 +176,7 @@ def get_np_arr_type(np_arr):
     return _type
 
 
-def reformat_np_arr(np_arr, to_np_arr_type, from_np_arr_type=None):
+def reformat_np_arr(np_arr, to_np_arr_type, from_np_arr_type=None, n=None):
     if not is_np_arr(np_arr):
         np_arr = np.array(np_arr)
 
@@ -188,7 +188,7 @@ def reformat_np_arr(np_arr, to_np_arr_type, from_np_arr_type=None):
     if convert_type == ONEHOT_TO_INDEX:
         np_arr = np_onehot_to_index(np_arr)
     elif convert_type == INDEX_TO_ONEHOT:
-        np_arr = np_index_to_onehot(np_arr)
+        np_arr = np_index_to_onehot(np_arr, n)
     elif convert_type in NO_CONVERT:
         pass
     else:
@@ -212,14 +212,14 @@ def is_np_arr(x):
     return isinstance(x, np.ndarray)
 
 
-def np_minmax_normalize(np_x: NpArr, min=None, max=None) -> NpArr:
-    if min is None:
-        min = np.min(np_x)
+def np_minmax_normalize(np_x: NpArr, min_=None, max_=None) -> NpArr:
+    if min_ is None:
+        min_ = np.min(np_x)
 
-    if max is None:
-        max = np.max(np_x)
+    if max_ is None:
+        max_ = np.max(np_x)
 
-    return (np_x - min) / (max - min)
+    return (np_x - min_) / (max_ - min_)
 
 
 def np_frequency_equal_bins(np_x: NpArr, n_bins: int) -> NpArr:
@@ -262,9 +262,9 @@ def np_image_save(np_img, path):
     """save np_img file in visualizer path
 
     :type np_img: numpy.Array
-    :type file_name: strs
+    :type path: str
     :param np_img: np_img to save
-    :param file_name: save file name
+    :param path: path to save image file
     default None
     if file_name is None, file name of np_img will be 'output_count.png'
     """
