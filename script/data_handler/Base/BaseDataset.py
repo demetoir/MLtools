@@ -81,6 +81,7 @@ class BaseDataset(LoggerMixIn, metaclass=MetaDataset):
         self.input_shapes = {}
         self.caching = caching
         self._downloadInfos = []
+        self.kwargs = kwargs
 
     def __repr__(self):
         return self.__class__.__name__
@@ -354,7 +355,7 @@ class BaseDataset(LoggerMixIn, metaclass=MetaDataset):
                 continue
 
             zipped = list(zip(self.data[sort_key], self.data[key]))
-            data = sorted(zipped, key=lambda a: a[0])
+            data = sorted(zipped, key=lambda x: x[0])
             a, data = zip(*data)
             self.data[key] = np.array(data)
 
@@ -407,5 +408,3 @@ class BaseDataset(LoggerMixIn, metaclass=MetaDataset):
     @property
     def Ys_onehot_label(self):
         return reformat_np_arr(self.Ys, 'onehot')
-
-
