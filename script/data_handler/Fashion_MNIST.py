@@ -28,7 +28,7 @@ class Fashion_MNIST_train(BaseDataset):
             )
         ]
 
-    def load(self, path, limit=None):
+    def load(self, path):
         fashion_mnist = input_data.read_data_sets(path,
                                                   source_url=self.downloadInfos[0].url,
                                                   one_hot=True)
@@ -56,7 +56,7 @@ class Fashion_MNIST_test(BaseDataset):
         )
     ]
 
-    def load(self, path, limit=None):
+    def load(self, path):
         fashion_mnist = input_data.read_data_sets(path,
                                                   source_url=self.download_infos[0].url,
                                                   one_hot=True)

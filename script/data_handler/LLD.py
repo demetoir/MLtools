@@ -29,7 +29,7 @@ class LLD_clean(BaseDataset):
             )
         ]
 
-    def load(self, path, limit=None):
+    def load(self, path):
         files = glob(os.path.join(path, self.PATTERN))
         files.sort()
         self._data[BATCH_KEY_TRAIN_X] = None

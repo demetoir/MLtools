@@ -14,7 +14,7 @@ class BaseDatasetPack(LoggerMixIn):
 
     def load(self, path, limit=None, **kwargs):
         for k in self.pack:
-            self.pack[k].load(path, limit=limit, **kwargs)
+            self.pack[k].load(path)
 
         return self
 

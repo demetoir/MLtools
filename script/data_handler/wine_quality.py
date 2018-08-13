@@ -163,7 +163,7 @@ def load_merge_data(cache=True):
 
 
 class wine_quality_dataset(BaseDataset):
-    def load(self, path, limit=None):
+    def load(self, path):
         merge_df = load_merge_data()
         transformer = wine_quality_transformer(merge_df, df_Xs_keys, df_Ys_key)
         merge_df = transformer.transform()

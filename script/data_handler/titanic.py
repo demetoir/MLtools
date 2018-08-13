@@ -483,7 +483,7 @@ def build_dataset(path):
 class titanic_train(BaseDataset):
     FILE_NAME = "train.csv"
 
-    def load(self, path, limit=None):
+    def load(self, path):
         trans_path = os.path.join(path, "trans_train.csv")
 
         if not self.caching or not os.path.exists(trans_path):
@@ -526,7 +526,7 @@ class titanic_train(BaseDataset):
 class titanic_test(BaseDataset):
     FILE_NAME = "test.csv"
 
-    def load(self, path, limit=None):
+    def load(self, path):
         trans_path = os.path.join(path, "trans_test.csv")
 
         if not self.caching or not os.path.exists(trans_path):

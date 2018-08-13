@@ -24,7 +24,7 @@ class CIFAR10_train(BaseDataset):
     _PKCL_KEY_TRAIN_LABEL = b"labels"
     LABEL_SIZE = 10
 
-    def load(self, path, limit=None):
+    def load(self, path):
         # load train data
         files = glob(os.path.join(path, self._PATTERN_TRAIN_FILE), recursive=True)
         files.sort()
@@ -52,7 +52,7 @@ class CIFAR10_test(BaseDataset):
     _PKCL_KEY_TEST_LABEL = b"labels"
     LABEL_SIZE = 10
 
-    def load(self, path, limit=None):
+    def load(self, path):
         # load test data
         files = glob(os.path.join(path, self._PATTERN_TEST_FILE), recursive=True)
         files.sort()

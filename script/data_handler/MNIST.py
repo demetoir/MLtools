@@ -22,7 +22,7 @@ class MNIST_train(BaseDataset):
         Xs_img
     ]
 
-    def load(self, path, limit=None):
+    def load(self, path):
         mnist = input_data.read_data_sets(path, one_hot=True)
         self._data[Xs], self._data[Ys] = mnist.train.next_batch(self.SIZE)
 
@@ -46,7 +46,7 @@ class MNIST_test(BaseDataset):
         Xs_img
     ]
 
-    def load(self, path, limit=None):
+    def load(self, path):
         mnist = input_data.read_data_sets(path, one_hot=True)
 
         self._data[Xs], self._data[Ys] = mnist.test.next_batch(self.SIZE)
