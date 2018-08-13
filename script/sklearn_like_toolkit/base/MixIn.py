@@ -65,8 +65,8 @@ class Reformat_Ys_MixIn:
         return reformat_np_arr(Xs, NP_ARRAY_TYPE_INDEX)
 
     @staticmethod
-    def np_arr_to_onehot(Xs):
-        return reformat_np_arr(Xs, NP_ARRAY_TYPE_ONEHOT)
+    def np_arr_to_onehot(Xs, n=None):
+        return reformat_np_arr(Xs, NP_ARRAY_TYPE_ONEHOT, n)
 
 
 CLF_METRICS = {
@@ -89,7 +89,7 @@ REG_METRIC = {
     mean_squared_log_error.__name__: mean_squared_log_error,
     mean_squared_error.__name__: mean_squared_error,
     median_absolute_error.__name__: median_absolute_error,
-    RMSE.__name__:RMSE
+    RMSE.__name__: RMSE
 }
 
 
@@ -107,10 +107,11 @@ class clf_score_pack_MixIn(Reformat_Ys_MixIn):
             try:
                 ret[key] = self._apply_metric(Y_true, Y_predict, key)
             except BaseException as e:
-                getattr(self, 'log').warn(
-                    f'while "{str(self)}" execute score_pack,'
-                    f' raise "{e}",'
-                    f' skip to applying metric "{key}"\n')
+                pass
+                # getattr(self, 'log').info(
+                #     f'while "{str(self)}" execute score_pack,'
+                #     f' raise "{e}",'
+                #     f' skip to applying metric "{key}"\n')
         return ret
 
     def score_pack(self, X, y):
