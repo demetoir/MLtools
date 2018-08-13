@@ -1451,7 +1451,7 @@ def groupby_label(dataset):
     label_partials = []
     for key in np.unique(x):
         idxs = np.where(x == key)
-        partial = dataset.Xs[idxs]
+        partial = dataset.x[idxs]
         label_partials += [partial]
 
     return label_partials

@@ -55,7 +55,7 @@ class CIFAR100_train(BaseDataset):
         pass
 
     def transform(self):
-        self.data['Xs'] = X_transform(self.data['Xs'])
+        self._data['Xs'] = X_transform(self._data['Xs'])
 
 
 class CIFAR100_test(BaseDataset):
@@ -97,7 +97,7 @@ class CIFAR100_test(BaseDataset):
         pass
 
     def transform(self):
-        self.data['Xs'] = X_transform(self.data['Xs'])
+        self._data['Xs'] = X_transform(self._data['Xs'])
 
 
 class CIFAR100(BaseDatasetPack):

@@ -1,5 +1,5 @@
 from script.util.numpy_utils import np_imgs_NCWH_to_NHWC, np_index_to_onehot
-from script.data_handler.Base.BaseDataset import BaseDataset, DownloadInfo
+from script.data_handler.Base.BaseDataset import BaseDataset
 from script.data_handler.Base.BaseDatasetPack import BaseDatasetPack
 from glob import glob
 import numpy as np
@@ -24,25 +24,6 @@ class CIFAR10_train(BaseDataset):
     _PKCL_KEY_TRAIN_LABEL = b"labels"
     LABEL_SIZE = 10
 
-    @property
-    def downloadInfos(self):
-        return [
-            DownloadInfo(
-                url='https://www.cs.toronto.edu/~kriz/cifar-10-python.tar.gz',
-                is_zipped=True,
-                download_file_name='cifar-10-python.tar.gz',
-                extracted_file_names=[
-                    "data_batch_1",
-                    "data_batch_2",
-                    "data_batch_3",
-                    "data_batch_4",
-                    "data_batch_5",
-                    # "test_batch",
-                    "batches.meta"
-                ]
-            )
-        ]
-
     def load(self, path, limit=None):
         # load train data
         files = glob(os.path.join(path, self._PATTERN_TRAIN_FILE), recursive=True)
@@ -61,8 +42,8 @@ class CIFAR10_train(BaseDataset):
         pass
 
     def transform(self):
-        self.data['Xs'] = X_transform(self.data['Xs'])
-        self.data['Ys'] = Y_transform(self.data['Ys'])
+        self._data['Xs'] = X_transform(self._data['Xs'])
+        self._data['Ys'] = Y_transform(self._data['Ys'])
 
 
 class CIFAR10_test(BaseDataset):
@@ -70,25 +51,6 @@ class CIFAR10_test(BaseDataset):
     _PKCL_KEY_TEST_DATA = b"data"
     _PKCL_KEY_TEST_LABEL = b"labels"
     LABEL_SIZE = 10
-
-    @property
-    def downloadInfos(self):
-        return [
-            DownloadInfo(
-                url='https://www.cs.toronto.edu/~kriz/cifar-10-python.tar.gz',
-                is_zipped=True,
-                download_file_name='cifar-10-python.tar.gz',
-                extracted_file_names=[
-                    # "data_batch_1",
-                    # "data_batch_2",
-                    # "data_batch_3",
-                    # "data_batch_4",
-                    # "data_batch_5",
-                    "test_batch",
-                    "batches.meta"
-                ]
-            )
-        ]
 
     def load(self, path, limit=None):
         # load test data
@@ -108,8 +70,8 @@ class CIFAR10_test(BaseDataset):
         pass
 
     def transform(self):
-        self.data['Xs'] = X_transform(self.data['Xs'])
-        self.data['Ys'] = Y_transform(self.data['Ys'])
+        self._data['Xs'] = X_transform(self._data['Xs'])
+        self._data['Ys'] = Y_transform(self._data['Ys'])
 
 
 class CIFAR10(BaseDatasetPack):

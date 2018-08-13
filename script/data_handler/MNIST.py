@@ -24,16 +24,16 @@ class MNIST_train(BaseDataset):
 
     def load(self, path, limit=None):
         mnist = input_data.read_data_sets(path, one_hot=True)
-        self.data[Xs], self.data[Ys] = mnist.train.next_batch(self.SIZE)
+        self._data[Xs], self._data[Ys] = mnist.train.next_batch(self.SIZE)
 
     def save(self):
         pass
 
     def transform(self):
-        data = self.data[Xs]
+        data = self._data[Xs]
         shape = data.shape
         data = np.reshape(data, [shape[0], 28, 28, 1])
-        self.data[Xs] = data
+        self._data[Xs] = data
 
 
 class MNIST_test(BaseDataset):
@@ -49,16 +49,16 @@ class MNIST_test(BaseDataset):
     def load(self, path, limit=None):
         mnist = input_data.read_data_sets(path, one_hot=True)
 
-        self.data[Xs], self.data[Ys] = mnist.test.next_batch(self.SIZE)
+        self._data[Xs], self._data[Ys] = mnist.test.next_batch(self.SIZE)
 
     def save(self):
         pass
 
     def transform(self):
-        data = self.data[Xs]
+        data = self._data[Xs]
         shape = data.shape
         data = np.reshape(data, [shape[0], 28, 28, 1])
-        self.data[Xs] = data
+        self._data[Xs] = data
 
 
 class MNIST(BaseDatasetPack):

@@ -32,7 +32,7 @@ class LLD_clean(BaseDataset):
     def load(self, path, limit=None):
         files = glob(os.path.join(path, self.PATTERN))
         files.sort()
-        self.data[BATCH_KEY_TRAIN_X] = None
+        self._data[BATCH_KEY_TRAIN_X] = None
         for file in files:
             with open(file, 'rb') as f:
                 data = pickle.load(f, encoding='latin1')

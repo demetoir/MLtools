@@ -34,14 +34,14 @@ class Fashion_MNIST_train(BaseDataset):
                                                   one_hot=True)
         # load train data
         Xs, Ys = fashion_mnist.train.next_batch(self.TRAIN_SIZE)
-        self.data['Xs'] = Xs
-        self.data['Ys'] = Ys
+        self._data['Xs'] = Xs
+        self._data['Ys'] = Ys
 
     def save(self):
         pass
 
     def transform(self):
-        self.data['Xs'] = X_transform(self.data['Xs'])
+        self._data['Xs'] = X_transform(self._data['Xs'])
 
 
 class Fashion_MNIST_test(BaseDataset):
@@ -61,14 +61,14 @@ class Fashion_MNIST_test(BaseDataset):
                                                   source_url=self.download_infos[0].url,
                                                   one_hot=True)
         Xs, Ys = fashion_mnist.test.next_batch(self.TEST_SIZE)
-        self.data['Xs'] = Xs
-        self.data['Ys'] = Ys
+        self._data['Xs'] = Xs
+        self._data['Ys'] = Ys
 
     def save(self):
         pass
 
     def transform(self):
-        self.data['Xs'] = X_transform(self.data['Xs'])
+        self._data['Xs'] = X_transform(self._data['Xs'])
 
 
 class Fashion_MNIST(BaseDatasetPack):
