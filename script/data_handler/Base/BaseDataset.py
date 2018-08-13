@@ -4,7 +4,7 @@ import sys
 import numpy as np
 import sklearn.utils
 import pandas as pd
-from script.util.MixIn import LoggerMixIn
+from script.util.MixIn import LoggerMixIn, PickleMixIn
 from script.util.numpy_utils import reformat_np_arr
 
 
@@ -19,11 +19,11 @@ class MetaDataset(type):
         # hook  after_load for BaseDataset.load
         new_load = None
         if 'load' in cls_dict:
-            def new_load(self, path, limit=None):
+            def new_load(self, path, **kwargs):
                 try:
                     func = cls_dict['load']
-                    func(self, path, limit)
-                    self._after_load(limit)
+                    func(self, path, **kwargs)
+                    self._after_load()
                 except Exception:
                     exc_type, exc_value, exc_traceback = sys.exc_info()
                     err_msg = traceback.format_exception(exc_type, exc_value, exc_traceback)
@@ -32,21 +32,21 @@ class MetaDataset(type):
         setattr(cls, 'load', new_load)
 
 
-class BaseDataset(LoggerMixIn, metaclass=MetaDataset):
+class BaseDataset(LoggerMixIn, PickleMixIn, metaclass=MetaDataset):
 
-    def __init__(self, verbose=20, caching=True, with_id=True, x_keys=None, y_keys=None, **kwargs):
-        """create dataset handler class
-
-        ***bellow attrs must initiate other value after calling super()***
-        self.download_infos: (list) dataset download info
-        self.batch_keys: (str) feature label of dataset,
-            managing batch keys in dict_keys.dataset_batch_keys recommend
-        """
+    def __init__(self, x=None, y=None, verbose=20, caching=True, with_id=True, x_keys=None, y_keys=None, **kwargs):
         LoggerMixIn.__init__(self, verbose)
         self.caching = caching
         self.with_id = with_id
 
         self._data = {}
+
+        if x:
+            self.add_data('x', x)
+
+        if y:
+            self.add_data('y', y)
+
         self.x_keys = x_keys
         self.y_keys = y_keys
 
@@ -60,23 +60,32 @@ class BaseDataset(LoggerMixIn, metaclass=MetaDataset):
         self.kwargs = kwargs
 
     def __str__(self):
-        return f"{self.__class__.__name__}\n" \
-               f"keys = {self.keys}\n" \
-               f"size = {self.size}\n" \
-               f"x_keys = {self.x_keys}\n" \
-               f"y_keys = {self.y_keys}\n" \
-               f"classes = {self.classes}\n" \
-               f"size group by class = {self.size_group_by_class}\n"
+        __str__ = f"{self.__class__.__name__}\n" \
+                  f"size = {self.size}\n" \
+                  f"keys = {self.keys}\n" \
+                  f"x_keys = {self.x_keys}\n"
+        if self.y_keys:
+            __str__ += f"y_keys = {self.y_keys}\n" \
+                       f"classes = {self.classes}\n" \
+                       f"size group by class = {self.size_group_by_class}\n"
+        return __str__
 
     def __repr__(self):
-
-        return self.__class__.__name__
+        __str__ = f"{self.__class__.__name__}\n" \
+                  f"size = {self.size}\n" \
+                  f"keys = {self.keys}\n" \
+                  f"x_keys = {self.x_keys}\n"
+        if self.y_keys:
+            __str__ += f"y_keys = {self.y_keys}\n" \
+                       f"classes = {self.classes}\n" \
+                       f"size group by class = {self.size_group_by_class}\n"
+        return __str__
 
     def __getitem__(self, item):
         return self._data.__getitem__(item)
 
     def __setitem__(self, key, value):
-        return self._data.__setitem__(key, value)
+        return self._data.__setitem__(key, np.array(value))
 
     @property
     def data(self):
@@ -128,15 +137,30 @@ class BaseDataset(LoggerMixIn, metaclass=MetaDataset):
     @property
     def y(self):
         if self.y_keys is None:
-            return None
+            y = None
         else:
-            return self.data[self.y_keys[0]]
+            if len(self.y_keys) == 1:
+                y = self.data[self.y_keys[0]]
+            else:
+                y = {
+                    key: self.data[key]
+                    for key in self.y_keys
+                }
+
+        return y
 
     @property
     def x(self):
-        # for key in self.x_keys:
+        keys = None
+        if self.x_keys is None:
+            keys = self.keys
+        else:
+            keys = self.x_keys
 
-        return self.data['x']
+        return {
+            key: self.data[key]
+            for key in keys
+        }
 
     @property
     def y_label(self):
@@ -166,8 +190,8 @@ class BaseDataset(LoggerMixIn, metaclass=MetaDataset):
 
         return self._cursor_group_by_class
 
-    def _clone(self):
-        return self.__class__(self.verbose, self.caching, self.with_id, **self.kwargs)
+    def _clone(self, **kwargs):
+        return self.__class__(**kwargs)
 
     def _invalidate(self):
         self._cursor_group_by_class = None
@@ -175,18 +199,7 @@ class BaseDataset(LoggerMixIn, metaclass=MetaDataset):
         self._n_classes = None
         self._classes = None
         self._size_group_by_class = None
-
-    def add_data(self, key, data):
-        self._data[key] = np.array(data)
-
-    def append_data(self, key, data):
-        return self._append_data(key, data)
-
-    def _append_data(self, key, data):
-        if key not in self._data:
-            self._data[key] = np.array(data)
-        else:
-            self._data[key] = np.concatenate((self._data[key], data))
+        self.reset_id()
 
     def _iter_batch(self, data, batch_size, cursor=None):
         if cursor is None:
@@ -215,74 +228,40 @@ class BaseDataset(LoggerMixIn, metaclass=MetaDataset):
 
         return batch
 
-    def _after_load(self, limit=None):
-        """after task for dataset and do execute preprocess for dataset
+    def _after_load(self):
+        if self.with_id:
+            self.reset_id()
 
-        init cursor for each batch_key
-        limit dataset size
-        execute preprocess
+        self.log.debug(f'{self.__class__.__name__} {self.size} loaded')
 
-        :type limit: int
-        :param limit: limit size of dataset
-        """
-
-        if limit is not None:
-            for key in self.data.keys():
-                self._data[key] = self._data[key][:limit]
-
-        if 'id_' in self._data.keys():
-            self.log.warn(f"overwrite column 'id_', column already exist")
-        self._data['id_'] = np.array([i for i in range(1, self.size + 1)]).reshape([self.size, 1])
-        self.log.debug("insert 'id_' column")
-
-        self.log.debug('%s fully loaded' % self.__str__())
-
-    def load(self, path, limit=None):
-        """load dataset from file should implement
-
-        save data at self.data, expect dict type
-
-        :param path:
-        :param limit:
-        :return: None
-        """
-        pass
-
-    def save(self):
-        """
-
-        :return: None
-        """
-        pass
-
-    def _iter_batch_balanced(self, key, size_per_class):
-        batch = []
-        for class_ in self.classes:
-            idxs = self.idxs_group_by_class[class_]
-            size = size_per_class[class_]
-            cursor = self.cursor_group_by_class[class_]
-            batch += [self._iter_batch(self.data[key][idxs], size, cursor)]
-
+    def _iter_batch_balanced(self, key, batch_size_group_by_class):
+        batch = [
+            self._iter_batch(
+                self.data[key][self.idxs_group_by_class[class_]],
+                batch_size_group_by_class[class_],
+                self.cursor_group_by_class[class_]
+            )
+            for class_ in self.classes
+        ]
         return np.concatenate(batch, axis=0)
 
     def _collect_iter_batch(self, keys, size, balanced_class=False, update_cursor=True):
         if balanced_class:
             div = size // self.n_classes
-            size_per_class = {key: div for key in self.classes}
+            batch_size_group_by_class = {key: div for key in self.classes}
             plus_one_idx_key = np.random.choice(self.classes, size % self.n_classes, replace=False)
             for key in plus_one_idx_key:
-                size_per_class[key] += 1
+                batch_size_group_by_class[key] += 1
 
             batch = [
-                self._iter_batch_balanced(key, size_per_class)
+                self._iter_batch_balanced(key, batch_size_group_by_class)
                 for key in keys
             ]
 
             if update_cursor:
                 for class_ in self.classes:
-                    self._cursor_group_by_class[class_] = (self._cursor_group_by_class[class_] + size_per_class[
-                        class_]) % \
-                                                          self.size_group_by_class[class_]
+                    self._cursor_group_by_class[class_] += batch_size_group_by_class[class_]
+                    self._cursor_group_by_class[class_] %= self.size_group_by_class[class_]
 
         else:
             batch = [
@@ -301,23 +280,55 @@ class BaseDataset(LoggerMixIn, metaclass=MetaDataset):
 
         return batch
 
-    def next_batch(self, batch_size, batch_keys=None, look_up=False, balanced_class=False):
+    def add_data(self, key, data):
+        self._data[key] = np.array(data)
+
+    def append_data(self, key, data):
+        if key not in self._data:
+            self._data[key] = np.array(data)
+        else:
+            self._data[key] = np.concatenate((self._data[key], data))
+
+    def reset_id(self):
+        if 'id_' in self._data.keys():
+            self.log.warn(f"overwrite column 'id_', column already exist")
+        self._data['id_'] = np.array([i for i in range(1, self.size + 1)]).reshape([self.size, 1])
+        self.log.debug("insert 'id_' column")
+
+    def load(self, path):
+        """load dataset from file should implement
+
+        save data at self.data, expect dict type
+
+        :param path:
+        :return: None
+        """
+        pass
+
+    def save(self):
+        """
+
+        :return: None
+        """
+        pass
+
+    def next_batch(self, batch_size, batch_keys=None, update_cursor=True, balanced_class=False):
         if type(batch_keys) is str:
             batch_keys = [batch_keys]
 
         if batch_keys is None:
-            x = self._collect_iter_batch(self.x_keys, batch_size, balanced_class, update_cursor=not look_up)
+            x = self._collect_iter_batch(self.x_keys, batch_size, balanced_class, update_cursor=update_cursor)
 
             y = None
             if self.y_keys is not None:
-                y = self._collect_iter_batch(self.y_keys, batch_size, balanced_class, update_cursor=not look_up)
+                y = self._collect_iter_batch(self.y_keys, batch_size, balanced_class, update_cursor=update_cursor)
 
             if y is None:
                 return x
             else:
                 return x, y
         else:
-            x = self._collect_iter_batch(batch_keys, batch_size, balanced_class, update_cursor=not look_up)
+            x = self._collect_iter_batch(batch_keys, batch_size, balanced_class, update_cursor=not update_cursor)
             return x
 
     def full_batch(self, batch_keys=None):
@@ -379,7 +390,6 @@ class BaseDataset(LoggerMixIn, metaclass=MetaDataset):
         return a_set, b_set
 
     def merge(self, a_set, b_set):
-        """merge to dataset"""
         if set(a_set.data.key()) is set(b_set.data.keys()):
             raise KeyError("dataset can not merge, key does not match")
 
@@ -393,7 +403,6 @@ class BaseDataset(LoggerMixIn, metaclass=MetaDataset):
         return new_set
 
     def shuffle(self, random_state=None):
-        """shuffle dataset"""
         if random_state is None:
             random_state = np.random.randint(1, 12345678)
 
@@ -419,24 +428,6 @@ class BaseDataset(LoggerMixIn, metaclass=MetaDataset):
 
         self._invalidate()
 
-    def to_pickle(self, path):
-        raise NotImplementedError
-
-    def to_hdf5(self, path):
-        raise NotImplementedError
-
-    def to_csv(self, path):
-        raise NotImplementedError
-
-    def from_csv(self, path):
-        raise NotImplementedError
-
-    def from_pickle(self, path):
-        raise NotImplementedError
-
-    def from_hdf5(self, path):
-        raise NotImplementedError
-
     def to_DataFrame(self, keys=None):
         if keys is None:
             keys = self._data.keys()
@@ -457,6 +448,20 @@ class BaseDataset(LoggerMixIn, metaclass=MetaDataset):
 
         return df
 
+    def from_DataFrame(self, x_df, y_df=None):
+        obj = self._clone()
+
+        for key in x_df:
+            obj.add_data(key, x_df[key])
+        self.x_keys = list(x_df.columns)
+
+        if y_df is not None:
+            for key in y_df:
+                obj.add_data(key, y_df[key])
+            self.y_keys = list(y_df.columns)
+
+        return obj
+
     def to_dummyDataset(self, keys=None):
         dataset = BaseDataset()
 
@@ -468,13 +473,8 @@ class BaseDataset(LoggerMixIn, metaclass=MetaDataset):
 
         return dataset
 
-    def from_DataFrame(self, x_df, y_df=None):
-        obj = self._clone()
-
-        for key in x_df:
-            obj.add_data(key, x_df[key])
-
-        return obj
+    def to_np_arr(self):
+        return self.full_batch()
 
     def from_np_arr(self, x_np, y_np=None):
         raise NotImplementedError
