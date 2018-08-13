@@ -68,7 +68,7 @@ class BaseClassifierModel(BaseModel, basicClfProperty):
                 Xs, Ys = dataset.next_batch(batch_size, batch_keys=['Xs', 'Ys'])
                 self.sess.run(self._train_ops, feed_dict={self._Xs: Xs, self._Ys: Ys})
 
-            Xs, Ys = dataset.next_batch(batch_size, batch_keys=['Xs', 'Ys'], look_up=False)
+            Xs, Ys = dataset.next_batch(batch_size, batch_keys=['Xs', 'Ys'], update_cursor=False)
             loss = self.sess.run(self._metric_ops, feed_dict={self._Xs: Xs, self._Ys: Ys})
             self.log.info("e:{}, i:{} loss : {}".format(e, iter_num, loss))
 

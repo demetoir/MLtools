@@ -9,7 +9,7 @@ from script.util.misc_util import time_stamp, path_join, log_error_trace, setup_
 
 class Dataset(BaseDataset):
 
-    def load(self, path, limit=None):
+    def load(self, path):
         pass
 
     def save(self):
