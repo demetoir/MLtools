@@ -18,7 +18,8 @@ class meta_BaseWrapperClf(type):
         def deco_reformat_y(func):
             def wrapper(*args, **kwargs):
                 y = args[2]
-                args = list(args[:2]) + [Reformat_Ys_MixIn.np_arr_to_index(y)] + list(args[3:])
+                if type(y) == np.array:
+                    args = list(args[:2]) + [Reformat_Ys_MixIn.np_arr_to_index(y)] + list(args[3:])
 
                 ret = func(*args, **kwargs)
                 return ret
