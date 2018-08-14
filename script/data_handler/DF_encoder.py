@@ -196,8 +196,6 @@ class DF_encoder(PickleMixIn):
     def from_np(self, np_arr, np_cols=None):
         if np_cols is None:
             np_cols = self.cols
-        print(np_cols)
-        print(np_arr.shape)
 
         df = DF()
         for idx, col in enumerate(np_cols):
