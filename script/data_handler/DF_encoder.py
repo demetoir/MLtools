@@ -112,7 +112,13 @@ class DF_encoder(PickleMixIn):
 
         return scaled_df
 
+    def check_fit(self):
+        if not self.is_fit:
+            raise ValueError(f'encoder not fitted')
+
     def encode(self, df):
+        self.check_fit()
+
         cate_df = df[self.cate_cols]
         conti_df = df[self.conti_cols]
 
@@ -157,6 +163,8 @@ class DF_encoder(PickleMixIn):
         return decoded_df
 
     def decode(self, df: DF):
+        self.check_fit()
+
         cate_encode_df = df[self.cate_encoded_cols]
         cate_df = self.decode_cate(cate_encode_df)
 
