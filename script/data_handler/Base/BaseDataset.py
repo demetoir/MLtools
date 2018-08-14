@@ -151,7 +151,6 @@ class BaseDataset(LoggerMixIn, PickleMixIn, metaclass=MetaDataset):
 
     @property
     def x(self):
-        keys = None
         if self.x_keys is None:
             keys = self.keys
         else:
@@ -245,7 +244,19 @@ class BaseDataset(LoggerMixIn, PickleMixIn, metaclass=MetaDataset):
         ]
         return np.concatenate(batch, axis=0)
 
-    def _collect_iter_batch(self, keys, size, balanced_class=False, update_cursor=True):
+    @staticmethod
+    def _concat_batch(batch):
+        size = len(batch.items()[0])
+        batch = batch.items()
+
+        batch = np.vstack(batch)
+        batch = batch.reshape([size, -1])
+
+        if batch.shape[1] == 1:
+            batch = batch.reshape([size])
+        return batch
+
+    def _collect_iter_batch(self, keys, size, balanced_class=False, update_cursor=True, out_type=None):
         if balanced_class:
             div = size // self.n_classes
             batch_size_group_by_class = {key: div for key in self.classes}
@@ -253,10 +264,10 @@ class BaseDataset(LoggerMixIn, PickleMixIn, metaclass=MetaDataset):
             for key in plus_one_idx_key:
                 batch_size_group_by_class[key] += 1
 
-            batch = [
-                self._iter_batch_balanced(key, batch_size_group_by_class)
+            batch = {
+                key: self._iter_batch_balanced(key, batch_size_group_by_class)
                 for key in keys
-            ]
+            }
 
             if update_cursor:
                 for class_ in self.classes:
@@ -264,19 +275,15 @@ class BaseDataset(LoggerMixIn, PickleMixIn, metaclass=MetaDataset):
                     self._cursor_group_by_class[class_] %= self.size_group_by_class[class_]
 
         else:
-            batch = [
-                self._iter_batch(self.data[key], size)
+            batch = {
+                key: self._iter_batch(self.data[key], size)
                 for key in keys
-            ]
+            }
 
             if update_cursor:
                 self.cursor = (self.cursor + size) % self.size
 
-        batch = np.vstack(batch)
-        batch = batch.reshape([size, len(keys)])
-
-        if batch.shape[1] == 1:
-            batch = batch.reshape([size])
+        batch = self._batch_convert(batch, out_type)
 
         return batch
 
@@ -290,10 +297,9 @@ class BaseDataset(LoggerMixIn, PickleMixIn, metaclass=MetaDataset):
             self._data[key] = np.concatenate((self._data[key], data))
 
     def reset_id(self):
-        if 'id_' in self._data.keys():
-            self.log.warn(f"overwrite column 'id_', column already exist")
-        self._data['id_'] = np.array([i for i in range(1, self.size + 1)]).reshape([self.size, 1])
-        self.log.debug("insert 'id_' column")
+        if 'id_' not in self._data.keys():
+            self._data['id_'] = np.array([i for i in range(1, self.size + 1)]).reshape([self.size, 1])
+            self.log.debug("insert 'id_' column")
 
     def load(self, path):
         """load dataset from file should implement
@@ -303,36 +309,58 @@ class BaseDataset(LoggerMixIn, PickleMixIn, metaclass=MetaDataset):
         :param path:
         :return: None
         """
-        pass
+        raise NotImplementedError
 
-    def save(self):
-        """
+    def _batch_convert(self, batch, out_type):
+        self.convert_out_type_func = {
+            'concat': self._concat_batch,
+            'DataFrame': pd.DataFrame,
+            'df': pd.DataFrame,
+            'np_dict': lambda x: x
+        }
+        convert_func = self.convert_out_type_func[out_type]
+        return convert_func(batch)
 
-        :return: None
-        """
-        pass
-
-    def next_batch(self, batch_size, batch_keys=None, update_cursor=True, balanced_class=False):
+    def next_batch(self, batch_size, batch_keys=None, update_cursor=True, balanced_class=False, out_type='concat'):
         if type(batch_keys) is str:
             batch_keys = [batch_keys]
 
         if batch_keys is None:
-            x = self._collect_iter_batch(self.x_keys, batch_size, balanced_class, update_cursor=update_cursor)
+            x = self._collect_iter_batch(
+                self.x_keys,
+                batch_size,
+                balanced_class,
+                update_cursor=update_cursor,
+                out_type=out_type
+            )
 
             y = None
             if self.y_keys is not None:
-                y = self._collect_iter_batch(self.y_keys, batch_size, balanced_class, update_cursor=update_cursor)
+                y = self._collect_iter_batch(
+                    self.y_keys,
+                    batch_size,
+                    balanced_class,
+                    update_cursor=update_cursor,
+                    out_type=out_type
+                )
 
             if y is None:
                 return x
             else:
                 return x, y
         else:
-            x = self._collect_iter_batch(batch_keys, batch_size, balanced_class, update_cursor=not update_cursor)
-            return x
+            batch = self._collect_iter_batch(
+                batch_keys,
+                batch_size,
+                balanced_class,
+                update_cursor=update_cursor,
+                out_type=out_type
+            )
 
-    def full_batch(self, batch_keys=None):
-        return self.next_batch(self.size, batch_keys)
+            return batch
+
+    def full_batch(self, batch_keys=None, out_type='concat'):
+        return self.next_batch(self.size, batch_keys, out_type=out_type)
 
     def split(self, ratio=(7, 3), shuffle=False, random_state=None, balanced_class=True):
         if shuffle:
@@ -428,10 +456,7 @@ class BaseDataset(LoggerMixIn, PickleMixIn, metaclass=MetaDataset):
 
         self._invalidate()
 
-    def to_DataFrame(self, keys=None):
-        if keys is None:
-            keys = self._data.keys()
-
+    def _to_DataFrame(self, keys):
         df = pd.DataFrame({})
         for key in keys:
             try:
@@ -447,6 +472,21 @@ class BaseDataset(LoggerMixIn, PickleMixIn, metaclass=MetaDataset):
                 log_error_trace(self.log.warn, e)
 
         return df
+
+    def to_DataFrame(self, keys=None, id_=False):
+        if keys is None:
+            keys = list(self._data.keys())
+            if not id_:
+                keys.remove('id_')
+
+            return self._to_DataFrame(keys)
+        else:
+            x_df = self._to_DataFrame(self.x_keys)
+            if self.y_keys:
+                y_df = self._to_DataFrame(self.y_keys)
+                return x_df, y_df
+            else:
+                return x_df
 
     def from_DataFrame(self, x_df, y_df=None):
         obj = self._clone()
@@ -478,3 +518,11 @@ class BaseDataset(LoggerMixIn, PickleMixIn, metaclass=MetaDataset):
 
     def from_np_arr(self, x_np, y_np=None):
         raise NotImplementedError
+
+    def set_x_keys(self, x_keys):
+        self.x_keys = x_keys
+        self._invalidate()
+
+    def set_y_keys(self, y_keys):
+        self.y_keys = y_keys
+        self._invalidate()
