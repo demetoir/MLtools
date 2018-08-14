@@ -172,6 +172,9 @@ class FETools(
     def drop_col(self, df: DF, col: str):
         return df.drop(columns=col)
 
+    def drop_row_by_value(self, df: DF, col, value):
+        return df.loc[df[col] != value, :]
+
     def quantile(self, df, x_col, n_quantiles=10):
         from sklearn.preprocessing import QuantileTransformer
         quantile = QuantileTransformer(n_quantiles=n_quantiles)
