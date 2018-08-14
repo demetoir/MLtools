@@ -66,7 +66,7 @@ class Reformat_Ys_MixIn:
 
     @staticmethod
     def np_arr_to_onehot(Xs, n=None):
-        return reformat_np_arr(Xs, NP_ARRAY_TYPE_ONEHOT, n)
+        return reformat_np_arr(Xs, NP_ARRAY_TYPE_ONEHOT, n=n)
 
 
 CLF_METRICS = {
