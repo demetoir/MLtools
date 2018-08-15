@@ -1,3 +1,4 @@
+import math
 import numpy as np
 import pandas as pd
 from sklearn import preprocessing
@@ -5,7 +6,7 @@ from sklearn.feature_selection import SelectKBest
 from sklearn.feature_selection import VarianceThreshold
 from sklearn.feature_selection import chi2
 from sklearn.preprocessing import Imputer, LabelEncoder
-
+from script.util.MixIn import PickleMixIn
 from script.util.pandas_util import df_binning
 
 DF = pd.DataFrame
@@ -135,6 +136,121 @@ class typecast_method:
     @staticmethod
     def to_int(df, key):
         df[key] = df[key].astype(int)
+        return df
+
+
+class DF_binning_encoder(PickleMixIn):
+    def __init__(self):
+        PickleMixIn.__init__(self)
+
+        self.is_fit = False
+
+        self.decode_mapper = None
+        self.bins = None
+        self.col = None
+        self.encode_uniques = None
+        self.encode_method = None
+        self.decode_method = None
+
+    def check_fit(self):
+        if not self.is_fit:
+            raise ValueError(f'{self.__class__.__name__} has not fitted')
+
+    def make_decode_mapper(self, df, col):
+        self.decode_mapper = {}
+        bins = self.bins
+        for i in range(len(bins) - 1):
+            a, b = bins[i: i + 2]
+            encode_value = f'bin{str(i).zfill(int(math.log10(len(bins))) + 1)}_[{a}~{b})'
+
+            query = f'{a} <= {col} < {b}'
+            idx = list(df.query(query).index.values)
+            value_count = df[idx, col].value_counts()
+
+            if self.decode_method == 'major':
+                major_value = value_count[0]
+                self.decode_mapper[encode_value] = major_value
+            else:
+                raise ValueError(f'{self.decode_method} does not support')
+
+    def _major_method(self, df, col, bins):
+        value_count = df[col].value_counts()
+        vc_df = DF({'count': value_count.values, col: value_count.index})
+        vc_df = pd.concat([vc_df, df_binning(vc_df, col, bins)], axis=1)
+
+        mapper = {unique: (-1, None) for unique in self.encode_uniques}
+        for idx in range(len(vc_df)):
+            encode_value = str(vc_df.loc[idx, col + '_binning'])
+            count = int(vc_df.loc[idx, 'count'])
+            col_value = float(vc_df.loc[idx, col])
+
+            if count > mapper[encode_value][0]:
+                mapper[encode_value] = (count, col_value)
+        return mapper
+
+    def fit(self, df, col, bins, encode_method=None, decode_method='major'):
+        self.col = col
+        self.bins = bins
+        self.encode_method = encode_method
+        self.decode_method = decode_method
+
+        self.encode_uniques = []
+        for i in range(len(bins) - 1):
+            a, b = bins[i: i + 2]
+            encode_value = f'bin{str(i).zfill(int(math.log10(len(bins))) + 1)}_[{a}~{b})'
+            self.encode_uniques += [encode_value]
+
+        self.decode_mapper = {}
+        if self.decode_method == 'major':
+            self.decode_mapper = self._major_method(df, col, bins)
+        else:
+            raise ValueError(f'{self.decode_method} does not support')
+
+        self.is_fit = True
+
+    def encode(self, df):
+        self.check_fit()
+
+        df_encode = df_binning(df[[self.col]], self.col, self.bins, column_tail='')
+        return df_encode
+
+    def decode(self, df):
+        self.check_fit()
+
+        df_decoded = DF({self.col: np.zeros([len(df)])})
+        unique = df[self.col].unique()
+        for value in unique:
+            if value not in self.encode_uniques:
+                raise ValueError(f'{value} can not decode')
+
+            idxs = df[self.col] == value
+            df_decoded.loc[idxs, self.col] = self.decode_mapper[value]
+
+        return df_decoded
+
+    def encode_to_np(self, df):
+        return self.to_np(self.encode(df))
+
+    def decode_from_np(self, np_arr):
+        return self.decode(self.from_np(np_arr))
+
+    def to_np(self, df: DF):
+        ret = {}
+        for key in df.keys():
+            np_arr = np.array(df[key].values)
+            np_arr = np_arr.reshape([len(np_arr), 1])
+            ret[key] = np_arr
+
+        return np.concatenate([v for k, v in ret.items()], axis=1)
+
+    def from_np(self, np_arr, np_cols=None):
+        if np_cols is None:
+            np_cols = np_arr.reshape([len(np_arr), -1]).shape[1]
+
+        df = DF()
+        for idx, col in enumerate(np_cols):
+            df[col] = np_arr[:, idx]
+
         return df
 
 
