@@ -107,12 +107,8 @@ class clf_score_pack_MixIn(Reformat_Ys_MixIn):
         for key in self._metrics:
             try:
                 ret[key] = self._apply_metric(Y_true, Y_predict, key)
-            except BaseException as e:
+            except BaseException:
                 pass
-                # getattr(self, 'log').info(
-                #     f'while "{str(self)}" execute score_pack,'
-                #     f' raise "{e}",'
-                #     f' skip to applying metric "{key}"\n')
         return ret
 
     def score_pack(self, X, y):
