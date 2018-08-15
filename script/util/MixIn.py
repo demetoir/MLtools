@@ -26,16 +26,23 @@ class PickleMixIn:
             setattr(new_obj, key, items)
         return new_obj
 
-    def to_pickle(self, path):
+    def to_pickle(self, path, **kwargs):
         dump_pickle(self, path)
 
-    def from_pickle(self, path):
+    def from_pickle(self, path, overwrite_self=False, **kwargs):
         load_obj = load_pickle(path)
+
+        # for auto detect pickle type
         if load_obj.__class__ is not self.__class__:
             raise TypeError(f"load obj is not {load_obj.__class__} is not match with expected class {self.__class__}")
         new_obj = self.__class__()
         for key, items in load_obj.__dict__.items():
             setattr(new_obj, key, items)
+
+        if overwrite_self:
+            for key, val in new_obj.__dict__.items():
+                self.__dict__[key] = val
+
         return new_obj
 
 
