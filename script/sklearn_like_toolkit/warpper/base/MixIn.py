@@ -29,7 +29,7 @@ class yLabelOneHotConvertMixIn:
         return reformat_np_arr(x, NP_ARRAY_TYPE_ONEHOT, n=n)
 
 
-class DFEncoderMixin:
+class DFEncoderMixIn:
     def __init__(self, x_df_encoder=None, y_df_encoder=None):
         if x_df_encoder:
             self.x_df_encoder = x_df_encoder
@@ -171,7 +171,7 @@ class ClfWrapperMixIn(
     LoggerMixIn,
     ClfPredictConfidenceMixIn,
     etc_MixIn,
-    DFEncoderMixin
+    DFEncoderMixIn
 ):
     HyperOpt_space = None
 
@@ -181,7 +181,7 @@ class ClfWrapperMixIn(
         LoggerMixIn.__init__(self)
         ClfPredictConfidenceMixIn.__init__(self)
         etc_MixIn.__init__(self)
-        DFEncoderMixin.__init__(self, x_df_encoder, y_df_encoder)
+        DFEncoderMixIn.__init__(self, x_df_encoder, y_df_encoder)
 
 
 class MetaBaseWrapperReg(type):
