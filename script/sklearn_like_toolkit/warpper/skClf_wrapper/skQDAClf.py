@@ -2,8 +2,8 @@ import warnings
 
 from sklearn.discriminant_analysis import QuadraticDiscriminantAnalysis as _skQDA
 
-from script.sklearn_like_toolkit.base.BaseWrapperClf import BaseWrapperClf
-from script.sklearn_like_toolkit.base.MixIn import meta_BaseWrapperClf
+from script.sklearn_like_toolkit.warpper.base.BaseWrapperClf import BaseWrapperClf
+from script.sklearn_like_toolkit.warpper.base.MixIn import meta_BaseWrapperClf
 
 
 class skQDAClf(BaseWrapperClf, _skQDA, metaclass=meta_BaseWrapperClf):

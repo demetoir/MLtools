@@ -1,7 +1,7 @@
 from sklearn.ensemble import VotingClassifier as _skVotingClassifier
 
-from script.sklearn_like_toolkit.base.BaseWrapperClf import BaseWrapperClf
-from script.sklearn_like_toolkit.base.MixIn import MetaBaseWrapperClf_with_ABC
+from script.sklearn_like_toolkit.warpper.base.BaseWrapperClf import BaseWrapperClf
+from script.sklearn_like_toolkit.warpper.base.MixIn import MetaBaseWrapperClf_with_ABC
 
 
 class skVotingClf(BaseWrapperClf, _skVotingClassifier, metaclass=MetaBaseWrapperClf_with_ABC):

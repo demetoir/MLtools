@@ -1,7 +1,7 @@
 from hyperopt import hp
 from sklearn.linear_model import BayesianRidge as _BayesianRidgeReg
 
-from script.sklearn_like_toolkit.base.BaseWrapperReg import BaseWrapperReg
+from script.sklearn_like_toolkit.warpper.base.BaseWrapperReg import BaseWrapperReg
 from script.sklearn_like_toolkit.base.MixIn import MetaBaseWrapperReg_with_ABC
 
 

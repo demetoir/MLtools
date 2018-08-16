@@ -2,8 +2,8 @@ from pprint import pprint
 from hyperopt import hp
 from script.data_handler.DatasetPackLoader import DatasetPackLoader
 from script.sklearn_like_toolkit.ClassifierPack import ClassifierPack
-from script.sklearn_like_toolkit.HyperOpt.FreeTrials import FreeTrials
-from script.sklearn_like_toolkit.HyperOpt.HyperOpt import HyperOpt, HyperOpt_fn
+from script.sklearn_like_toolkit.param_search.HyperOpt.FreeTrials import FreeTrials
+from script.sklearn_like_toolkit.param_search.HyperOpt.HyperOpt import HyperOpt, HyperOpt_fn
 from script.util.deco import deco_timeit
 
 data_pack = DatasetPackLoader().load_dataset('titanic')

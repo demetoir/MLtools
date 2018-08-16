@@ -1,8 +1,8 @@
 from hyperopt import hp
 from sklearn.svm import LinearSVC as _skLinearSVC
 
-from script.sklearn_like_toolkit.base.BaseWrapperClf import BaseWrapperClf
-from script.sklearn_like_toolkit.base.MixIn import MetaBaseWrapperClf_with_ABC
+from script.sklearn_like_toolkit.warpper.base.BaseWrapperClf import BaseWrapperClf
+from script.sklearn_like_toolkit.warpper.base.MixIn import MetaBaseWrapperClf_with_ABC
 
 
 class skLinear_SVCClf(BaseWrapperClf, _skLinearSVC, metaclass=MetaBaseWrapperClf_with_ABC):

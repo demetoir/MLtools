@@ -1,4 +1,4 @@
-from script.sklearn_like_toolkit.base.MixIn import RegWrapperMixIn
+from script.sklearn_like_toolkit.warpper.base.MixIn import RegWrapperMixIn
 
 
 class BaseWrapperReg(RegWrapperMixIn):

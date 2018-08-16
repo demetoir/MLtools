@@ -1,9 +1,8 @@
-from hyperopt import hp
 from sklearn.gaussian_process import GaussianProcessClassifier as _skGaussianProcessClassifier
 from sklearn.gaussian_process.kernels import RBF as _RBF
 
-from script.sklearn_like_toolkit.base.BaseWrapperClf import BaseWrapperClf
-from script.sklearn_like_toolkit.base.MixIn import MetaBaseWrapperClf_with_ABC
+from script.sklearn_like_toolkit.warpper.base.BaseWrapperClf import BaseWrapperClf
+from script.sklearn_like_toolkit.warpper.base.MixIn import MetaBaseWrapperClf_with_ABC
 
 
 class skGaussianProcessClf(BaseWrapperClf, _skGaussianProcessClassifier, metaclass=MetaBaseWrapperClf_with_ABC):

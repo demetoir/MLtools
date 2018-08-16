@@ -1,8 +1,8 @@
 from hyperopt import hp
 from sklearn.ensemble import AdaBoostClassifier as _skAdaBoostClassifier
 
-from script.sklearn_like_toolkit.base.BaseWrapperClf import BaseWrapperClf
-from script.sklearn_like_toolkit.base.MixIn import MetaBaseWrapperClf_with_ABC
+from script.sklearn_like_toolkit.warpper.base.BaseWrapperClf import BaseWrapperClf
+from script.sklearn_like_toolkit.warpper.base.MixIn import MetaBaseWrapperClf_with_ABC
 import numpy as np
 
 

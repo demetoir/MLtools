@@ -1,7 +1,7 @@
 from sklearn import model_selection
 from sklearn.externals.joblib import Parallel
 from tqdm import tqdm
-from script.sklearn_like_toolkit.base.MixIn import ClfWrapperMixIn, MetaBaseWrapperClf_with_ABC
+from script.sklearn_like_toolkit.warpper.base.MixIn import ClfWrapperMixIn, MetaBaseWrapperClf_with_ABC
 import multiprocessing
 
 CPU_COUNT = multiprocessing.cpu_count()

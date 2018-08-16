@@ -2,8 +2,8 @@ from hyperopt import hp
 from sklearn.linear_model import PassiveAggressiveRegressor as _PassiveAggressiveRegressor
 from sklearn.linear_model.stochastic_gradient import DEFAULT_EPSILON
 
-from script.sklearn_like_toolkit.base.BaseWrapperReg import BaseWrapperReg
-from script.sklearn_like_toolkit.base.MixIn import MetaBaseWrapperReg_with_ABC
+from script.sklearn_like_toolkit.warpper.base.BaseWrapperReg import BaseWrapperReg
+from script.sklearn_like_toolkit.warpper.base.MixIn import MetaBaseWrapperReg_with_ABC
 
 
 class skPassiveAggressiveReg(_PassiveAggressiveRegressor, BaseWrapperReg, metaclass=MetaBaseWrapperReg_with_ABC):

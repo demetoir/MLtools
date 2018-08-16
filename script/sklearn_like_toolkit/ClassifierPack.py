@@ -1,6 +1,6 @@
 from script.sklearn_like_toolkit.EnsembleClfPack import EnsembleClfPack
 from script.sklearn_like_toolkit.FoldingHardVoteClf import FoldingHardVoteClf
-from script.sklearn_like_toolkit.base.BaseWrapperClfPack import BaseWrapperClfPack
+from script.sklearn_like_toolkit.warpper.base.BaseWrapperClfPack import BaseWrapperClfPack
 from script.sklearn_like_toolkit.warpper.catboost_wrapper import CatBoostClf
 from script.sklearn_like_toolkit.warpper.lightGBM_wrapper import LightGBMClf
 from script.sklearn_like_toolkit.warpper.mlxtend_wrapper import mlxStackingCVClf

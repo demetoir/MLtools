@@ -2,8 +2,8 @@ from hyperopt import hp
 from sklearn.linear_model import SGDClassifier as _skSGDClassifier
 from sklearn.linear_model.stochastic_gradient import DEFAULT_EPSILON
 
-from script.sklearn_like_toolkit.base.BaseWrapperClf import BaseWrapperClf
-from script.sklearn_like_toolkit.base.MixIn import MetaBaseWrapperClf_with_ABC
+from script.sklearn_like_toolkit.warpper.base.BaseWrapperClf import BaseWrapperClf
+from script.sklearn_like_toolkit.warpper.base.MixIn import MetaBaseWrapperClf_with_ABC
 
 
 class skSGDClf(BaseWrapperClf, _skSGDClassifier, metaclass=MetaBaseWrapperClf_with_ABC):

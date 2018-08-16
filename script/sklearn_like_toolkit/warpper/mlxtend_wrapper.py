@@ -11,12 +11,12 @@ from mlxtend.classifier import StackingCVClassifier as _StackingCVClassifier
 from mlxtend.classifier import StackingClassifier as _StackingClassifier
 from mlxtend.regressor.linear_regression import \
     LinearRegression as _LinearRegression
-from script.sklearn_like_toolkit.base.BaseWrapperReg import BaseWrapperReg
-from script.sklearn_like_toolkit.base.BaseWrapperClf import BaseWrapperClf
+from script.sklearn_like_toolkit.warpper.base.BaseWrapperReg import BaseWrapperReg
+from script.sklearn_like_toolkit.warpper.base.BaseWrapperClf import BaseWrapperClf
 from script.sklearn_like_toolkit.warpper.skClf_wrapper.skBernoulli_NBClf import \
     skBernoulli_NBClf
-from script.sklearn_like_toolkit.base.MixIn import MetaBaseWrapperClf_with_ABC, MetaBaseWrapperClf
-from script.sklearn_like_toolkit.base.MixIn import MetaBaseWrapperReg_with_ABC
+from script.sklearn_like_toolkit.warpper.base.MixIn import MetaBaseWrapperClf_with_ABC, MetaBaseWrapperClf
+from script.sklearn_like_toolkit.warpper.base.MixIn import MetaBaseWrapperReg_with_ABC
 import warnings
 
 

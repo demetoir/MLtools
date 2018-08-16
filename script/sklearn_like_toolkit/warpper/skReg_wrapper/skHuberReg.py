@@ -1,8 +1,8 @@
 from hyperopt import hp
 from sklearn.linear_model import HuberRegressor as _HuberRegressor
 
-from script.sklearn_like_toolkit.base.BaseWrapperReg import BaseWrapperReg
-from script.sklearn_like_toolkit.base.MixIn import MetaBaseWrapperReg_with_ABC
+from script.sklearn_like_toolkit.warpper.base.BaseWrapperReg import BaseWrapperReg
+from script.sklearn_like_toolkit.warpper.base.MixIn import MetaBaseWrapperReg_with_ABC
 
 
 class skHuberReg(_HuberRegressor, BaseWrapperReg, metaclass=MetaBaseWrapperReg_with_ABC):

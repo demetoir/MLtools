@@ -2,7 +2,7 @@ import numpy as np
 from script.data_handler.DatasetPackLoader import DatasetPackLoader
 from script.data_handler.MNIST import MNIST
 from script.model.sklearn_like_model.AE.VAE import VAE
-from script.sklearn_like_toolkit.param_grid import param_grid_full
+from script.sklearn_like_toolkit.param_search.param_grid import param_grid_full
 from script.util.PlotTools import PlotTools
 from script.util.misc_util import params_to_dict
 from script.workbench.bench_code import DF, pprint, print

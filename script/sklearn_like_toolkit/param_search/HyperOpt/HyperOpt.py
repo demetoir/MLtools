@@ -2,10 +2,10 @@ import multiprocessing as mp
 import time
 import numpy as np
 from functools import wraps
-from hyperopt import fmin, tpe, STATUS_OK, STATUS_FAIL, hp, Trials
+from hyperopt import fmin, tpe, STATUS_OK, STATUS_FAIL, hp
 from hyperopt.mongoexp import MongoTrials
 from tqdm import tqdm
-from script.sklearn_like_toolkit.HyperOpt.FreeTrials import FreeTrials
+from script.sklearn_like_toolkit.param_search.HyperOpt.FreeTrials import FreeTrials
 from script.util.MixIn import singletonPoolMixIn
 from script.util.misc_util import log_error_trace
 

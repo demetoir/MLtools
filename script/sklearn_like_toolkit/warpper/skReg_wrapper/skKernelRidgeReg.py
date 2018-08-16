@@ -1,7 +1,7 @@
 from sklearn.kernel_ridge import KernelRidge as _KernelRidge
 
-from script.sklearn_like_toolkit.base.BaseWrapperReg import BaseWrapperReg
-from script.sklearn_like_toolkit.base.MixIn import MetaBaseWrapperReg_with_ABC
+from script.sklearn_like_toolkit.warpper.base.BaseWrapperReg import BaseWrapperReg
+from script.sklearn_like_toolkit.warpper.base.MixIn import MetaBaseWrapperReg_with_ABC
 
 
 class skKernelRidgeReg(_KernelRidge, BaseWrapperReg, metaclass=MetaBaseWrapperReg_with_ABC):

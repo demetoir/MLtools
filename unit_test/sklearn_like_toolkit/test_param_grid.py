@@ -1,5 +1,5 @@
 from pprint import pprint
-from script.sklearn_like_toolkit.param_grid import param_grid_random, param_grid_full
+from script.sklearn_like_toolkit.param_search.param_grid import param_grid_random, param_grid_full
 from script.util.misc_util import params_to_dict
 from script.util.tensor_ops import activation_names
 

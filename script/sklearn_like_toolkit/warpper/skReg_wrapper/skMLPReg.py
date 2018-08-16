@@ -1,8 +1,8 @@
 from hyperopt import hp
 from sklearn.neural_network import MLPRegressor as _MLPRegressor
 
-from script.sklearn_like_toolkit.base.BaseWrapperReg import BaseWrapperReg
-from script.sklearn_like_toolkit.base.MixIn import MetaBaseWrapperReg_with_ABC
+from script.sklearn_like_toolkit.warpper.base.BaseWrapperReg import BaseWrapperReg
+from script.sklearn_like_toolkit.warpper.base.MixIn import MetaBaseWrapperReg_with_ABC
 
 
 class skMLPReg(_MLPRegressor, BaseWrapperReg, metaclass=MetaBaseWrapperReg_with_ABC):

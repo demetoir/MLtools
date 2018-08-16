@@ -1,8 +1,8 @@
 from hyperopt import hp
 from sklearn.neighbors import RadiusNeighborsClassifier as _RadiusNeighborsClassifier
 
-from script.sklearn_like_toolkit.base.BaseWrapperClf import BaseWrapperClf
-from script.sklearn_like_toolkit.base.MixIn import MetaBaseWrapperClf_with_ABC
+from script.sklearn_like_toolkit.warpper.base.BaseWrapperClf import BaseWrapperClf
+from script.sklearn_like_toolkit.warpper.base.MixIn import MetaBaseWrapperClf_with_ABC
 
 
 class skRadiusNeighborsClf(_RadiusNeighborsClassifier, BaseWrapperClf, metaclass=MetaBaseWrapperClf_with_ABC):

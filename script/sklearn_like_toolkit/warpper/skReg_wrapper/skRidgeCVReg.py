@@ -1,7 +1,7 @@
 from sklearn.linear_model import RidgeCV as _RidgeCVReg
 
-from script.sklearn_like_toolkit.base.BaseWrapperReg import BaseWrapperReg
-from script.sklearn_like_toolkit.base.MixIn import MetaBaseWrapperReg_with_ABC
+from script.sklearn_like_toolkit.warpper.base.BaseWrapperReg import BaseWrapperReg
+from script.sklearn_like_toolkit.warpper.base.MixIn import MetaBaseWrapperReg_with_ABC
 
 
 class skRidgeCVReg(_RidgeCVReg, BaseWrapperReg, metaclass=MetaBaseWrapperReg_with_ABC):
