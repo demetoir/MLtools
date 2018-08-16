@@ -72,8 +72,8 @@ CPU_COUNT = mp.cpu_count() - 1
 class HyperOpt(singletonPoolMixIn):
     _pool_singleton = None
 
-    def __init__(self, min_best=True, n_job=CPU_COUNT):
-        singletonPoolMixIn.__init__(self, n_job)
+    def __init__(self, min_best=True, n_jobs=CPU_COUNT):
+        singletonPoolMixIn.__init__(self, n_jobs)
         self._min_best = min_best
         self._trials = None
         self._best_param = None
