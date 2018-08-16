@@ -186,6 +186,8 @@ class DF_binning_encoder(PickleMixIn):
 
             if count > mapper[encode_value][0]:
                 mapper[encode_value] = (count, col_value)
+
+        mapper = {key: val[1] for key, val in mapper.items()}
         return mapper
 
     def fit(self, df, col, bins, encode_method=None, decode_method='major'):
