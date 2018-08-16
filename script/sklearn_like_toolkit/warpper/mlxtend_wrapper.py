@@ -15,8 +15,7 @@ from script.sklearn_like_toolkit.base.BaseWrapperReg import BaseWrapperReg
 from script.sklearn_like_toolkit.base.BaseWrapperClf import BaseWrapperClf
 from script.sklearn_like_toolkit.warpper.skClf_wrapper.skBernoulli_NBClf import \
     skBernoulli_NBClf
-from script.sklearn_like_toolkit.base.MixIn import meta_BaseWrapperClf
-from script.sklearn_like_toolkit.base.MixIn import MetaBaseWrapperClf_with_ABC
+from script.sklearn_like_toolkit.base.MixIn import MetaBaseWrapperClf_with_ABC, MetaBaseWrapperClf
 from script.sklearn_like_toolkit.base.MixIn import MetaBaseWrapperReg_with_ABC
 import warnings
 
@@ -163,8 +162,7 @@ class mlxVotingClf(_EnsembleVoteClassifier):
         super().__init__(clfs, voting, weights, verbose, refit)
 
 
-class mlxStackingClf(BaseWrapperClf, _StackingClassifier,
-                     metaclass=meta_BaseWrapperClf):
+class mlxStackingClf(BaseWrapperClf, _StackingClassifier, metaclass=MetaBaseWrapperClf):
     tuning_grid = {}
 
     HyperOpt_space = {}
@@ -189,8 +187,7 @@ class mlxStackingClf(BaseWrapperClf, _StackingClassifier,
         return self._apply_metric_pack(y, self.predict(x))
 
 
-class mlxStackingCVClf(BaseWrapperClf, _StackingCVClassifier,
-                       metaclass=meta_BaseWrapperClf):
+class mlxStackingCVClf(BaseWrapperClf, _StackingCVClassifier,metaclass=MetaBaseWrapperClf):
     tuning_grid = {}
 
     HyperOpt_space = {}
