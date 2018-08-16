@@ -2,12 +2,12 @@ import warnings
 from catboost import CatBoostClassifier as _CatBoostClassifier
 from catboost import CatBoostRegressor as _CatBoostRegressor
 from script.sklearn_like_toolkit.base.BaseWrapperClf import BaseWrapperClf
-from script.sklearn_like_toolkit.base.MixIn import meta_BaseWrapperClf_with_ABC, meta_BaseWrapperReg_with_ABC
+from script.sklearn_like_toolkit.base.MixIn import MetaBaseWrapperClf_with_ABC, MetaBaseWrapperReg_with_ABC
 from script.sklearn_like_toolkit.base.BaseWrapperReg import BaseWrapperReg
 from hyperopt import hp
 
 
-class CatBoostClf(BaseWrapperClf, _CatBoostClassifier, metaclass=meta_BaseWrapperClf_with_ABC):
+class CatBoostClf(BaseWrapperClf, _CatBoostClassifier, metaclass=MetaBaseWrapperClf_with_ABC):
     HyperOpt_space = {
         'iterations': 2 + hp.randint('iterations', 10),
         'depth': 4 + hp.randint('depth', 11),
@@ -46,7 +46,7 @@ class CatBoostClf(BaseWrapperClf, _CatBoostClassifier, metaclass=meta_BaseWrappe
         return self.feature_importances_
 
 
-class CatBoostReg(_CatBoostRegressor, BaseWrapperReg, metaclass=meta_BaseWrapperReg_with_ABC):
+class CatBoostReg(_CatBoostRegressor, BaseWrapperReg, metaclass=MetaBaseWrapperReg_with_ABC):
     HyperOpt_space = {
         'iterations': 2 + hp.randint('iterations', 10),
         'depth': 4 + hp.randint('depth', 11),

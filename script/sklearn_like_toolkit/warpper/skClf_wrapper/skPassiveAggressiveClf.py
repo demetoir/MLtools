@@ -2,10 +2,10 @@ from hyperopt import hp
 from sklearn.linear_model import PassiveAggressiveClassifier as _PassiveAggressiveClassifier
 
 from script.sklearn_like_toolkit.base.BaseWrapperClf import BaseWrapperClf
-from script.sklearn_like_toolkit.base.MixIn import meta_BaseWrapperClf_with_ABC
+from script.sklearn_like_toolkit.base.MixIn import MetaBaseWrapperClf_with_ABC
 
 
-class skPassiveAggressiveClf(_PassiveAggressiveClassifier, BaseWrapperClf, metaclass=meta_BaseWrapperClf_with_ABC):
+class skPassiveAggressiveClf(_PassiveAggressiveClassifier, BaseWrapperClf, metaclass=MetaBaseWrapperClf_with_ABC):
 
     def __init__(self, C=1.0, fit_intercept=True, max_iter=1000, tol=None, shuffle=True, verbose=0, loss="hinge",
                  n_jobs=1, random_state=None, warm_start=False, class_weight=None, average=False, n_iter=None):

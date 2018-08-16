@@ -2,10 +2,10 @@ from hyperopt import hp
 from sklearn.neural_network import MLPRegressor as _MLPRegressor
 
 from script.sklearn_like_toolkit.base.BaseWrapperReg import BaseWrapperReg
-from script.sklearn_like_toolkit.base.MixIn import meta_BaseWrapperReg_with_ABC
+from script.sklearn_like_toolkit.base.MixIn import MetaBaseWrapperReg_with_ABC
 
 
-class skMLPReg(_MLPRegressor, BaseWrapperReg, metaclass=meta_BaseWrapperReg_with_ABC):
+class skMLPReg(_MLPRegressor, BaseWrapperReg, metaclass=MetaBaseWrapperReg_with_ABC):
 
     def __init__(self, hidden_layer_sizes=(100,), activation="relu", solver='adam', alpha=0.0001, batch_size='auto',
                  learning_rate="constant", learning_rate_init=0.001, power_t=0.5, max_iter=1000, shuffle=True,

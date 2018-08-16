@@ -2,11 +2,11 @@ from hyperopt import hp
 from sklearn.ensemble import BaggingClassifier as _BaggingClassifier
 
 from script.sklearn_like_toolkit.base.BaseWrapperClf import BaseWrapperClf
-from script.sklearn_like_toolkit.base.MixIn import meta_BaseWrapperClf_with_ABC
+from script.sklearn_like_toolkit.base.MixIn import MetaBaseWrapperClf_with_ABC
 import numpy as np
 
 
-class skBaggingClf(BaseWrapperClf, _BaggingClassifier, metaclass=meta_BaseWrapperClf_with_ABC):
+class skBaggingClf(BaseWrapperClf, _BaggingClassifier, metaclass=MetaBaseWrapperClf_with_ABC):
     def __init__(self, base_estimator=None, n_estimators=10, max_samples=1.0, max_features=1.0, bootstrap=True,
                  bootstrap_features=False, oob_score=False, warm_start=False, n_jobs=1, random_state=None, verbose=0):
         n_estimators = int(n_estimators)

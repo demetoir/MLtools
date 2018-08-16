@@ -5,7 +5,7 @@ from script.data_handler.DummyDataset import DummyDataset
 from script.sklearn_like_toolkit.HyperOpt.HyperOpt import HyperOpt, HyperOpt_fn
 from script.sklearn_like_toolkit.ParamOptimizer import ParamOptimizer
 from script.sklearn_like_toolkit.base.MixIn import RegWrapperMixIn, \
-    meta_BaseWrapperReg
+    MetaBaseWrapperReg
 from script.sklearn_like_toolkit.warpper.wrapperGridSearchCV import \
     wrapperGridSearchCV
 from script.util.misc_util import time_stamp, dump_pickle, load_pickle, \
@@ -31,7 +31,7 @@ class regpack_HyperOpt_fn(HyperOpt_fn):
         return score
 
 
-class BaseWrapperRegPack(RegWrapperMixIn, metaclass=meta_BaseWrapperReg):
+class BaseWrapperRegPack(RegWrapperMixIn, metaclass=MetaBaseWrapperReg):
     class_pack = {}
 
     def __init__(self, pack_keys=None):

@@ -1,7 +1,7 @@
 from progressbar import ProgressBar
 from sklearn import model_selection
 from sklearn.externals.joblib import Parallel
-from script.sklearn_like_toolkit.base.MixIn import ClfWrapperMixIn, meta_BaseWrapperClf_with_ABC
+from script.sklearn_like_toolkit.base.MixIn import ClfWrapperMixIn, MetaBaseWrapperClf_with_ABC
 import multiprocessing
 
 CPU_COUNT = multiprocessing.cpu_count()
@@ -38,7 +38,7 @@ class RandomizedSearchCVProgressBar(model_selection.RandomizedSearchCV):
         return iterator
 
 
-class wrapperRandomizedSearchCV(RandomizedSearchCVProgressBar, ClfWrapperMixIn, metaclass=meta_BaseWrapperClf_with_ABC):
+class wrapperRandomizedSearchCV(RandomizedSearchCVProgressBar, ClfWrapperMixIn, metaclass=MetaBaseWrapperClf_with_ABC):
     def __init__(self, estimator, param_distributions, n_iter=10, scoring=None, fit_params=None, n_jobs=CPU_COUNT,
                  iid=True, refit=True, cv=None, verbose=0, pre_dispatch='2*n_jobs', random_state=None,
                  error_score='raise', return_train_score="warn"):

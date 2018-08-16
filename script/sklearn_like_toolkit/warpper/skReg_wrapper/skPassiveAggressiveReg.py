@@ -3,10 +3,10 @@ from sklearn.linear_model import PassiveAggressiveRegressor as _PassiveAggressiv
 from sklearn.linear_model.stochastic_gradient import DEFAULT_EPSILON
 
 from script.sklearn_like_toolkit.base.BaseWrapperReg import BaseWrapperReg
-from script.sklearn_like_toolkit.base.MixIn import meta_BaseWrapperReg_with_ABC
+from script.sklearn_like_toolkit.base.MixIn import MetaBaseWrapperReg_with_ABC
 
 
-class skPassiveAggressiveReg(_PassiveAggressiveRegressor, BaseWrapperReg, metaclass=meta_BaseWrapperReg_with_ABC):
+class skPassiveAggressiveReg(_PassiveAggressiveRegressor, BaseWrapperReg, metaclass=MetaBaseWrapperReg_with_ABC):
 
     def __init__(self, C=1.0, fit_intercept=True, max_iter=1000, tol=None, shuffle=True, verbose=0,
                  loss="epsilon_insensitive", epsilon=DEFAULT_EPSILON, random_state=None, warm_start=False,

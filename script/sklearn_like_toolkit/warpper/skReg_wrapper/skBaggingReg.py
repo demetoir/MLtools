@@ -2,10 +2,10 @@ from hyperopt import hp
 from sklearn.ensemble import BaggingRegressor as _BaggingRegressor
 
 from script.sklearn_like_toolkit.base.BaseWrapperReg import BaseWrapperReg
-from script.sklearn_like_toolkit.base.MixIn import meta_BaseWrapperReg_with_ABC
+from script.sklearn_like_toolkit.base.MixIn import MetaBaseWrapperReg_with_ABC
 
 
-class skBaggingReg(_BaggingRegressor, BaseWrapperReg, metaclass=meta_BaseWrapperReg_with_ABC):
+class skBaggingReg(_BaggingRegressor, BaseWrapperReg, metaclass=MetaBaseWrapperReg_with_ABC):
 
     def __init__(self, base_estimator=None, n_estimators=10, max_samples=1.0, max_features=1.0, bootstrap=True,
                  bootstrap_features=False, oob_score=False, warm_start=False, n_jobs=1, random_state=None,

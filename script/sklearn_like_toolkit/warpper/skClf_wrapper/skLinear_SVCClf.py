@@ -2,10 +2,10 @@ from hyperopt import hp
 from sklearn.svm import LinearSVC as _skLinearSVC
 
 from script.sklearn_like_toolkit.base.BaseWrapperClf import BaseWrapperClf
-from script.sklearn_like_toolkit.base.MixIn import meta_BaseWrapperClf_with_ABC
+from script.sklearn_like_toolkit.base.MixIn import MetaBaseWrapperClf_with_ABC
 
 
-class skLinear_SVCClf(BaseWrapperClf, _skLinearSVC, metaclass=meta_BaseWrapperClf_with_ABC):
+class skLinear_SVCClf(BaseWrapperClf, _skLinearSVC, metaclass=MetaBaseWrapperClf_with_ABC):
     def __init__(self, penalty='l2', loss='squared_hinge', dual=True, tol=1e-4, C=1.0, multi_class='ovr',
                  fit_intercept=True, intercept_scaling=1, class_weight=None, verbose=0, random_state=None,
                  max_iter=1000):

@@ -2,10 +2,10 @@ from hyperopt import hp
 from sklearn.linear_model import LassoCV as _LassoCVReg
 
 from script.sklearn_like_toolkit.base.BaseWrapperReg import BaseWrapperReg
-from script.sklearn_like_toolkit.base.MixIn import meta_BaseWrapperReg_with_ABC
+from script.sklearn_like_toolkit.base.MixIn import MetaBaseWrapperReg_with_ABC
 
 
-class skLassoCVReg(_LassoCVReg, BaseWrapperReg, metaclass=meta_BaseWrapperReg_with_ABC):
+class skLassoCVReg(_LassoCVReg, BaseWrapperReg, metaclass=MetaBaseWrapperReg_with_ABC):
 
     def __init__(self, eps=1e-3, n_alphas=100, alphas=None, fit_intercept=True, normalize=False, precompute='auto',
                  max_iter=1000, tol=1e-4, copy_X=True, cv=None, verbose=False, n_jobs=1, positive=False,

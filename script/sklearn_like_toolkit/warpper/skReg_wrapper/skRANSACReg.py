@@ -2,10 +2,10 @@ import numpy as np
 from sklearn.linear_model import RANSACRegressor as _RANSACRegressor
 
 from script.sklearn_like_toolkit.base.BaseWrapperReg import BaseWrapperReg
-from script.sklearn_like_toolkit.base.MixIn import meta_BaseWrapperReg_with_ABC
+from script.sklearn_like_toolkit.base.MixIn import MetaBaseWrapperReg_with_ABC
 
 
-class skRANSACReg(_RANSACRegressor, BaseWrapperReg, metaclass=meta_BaseWrapperReg_with_ABC):
+class skRANSACReg(_RANSACRegressor, BaseWrapperReg, metaclass=MetaBaseWrapperReg_with_ABC):
 
     def __init__(self, base_estimator=None, min_samples=None, residual_threshold=None, is_data_valid=None,
                  is_model_valid=None, max_trials=100, max_skips=np.inf, stop_n_inliers=np.inf, stop_score=np.inf,
