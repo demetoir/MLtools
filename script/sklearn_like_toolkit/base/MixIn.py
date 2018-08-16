@@ -1,6 +1,8 @@
 from abc import ABCMeta
 import numpy as np
+import pandas as pd
 from sklearn.metrics import accuracy_score, confusion_matrix, roc_auc_score, recall_score, precision_score
+from script.data_handler.DFEncoder import DFEncoder
 from script.util.MixIn import PickleMixIn, LoggerMixIn
 from script.util.numpy_utils import reformat_np_arr, NP_ARRAY_TYPE_INDEX, NP_ARRAY_TYPE_ONEHOT
 from sklearn.metrics.regression import r2_score
@@ -25,6 +27,63 @@ class yLabelOneHotConvertMixIn:
     @staticmethod
     def np_arr_to_onehot(x, n=None):
         return reformat_np_arr(x, NP_ARRAY_TYPE_ONEHOT, n=n)
+
+
+class DFEncoderMixin:
+    def __init__(self, x_df_encoder=None, y_df_encoder=None):
+        if x_df_encoder:
+            self.x_df_encoder = x_df_encoder
+        else:
+            self.x_df_encoder = DFEncoder()
+
+        if y_df_encoder:
+            self.y_df_encoder = y_df_encoder
+        else:
+            self.y_df_encoder = DFEncoder()
+
+        self.is_encoded = False
+
+    @staticmethod
+    def _is_df(x):
+        return type(x) == pd.DataFrame
+
+    @staticmethod
+    def _is_np(x):
+        return type(x) == np.array
+
+    def _if_df_encode(self, x, y):
+        x = self._if_df_encode_x(x)
+        y = self._if_df_encode_y(y)
+        return x, y
+
+    def _if_df_encode_x(self, x):
+        if self._is_df(x):
+            if not self.x_df_encoder.is_fit:
+                self.x_df_encoder.fit(x)
+
+            x = self.x_df_encoder.encode_to_np(x)
+            self.is_encoded = True
+        return x
+
+    def _if_df_decode_x(self, x):
+        if self.is_encoded:
+            x = self.x_df_encoder.decode_from_np(x)
+        return x
+
+    def _if_df_encode_y(self, y):
+        if self._is_df(y):
+            if not self.y_df_encoder.is_fit:
+                self.y_df_encoder.fit(y)
+
+            y = self.y_df_encoder.encode_to_np(y)
+            self.is_encoded = True
+        return y
+
+    def _if_df_decode_y(self, y):
+        if self.is_encoded:
+            y = self.y_df_encoder.decode_from_np(y)
+            y = self.y_df_encoder.to_np(y)
+        return y
 
 
 class MetaBaseWrapperClf(type):
@@ -92,18 +151,18 @@ class ClfPredictConfidenceMixIn:
         np_arr = np_arr.sum(axis=1)
         return np_arr
 
-    def _predict_confidence(self, Xs):
+    def _predict_confidence(self, x):
         if hasattr(self, 'predict_proba'):
             func = getattr(self, 'predict_proba')
-            confidences = func(Xs)
+            confidences = func(x)
         else:
             getattr(self, 'log').warn(f'skip predict_confidence, {self.__class__} has no predict_proba')
             confidences = None
 
         return confidences
 
-    def predict_confidence(self, Xs):
-        return self._predict_confidence(Xs)
+    def predict_confidence(self, x):
+        return self._predict_confidence(x)
 
 
 class ClfWrapperMixIn(
@@ -111,16 +170,18 @@ class ClfWrapperMixIn(
     PickleMixIn,
     LoggerMixIn,
     ClfPredictConfidenceMixIn,
-    etc_MixIn
+    etc_MixIn,
+    DFEncoderMixin
 ):
     HyperOpt_space = None
 
-    def __init__(self):
+    def __init__(self, x_df_encoder=None, y_df_encoder=None):
         ClfScorePackMixIn.__init__(self)
         PickleMixIn.__init__(self)
         LoggerMixIn.__init__(self)
         ClfPredictConfidenceMixIn.__init__(self)
         etc_MixIn.__init__(self)
+        DFEncoderMixin.__init__(self, x_df_encoder, y_df_encoder)
 
 
 class MetaBaseWrapperReg(type):
