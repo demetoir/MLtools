@@ -1,15 +1,15 @@
-from script.data_handler.DF_encoder import DF_encoder
+from script.data_handler.DFEncoder import DFEncoder
 from pprint import pprint
 from pandas import DataFrame as DF
 
 
-def test_df_encoder():
+def test_DFEncoder():
     df = DF({
         'A': ['a', 'b', 'c', 'a', 'c'],
         'B': [1, 2, 3, 4, 5]
     })
 
-    enc = DF_encoder()
+    enc = DFEncoder()
     cate_cols = ['A']
     conti_cols = ['B']
     enc.fit(df)
@@ -31,7 +31,7 @@ def test_df_encoder():
     pprint(encoder_df.head())
 
     enc.dump('./enc.pckl')
-    enc = DF_encoder().load('./enc.pckl')
+    enc = DFEncoder().load('./enc.pckl')
 
     cate_cols = ['A']
     conti_cols = ['B']

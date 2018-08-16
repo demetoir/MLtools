@@ -12,7 +12,7 @@ np_number_types = (
 )
 
 
-class DF_encoder(PickleMixIn):
+class DFEncoder(PickleMixIn):
     scale_method_class = {
         'minmax': preprocessing.MinMaxScaler,
         'maxabs': preprocessing.MaxAbsScaler,
@@ -182,7 +182,8 @@ class DF_encoder(PickleMixIn):
     def decode_from_np(self, np_arr):
         return self.decode(self.from_np(np_arr, self.encoded_cols))
 
-    def to_np(self, df: DF):
+    @staticmethod
+    def to_np(df: DF):
         np_dtypes = [df[key].dtype for key in df.keys()]
 
         ret = {}
