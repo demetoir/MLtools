@@ -2,11 +2,11 @@ from hyperopt import hp
 from sklearn.linear_model import LogisticRegression as _LogisticRegression
 
 from script.sklearn_like_toolkit.warpper.base.BaseWrapperReg import BaseWrapperReg
-from script.sklearn_like_toolkit.warpper.base.MixIn import MetaBaseWrapperReg_with_ABC
+from script.sklearn_like_toolkit.warpper.base.MixIn import MetaBaseWrapperRegWithABC
 
 
 class skLogisticReg(_LogisticRegression, BaseWrapperReg,
-                    metaclass=MetaBaseWrapperReg_with_ABC):
+                    metaclass=MetaBaseWrapperRegWithABC):
 
     def __init__(self, penalty='l2', dual=False, tol=1e-4, C=1.0,
                  fit_intercept=True, intercept_scaling=1,

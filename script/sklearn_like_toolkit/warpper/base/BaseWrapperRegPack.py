@@ -3,7 +3,7 @@ from pprint import pformat
 from env_settting import SKLEARN_PARAMS_SAVE_PATH
 from script.data_handler.DummyDataset import DummyDataset
 from script.sklearn_like_toolkit.param_search.HyperOpt.HyperOpt import HyperOpt, HyperOpt_fn
-from script.sklearn_like_toolkit.param_search.ParamOptimizer import ParamOptimizer
+from script.sklearn_like_toolkit.param_search.ParamOpt import ParamOptimizer
 from script.sklearn_like_toolkit.warpper.base.MixIn import RegWrapperMixIn, \
     MetaBaseWrapperReg
 from script.sklearn_like_toolkit.warpper.wrapperGridSearchCV import \

@@ -2,10 +2,10 @@ from hyperopt import hp
 from sklearn.linear_model import RidgeClassifier as _RidgeClassifier
 
 from script.sklearn_like_toolkit.warpper.base.BaseWrapperClf import BaseWrapperClf
-from script.sklearn_like_toolkit.warpper.base.MixIn import MetaBaseWrapperClf_with_ABC
+from script.sklearn_like_toolkit.warpper.base.MixIn import MetaBaseWrapperClfWithABC
 
 
-class skRidgeClf(_RidgeClassifier, BaseWrapperClf, metaclass=MetaBaseWrapperClf_with_ABC):
+class skRidgeClf(_RidgeClassifier, BaseWrapperClf, metaclass=MetaBaseWrapperClfWithABC):
 
     def __init__(self, alpha=1.0, fit_intercept=True, normalize=False, copy_X=True, max_iter=None, tol=1e-3,
                  class_weight=None, solver="auto", random_state=None):

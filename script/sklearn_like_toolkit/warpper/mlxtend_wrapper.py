@@ -15,13 +15,13 @@ from script.sklearn_like_toolkit.warpper.base.BaseWrapperReg import BaseWrapperR
 from script.sklearn_like_toolkit.warpper.base.BaseWrapperClf import BaseWrapperClf
 from script.sklearn_like_toolkit.warpper.skClf_wrapper.skBernoulli_NBClf import \
     skBernoulli_NBClf
-from script.sklearn_like_toolkit.warpper.base.MixIn import MetaBaseWrapperClf_with_ABC, MetaBaseWrapperClf
-from script.sklearn_like_toolkit.warpper.base.MixIn import MetaBaseWrapperReg_with_ABC
+from script.sklearn_like_toolkit.warpper.base.MixIn import MetaBaseWrapperClfWithABC, MetaBaseWrapperClf
+from script.sklearn_like_toolkit.warpper.base.MixIn import MetaBaseWrapperRegWithABC
 import warnings
 
 
 class mlxAdalineClf(_Adaline, BaseWrapperClf,
-                    metaclass=MetaBaseWrapperClf_with_ABC):
+                    metaclass=MetaBaseWrapperClfWithABC):
     HyperOpt_space = {
         'eta': hp.uniform('eta', 0, 1),
         'epochs': hp.qloguniform('epochs', 3, 6, 1),
@@ -47,7 +47,7 @@ class mlxAdalineClf(_Adaline, BaseWrapperClf,
 
 
 class mlxLogisticRegressionClf(_LogisticRegression, BaseWrapperClf,
-                               metaclass=MetaBaseWrapperClf_with_ABC):
+                               metaclass=MetaBaseWrapperClfWithABC):
     HyperOpt_space = {
         'eta': hp.uniform('eta', 0, 1),
         'epochs': hp.qloguniform('epochs', 3, 6, 1),
@@ -73,7 +73,7 @@ class mlxLogisticRegressionClf(_LogisticRegression, BaseWrapperClf,
 
 
 class mlxMLPClf(_MultiLayerPerceptron, BaseWrapperClf,
-                metaclass=MetaBaseWrapperClf_with_ABC):
+                metaclass=MetaBaseWrapperClfWithABC):
     tuning_grid = {
         'eta': [i / 10.0 for i in range(1, 10 + 1, 3)],
         'epochs': [64, 128, 256],
@@ -106,7 +106,7 @@ class mlxMLPClf(_MultiLayerPerceptron, BaseWrapperClf,
 
 
 class mlxPerceptronClf(_Perceptron, BaseWrapperClf,
-                       metaclass=MetaBaseWrapperClf_with_ABC):
+                       metaclass=MetaBaseWrapperClfWithABC):
     HyperOpt_space = {
         'eta': hp.uniform('eta', 0, 1),
         'epochs': hp.qloguniform('epochs', 3, 6, 1),
@@ -124,7 +124,7 @@ class mlxPerceptronClf(_Perceptron, BaseWrapperClf,
 
 
 class mlxSoftmaxRegressionClf(_SoftmaxRegression, BaseWrapperClf,
-                              metaclass=MetaBaseWrapperClf_with_ABC):
+                              metaclass=MetaBaseWrapperClfWithABC):
     tuning_grid = {
         'eta': [i / 10.0 for i in range(1, 10 + 1, 3)],
         'epochs': [64, 128, 256],
@@ -187,7 +187,7 @@ class mlxStackingClf(BaseWrapperClf, _StackingClassifier, metaclass=MetaBaseWrap
         return self._apply_metric_pack(y, self.predict(x))
 
 
-class mlxStackingCVClf(BaseWrapperClf, _StackingCVClassifier,metaclass=MetaBaseWrapperClf):
+class mlxStackingCVClf(BaseWrapperClf, _StackingCVClassifier, metaclass=MetaBaseWrapperClf):
     tuning_grid = {}
 
     HyperOpt_space = {}
@@ -212,8 +212,7 @@ class mlxStackingCVClf(BaseWrapperClf, _StackingCVClassifier,metaclass=MetaBaseW
         return self._apply_metric_pack(y, self.predict(x))
 
 
-class mlxLinearReg(BaseWrapperReg, _LinearRegression,
-                   metaclass=MetaBaseWrapperReg_with_ABC):
+class mlxLinearReg(BaseWrapperReg, _LinearRegression, metaclass=MetaBaseWrapperRegWithABC):
     HyperOpt_space = {
         'eta': hp.uniform('eta', 0, 1),
         'epochs': hp.qloguniform('epochs', 3, 6, 1),
@@ -243,7 +242,7 @@ class mlxLinearReg(BaseWrapperReg, _LinearRegression,
 
 
 class mlxStackingCVReg(BaseWrapperReg, _StackingCVRegressor,
-                       metaclass=MetaBaseWrapperReg_with_ABC):
+                       metaclass=MetaBaseWrapperRegWithABC):
     tuning_grid = {}
 
     HyperOpt_space = {}
@@ -257,8 +256,7 @@ class mlxStackingCVReg(BaseWrapperReg, _StackingCVRegressor,
         BaseWrapperReg.__init__(self)
 
 
-class mlxStackingReg(BaseWrapperReg, _StackingRegressor,
-                     metaclass=MetaBaseWrapperReg_with_ABC):
+class mlxStackingReg(BaseWrapperReg, _StackingRegressor, metaclass=MetaBaseWrapperRegWithABC):
     tuning_grid = {}
 
     HyperOpt_space = {}

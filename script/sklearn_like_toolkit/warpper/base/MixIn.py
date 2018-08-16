@@ -13,13 +13,13 @@ from sklearn.metrics.regression import mean_squared_log_error
 from sklearn.metrics.regression import median_absolute_error
 
 
-class etc_MixIn:
+class EtcMixIn:
     @staticmethod
     def _clone(clf):
         return clf.__class__(**clf.get_params())
 
 
-class yLabelOneHotConvertMixIn:
+class YLabelOneHotConvertMixIn:
     @staticmethod
     def np_arr_to_index(x):
         return reformat_np_arr(x, NP_ARRAY_TYPE_INDEX)
@@ -94,7 +94,7 @@ class MetaBaseWrapperClf(type):
             def wrapper(*args, **kwargs):
                 y = args[2]
                 if type(y) == np.array:
-                    args = list(args[:2]) + [yLabelOneHotConvertMixIn.np_arr_to_index(y)] + list(args[3:])
+                    args = list(args[:2]) + [YLabelOneHotConvertMixIn.np_arr_to_index(y)] + list(args[3:])
 
                 ret = func(*args, **kwargs)
                 return ret
@@ -107,11 +107,11 @@ class MetaBaseWrapperClf(type):
                 setattr(cls, func_name, deco_reformat_y(getattr(cls, func_name)))
 
 
-class MetaBaseWrapperClf_with_ABC(MetaBaseWrapperClf, ABCMeta):
+class MetaBaseWrapperClfWithABC(MetaBaseWrapperClf, ABCMeta):
     pass
 
 
-class ClfScorePackMixIn(yLabelOneHotConvertMixIn):
+class ClfScorePackMixIn(YLabelOneHotConvertMixIn):
     CLF_METRICS = {
         'accuracy': accuracy_score,
         'confusion_matrix': confusion_matrix,
@@ -121,7 +121,7 @@ class ClfScorePackMixIn(yLabelOneHotConvertMixIn):
     }
 
     def __init__(self):
-        yLabelOneHotConvertMixIn.__init__(self)
+        YLabelOneHotConvertMixIn.__init__(self)
         self._metrics = self.__class__.CLF_METRICS
 
     def _apply_metric(self, y_true, y_predict, metric):
@@ -170,7 +170,7 @@ class ClfWrapperMixIn(
     PickleMixIn,
     LoggerMixIn,
     ClfPredictConfidenceMixIn,
-    etc_MixIn,
+    EtcMixIn,
     DFEncoderMixIn
 ):
     HyperOpt_space = None
@@ -180,7 +180,7 @@ class ClfWrapperMixIn(
         PickleMixIn.__init__(self)
         LoggerMixIn.__init__(self)
         ClfPredictConfidenceMixIn.__init__(self)
-        etc_MixIn.__init__(self)
+        EtcMixIn.__init__(self)
         DFEncoderMixIn.__init__(self, x_df_encoder, y_df_encoder)
 
 
@@ -204,13 +204,13 @@ class MetaBaseWrapperReg(type):
         #         setattr(cls, func_name, deco_reformat_y(getattr(cls, func_name)))
 
 
-class MetaBaseWrapperReg_with_ABC(MetaBaseWrapperReg, ABCMeta):
+class MetaBaseWrapperRegWithABC(MetaBaseWrapperReg, ABCMeta):
     pass
 
 
-class RegScorePackMixIn(yLabelOneHotConvertMixIn):
+class RegScorePackMixIn(YLabelOneHotConvertMixIn):
     def __init__(self):
-        yLabelOneHotConvertMixIn.__init__(self)
+        YLabelOneHotConvertMixIn.__init__(self)
         self._metrics = {
             r2_score.__name__: r2_score,
             explained_variance_score.__name__: explained_variance_score,
@@ -249,7 +249,7 @@ class RegWrapperMixIn(
     RegScorePackMixIn,
     PickleMixIn,
     LoggerMixIn,
-    etc_MixIn
+    EtcMixIn
 ):
     HyperOpt_space = None
 
@@ -257,7 +257,7 @@ class RegWrapperMixIn(
         RegScorePackMixIn.__init__(self)
         PickleMixIn.__init__(self)
         LoggerMixIn.__init__(self)
-        etc_MixIn.__init__(self)
+        EtcMixIn.__init__(self)
 
     def __str__(self):
         return self.__class__.__name__

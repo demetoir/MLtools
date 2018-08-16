@@ -1,11 +1,11 @@
 from hyperopt import hp
 from sklearn.ensemble import RandomForestClassifier as _skRandomForestClassifier
 from script.sklearn_like_toolkit.warpper.base.BaseWrapperClf import BaseWrapperClf
-from script.sklearn_like_toolkit.warpper.base.MixIn import MetaBaseWrapperClf_with_ABC
+from script.sklearn_like_toolkit.warpper.base.MixIn import MetaBaseWrapperClfWithABC
 import numpy as np
 
 
-class skRandomForestClf(BaseWrapperClf, _skRandomForestClassifier, metaclass=MetaBaseWrapperClf_with_ABC):
+class skRandomForestClf(BaseWrapperClf, _skRandomForestClassifier, metaclass=MetaBaseWrapperClfWithABC):
     def __init__(self, n_estimators=10, criterion="gini", max_depth=None, min_samples_split=2, min_samples_leaf=1,
                  min_weight_fraction_leaf=0., max_features="auto", max_leaf_nodes=None, min_impurity_decrease=0.,
                  min_impurity_split=None, bootstrap=True, oob_score=False, n_jobs=1, random_state=None, verbose=0,

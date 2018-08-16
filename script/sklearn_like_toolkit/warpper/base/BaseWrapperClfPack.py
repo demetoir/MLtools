@@ -1,32 +1,18 @@
 import numpy as np
 from tqdm import tqdm
 from script.data_handler.DFEncoder import DFEncoder
-from script.sklearn_like_toolkit.param_search.HyperOpt.HyperOpt import HyperOpt_fn
 from script.sklearn_like_toolkit.warpper.base.BaseWrapperClf import BaseWrapperClf
 from script.sklearn_like_toolkit.warpper.base.MixIn import ClfWrapperMixIn, MetaBaseWrapperClf
 from script.util.misc_util import log_error_trace
 
 
-class clfpack_HyperOpt_fn(HyperOpt_fn):
-    @staticmethod
-    def fn(params, feed_args, feed_kwargs):
-        clf_cls = feed_kwargs['clf_cls']
-        dataset = feed_kwargs['dataset']
-
-        dataset.shuffle()
-        train_set, test_set = dataset.split()
-        train_Xs, train_Ys = train_set.full_batch(['Xs', 'Ys'])
-        test_Xs, test_Ys = test_set.full_batch(['Xs', 'Ys'])
-
-        clf = clf_cls(**params)
-        clf.fit(train_Xs, train_Ys)
-        score = clf.score(test_Xs, test_Ys)
-
-        return score
-
-
 class BaseWrapperClfPack(ClfWrapperMixIn, metaclass=MetaBaseWrapperClf):
     class_pack = {}
+
+    @staticmethod
+    def _clone(clf):
+
+        return super()._clone(clf)
 
     def __init__(self, pack_keys=None, n_classes=None, x_df_encoder=None, y_df_encoder=None):
         super().__init__()

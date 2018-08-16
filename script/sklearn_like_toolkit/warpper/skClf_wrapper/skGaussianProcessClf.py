@@ -2,10 +2,10 @@ from sklearn.gaussian_process import GaussianProcessClassifier as _skGaussianPro
 from sklearn.gaussian_process.kernels import RBF as _RBF
 
 from script.sklearn_like_toolkit.warpper.base.BaseWrapperClf import BaseWrapperClf
-from script.sklearn_like_toolkit.warpper.base.MixIn import MetaBaseWrapperClf_with_ABC
+from script.sklearn_like_toolkit.warpper.base.MixIn import MetaBaseWrapperClfWithABC
 
 
-class skGaussianProcessClf(BaseWrapperClf, _skGaussianProcessClassifier, metaclass=MetaBaseWrapperClf_with_ABC):
+class skGaussianProcessClf(BaseWrapperClf, _skGaussianProcessClassifier, metaclass=MetaBaseWrapperClfWithABC):
     def __init__(self, kernel=None, optimizer="fmin_l_bfgs_b", n_restarts_optimizer=0, max_iter_predict=100,
                  warm_start=False, copy_X_train=True, random_state=None, multi_class="one_vs_rest", n_jobs=1):
         n_jobs = 4

@@ -1,10 +1,10 @@
 from hyperopt import hp
 from sklearn.tree import DecisionTreeClassifier as _skDecisionTreeClassifier
 from script.sklearn_like_toolkit.warpper.base.BaseWrapperClf import BaseWrapperClf
-from script.sklearn_like_toolkit.warpper.base.MixIn import MetaBaseWrapperClf_with_ABC
+from script.sklearn_like_toolkit.warpper.base.MixIn import MetaBaseWrapperClfWithABC
 
 
-class skDecisionTreeClf(BaseWrapperClf, _skDecisionTreeClassifier, metaclass=MetaBaseWrapperClf_with_ABC):
+class skDecisionTreeClf(BaseWrapperClf, _skDecisionTreeClassifier, metaclass=MetaBaseWrapperClfWithABC):
     def __init__(self, criterion="gini", splitter="best", max_depth=None, min_samples_split=2, min_samples_leaf=1,
                  min_weight_fraction_leaf=0., max_features=None, random_state=None, max_leaf_nodes=None,
                  min_impurity_decrease=0., min_impurity_split=None, class_weight=None, presort=False):

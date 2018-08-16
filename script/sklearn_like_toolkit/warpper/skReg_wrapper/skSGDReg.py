@@ -3,10 +3,10 @@ from sklearn.linear_model import SGDRegressor as _SGDRegressor
 from sklearn.linear_model.stochastic_gradient import DEFAULT_EPSILON
 
 from script.sklearn_like_toolkit.warpper.base.BaseWrapperReg import BaseWrapperReg
-from script.sklearn_like_toolkit.warpper.base.MixIn import MetaBaseWrapperReg_with_ABC
+from script.sklearn_like_toolkit.warpper.base.MixIn import MetaBaseWrapperRegWithABC
 
 
-class skSGDReg(_SGDRegressor, BaseWrapperReg, metaclass=MetaBaseWrapperReg_with_ABC):
+class skSGDReg(_SGDRegressor, BaseWrapperReg, metaclass=MetaBaseWrapperRegWithABC):
 
     def __init__(self, loss="squared_loss", penalty="l2", alpha=0.0001, l1_ratio=0.15, fit_intercept=True,
                  max_iter=1000, tol=None, shuffle=True, verbose=0, epsilon=DEFAULT_EPSILON, random_state=None,

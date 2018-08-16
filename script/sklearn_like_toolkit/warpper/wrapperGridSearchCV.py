@@ -1,7 +1,7 @@
 from sklearn import model_selection
 from sklearn.externals.joblib import Parallel
 from tqdm import tqdm
-from script.sklearn_like_toolkit.warpper.base.MixIn import ClfWrapperMixIn, MetaBaseWrapperClf_with_ABC
+from script.sklearn_like_toolkit.warpper.base.MixIn import ClfWrapperMixIn, MetaBaseWrapperClfWithABC
 import multiprocessing
 
 CPU_COUNT = multiprocessing.cpu_count()
@@ -37,7 +37,7 @@ class GridSearchCVProgressBar(model_selection.GridSearchCV):
         return iterator
 
 
-class wrapperGridSearchCV(GridSearchCVProgressBar, ClfWrapperMixIn, metaclass=MetaBaseWrapperClf_with_ABC):
+class wrapperGridSearchCV(GridSearchCVProgressBar, ClfWrapperMixIn, metaclass=MetaBaseWrapperClfWithABC):
 
     def __init__(self, estimator, param_grid, scoring=None, fit_params=None, n_jobs=CPU_COUNT, iid=True, refit=True,
                  cv=None, verbose=0, pre_dispatch='2*n_jobs', error_score='raise', return_train_score="warn"):

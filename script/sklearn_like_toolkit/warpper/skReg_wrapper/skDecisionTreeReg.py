@@ -2,10 +2,10 @@ from hyperopt import hp
 from sklearn.tree import DecisionTreeRegressor as _DecisionTreeRegressor
 
 from script.sklearn_like_toolkit.warpper.base.BaseWrapperReg import BaseWrapperReg
-from script.sklearn_like_toolkit.warpper.base.MixIn import MetaBaseWrapperReg_with_ABC
+from script.sklearn_like_toolkit.warpper.base.MixIn import MetaBaseWrapperRegWithABC
 
 
-class skDecisionTreeReg(_DecisionTreeRegressor, BaseWrapperReg, metaclass=MetaBaseWrapperReg_with_ABC):
+class skDecisionTreeReg(_DecisionTreeRegressor, BaseWrapperReg, metaclass=MetaBaseWrapperRegWithABC):
 
     def __init__(self, criterion="mse", splitter="best", max_depth=None, min_samples_split=2, min_samples_leaf=1,
                  min_weight_fraction_leaf=0., max_features=None, random_state=None, max_leaf_nodes=None,

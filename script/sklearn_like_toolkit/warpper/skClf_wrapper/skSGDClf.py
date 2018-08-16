@@ -3,10 +3,10 @@ from sklearn.linear_model import SGDClassifier as _skSGDClassifier
 from sklearn.linear_model.stochastic_gradient import DEFAULT_EPSILON
 
 from script.sklearn_like_toolkit.warpper.base.BaseWrapperClf import BaseWrapperClf
-from script.sklearn_like_toolkit.warpper.base.MixIn import MetaBaseWrapperClf_with_ABC
+from script.sklearn_like_toolkit.warpper.base.MixIn import MetaBaseWrapperClfWithABC
 
 
-class skSGDClf(BaseWrapperClf, _skSGDClassifier, metaclass=MetaBaseWrapperClf_with_ABC):
+class skSGDClf(BaseWrapperClf, _skSGDClassifier, metaclass=MetaBaseWrapperClfWithABC):
     # todo wtf?
     # http://scikit-learn.org/stable/modules/generated/sklearn.linear_model.SGDClassifier.html#sklearn.linear_model.SGDClassifier
     def __init__(self, loss="hinge", penalty='l2', alpha=0.0001, l1_ratio=0.15, fit_intercept=True, max_iter=1000,

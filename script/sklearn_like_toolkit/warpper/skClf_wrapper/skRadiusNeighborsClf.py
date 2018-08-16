@@ -2,10 +2,10 @@ from hyperopt import hp
 from sklearn.neighbors import RadiusNeighborsClassifier as _RadiusNeighborsClassifier
 
 from script.sklearn_like_toolkit.warpper.base.BaseWrapperClf import BaseWrapperClf
-from script.sklearn_like_toolkit.warpper.base.MixIn import MetaBaseWrapperClf_with_ABC
+from script.sklearn_like_toolkit.warpper.base.MixIn import MetaBaseWrapperClfWithABC
 
 
-class skRadiusNeighborsClf(_RadiusNeighborsClassifier, BaseWrapperClf, metaclass=MetaBaseWrapperClf_with_ABC):
+class skRadiusNeighborsClf(_RadiusNeighborsClassifier, BaseWrapperClf, metaclass=MetaBaseWrapperClfWithABC):
 
     def __init__(self, radius=1.0, weights='uniform', algorithm='auto', leaf_size=30, p=2, metric='minkowski',
                  outlier_label=None, metric_params=None, **kwargs):

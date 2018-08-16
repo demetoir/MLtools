@@ -2,11 +2,11 @@ from hyperopt import hp
 from sklearn.ensemble import AdaBoostClassifier as _skAdaBoostClassifier
 
 from script.sklearn_like_toolkit.warpper.base.BaseWrapperClf import BaseWrapperClf
-from script.sklearn_like_toolkit.warpper.base.MixIn import MetaBaseWrapperClf_with_ABC
+from script.sklearn_like_toolkit.warpper.base.MixIn import MetaBaseWrapperClfWithABC
 import numpy as np
 
 
-class skAdaBoostClf(BaseWrapperClf, _skAdaBoostClassifier, metaclass=MetaBaseWrapperClf_with_ABC):
+class skAdaBoostClf(BaseWrapperClf, _skAdaBoostClassifier, metaclass=MetaBaseWrapperClfWithABC):
     def __init__(self, base_estimator=None, n_estimators=50, learning_rate=1., algorithm='SAMME.R', random_state=None):
         n_estimators = int(n_estimators)
         _skAdaBoostClassifier.__init__(self, base_estimator, n_estimators, learning_rate, algorithm, random_state)

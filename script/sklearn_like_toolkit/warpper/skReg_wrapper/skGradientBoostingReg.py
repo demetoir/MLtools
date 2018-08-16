@@ -2,10 +2,10 @@ from hyperopt import hp
 from sklearn.ensemble import GradientBoostingRegressor as _GradientBoostingRegressor
 
 from script.sklearn_like_toolkit.warpper.base.BaseWrapperReg import BaseWrapperReg
-from script.sklearn_like_toolkit.warpper.base.MixIn import MetaBaseWrapperReg_with_ABC
+from script.sklearn_like_toolkit.warpper.base.MixIn import MetaBaseWrapperRegWithABC
 
 
-class skGradientBoostingReg(_GradientBoostingRegressor, BaseWrapperReg, metaclass=MetaBaseWrapperReg_with_ABC):
+class skGradientBoostingReg(_GradientBoostingRegressor, BaseWrapperReg, metaclass=MetaBaseWrapperRegWithABC):
 
     def __init__(self, loss='ls', learning_rate=0.1, n_estimators=100, subsample=1.0, criterion='friedman_mse',
                  min_samples_split=2, min_samples_leaf=1, min_weight_fraction_leaf=0., max_depth=3,
