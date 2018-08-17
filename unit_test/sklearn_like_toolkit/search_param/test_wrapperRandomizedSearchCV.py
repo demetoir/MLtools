@@ -1,7 +1,7 @@
 from pprint import pprint
 from script.data_handler.DatasetPackLoader import DatasetPackLoader
 from script.sklearn_like_toolkit.ClassifierPack import ClassifierPack
-from script.sklearn_like_toolkit.warpper.wrapperRandomizedSearchCV import wrapperRandomizedSearchCV
+from script.sklearn_like_toolkit.param_search.HyperOpt.wrapperRandomizedSearchCV import wrapperRandomizedSearchCV
 from script.util.deco import deco_timeit
 
 
