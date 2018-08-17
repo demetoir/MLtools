@@ -1,8 +1,7 @@
 from __future__ import division
 from glob import glob
-from script.data_handler.Base.BaseDataset import BaseDataset, DownloadInfo
+from script.data_handler.Base.BaseDataset import BaseDataset
 from script.data_handler.Base.BaseDatasetPack import BaseDatasetPack
-from script.dict_keys.dataset_batch_keys import *
 import _pickle as pickle
 import os
 
@@ -12,32 +11,15 @@ class LLD_clean(BaseDataset):
     LLD_FULL = 'FULL'
     PATTERN = 'LLD_favicon_data*.pkl'
 
-    @property
-    def downloadInfos(self):
-        return [
-            DownloadInfo(
-                url="https://data.vision.ee.ethz.ch/cvl/lld_data/LLD_favicons_clean.zip",
-                is_zipped=True,
-                download_file_name="LLD_favicons_clean.zip",
-                extracted_file_names=[
-                    "LLD_favicon_data_0.pkl",
-                    "LLD_favicon_data_1.pkl",
-                    "LLD_favicon_data_2.pkl",
-                    "LLD_favicon_data_3.pkl",
-                    "LLD_favicon_data_4.pkl"
-                ]
-            )
-        ]
-
     def load(self, path):
         files = glob(os.path.join(path, self.PATTERN))
         files.sort()
-        self._data[BATCH_KEY_TRAIN_X] = None
+        self._data['x'] = None
         for file in files:
             with open(file, 'rb') as f:
                 data = pickle.load(f, encoding='latin1')
                 self.log('pickle load :%s' % file)
-            self._append_data('Xs', data)
+            self.append_data('x', data)
 
     def save(self):
         # def save_icon_data(icons, data_path, package_size=100000):

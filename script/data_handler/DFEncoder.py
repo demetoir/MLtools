@@ -1,5 +1,4 @@
 from sklearn import preprocessing
-from pandas import DataFrame as DF
 from pandas import Series
 import pandas as pd
 import numpy as np
@@ -10,6 +9,7 @@ np_number_types = (
     np.float, np.float16, np.float32, np.float64,
     np.uint, np.uint8, np.uint16, np.uint32, np.uint64
 )
+DF = pd.DataFrame
 
 
 class DFEncoder(PickleMixIn):

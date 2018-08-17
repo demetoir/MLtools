@@ -163,7 +163,6 @@ class LightGBMReg(lightgbm.LGBMRegressor, BaseWrapperReg, metaclass=MetaBaseWrap
 
         BaseWrapperReg.__init__(self)
 
-
     @property
     def feature_importances(self):
         return self.feature_importances_

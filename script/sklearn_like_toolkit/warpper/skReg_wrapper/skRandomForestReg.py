@@ -2,10 +2,11 @@ from hyperopt import hp
 from sklearn.ensemble import RandomForestRegressor as _RandomForestRegressor
 
 from script.sklearn_like_toolkit.warpper.base.BaseWrapperReg import BaseWrapperReg
-from script.sklearn_like_toolkit.base.MixIn import MetaBaseWrapperReg_with_ABC
+
+from script.sklearn_like_toolkit.warpper.base.MixIn import MetaBaseWrapperRegWithABC
 
 
-class skRandomForestReg(_RandomForestRegressor, BaseWrapperReg, metaclass=MetaBaseWrapperReg_with_ABC):
+class skRandomForestReg(_RandomForestRegressor, BaseWrapperReg, metaclass=MetaBaseWrapperRegWithABC):
 
     def __init__(self, n_estimators=10, criterion="mse", max_depth=None, min_samples_split=2, min_samples_leaf=1,
                  min_weight_fraction_leaf=0., max_features="auto", max_leaf_nodes=None, min_impurity_decrease=0.,

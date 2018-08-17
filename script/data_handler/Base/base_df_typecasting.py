@@ -1,8 +1,8 @@
 import inspect
 
-from script.util.MixIn import LoggerMixIn
-import numpy as np
 import pandas as pd
+
+from script.util.MixIn import LoggerMixIn
 
 DF = pd.DataFrame
 Series = pd.Series

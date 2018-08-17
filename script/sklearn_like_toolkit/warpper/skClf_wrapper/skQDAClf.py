@@ -3,10 +3,10 @@ import warnings
 from sklearn.discriminant_analysis import QuadraticDiscriminantAnalysis as _skQDA
 
 from script.sklearn_like_toolkit.warpper.base.BaseWrapperClf import BaseWrapperClf
-from script.sklearn_like_toolkit.warpper.base.MixIn import meta_BaseWrapperClf
+from script.sklearn_like_toolkit.warpper.base.MixIn import MetaBaseWrapperClf
 
 
-class skQDAClf(BaseWrapperClf, _skQDA, metaclass=meta_BaseWrapperClf):
+class skQDAClf(BaseWrapperClf, _skQDA, metaclass=MetaBaseWrapperClf):
     def __init__(self, priors=None, reg_param=0., store_covariance=False, tol=1.0e-4, store_covariances=None):
         warnings.filterwarnings(module='sklearn*', action='ignore', category=Warning)
 

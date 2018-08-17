@@ -61,7 +61,8 @@ class ParamOpt(DFEncoderMixIn, YLabelOneHotConvertMixIn, LoggerMixIn):
         self.optimize_result = {}
         self.params_save_path = SKLEARN_PARAMS_SAVE_PATH
 
-    def _refit(self, clf, x, y, **kwargs):
+    @staticmethod
+    def _refit(clf, x, y, **kwargs):
         dataset = BaseDataset(x=x, y=y)
         dataset.shuffle()
         train_x, train_y = dataset.full_batch()
@@ -69,7 +70,7 @@ class ParamOpt(DFEncoderMixIn, YLabelOneHotConvertMixIn, LoggerMixIn):
         clf.fit(train_x, train_y)
         return clf
 
-    def HyperOptSearchCV(self, clf, x, y, **kwargs):
+    def HyperOptSearchCV(self, clf, x, y):
         n_iter = self.n_iter
         min_best = self.min_best
         if self.n_jobs > 1:
@@ -112,14 +113,14 @@ class ParamOpt(DFEncoderMixIn, YLabelOneHotConvertMixIn, LoggerMixIn):
         # TODO
         raise NotImplementedError
 
-    def _fit(self, clf, x, y, **kwargs):
+    def _fit(self, clf, x, y):
         x, y = self._if_df_encode(x, y)
         y = self.np_arr_to_index(y)
 
         opt_func = self.opt_funcs[self.opt_method]
-        clf_optimized = opt_func(clf, x, y, **kwargs)
+        clf_optimized = opt_func(clf, x, y)
 
         return clf_optimized
 
-    def fit(self, clf, x, y, **kwargs):
-        return self._fit(clf, x, y, **kwargs)
+    def fit(self, clf, x, y):
+        return self._fit(clf, x, y)

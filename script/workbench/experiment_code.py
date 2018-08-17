@@ -1,5 +1,6 @@
 # -*- coding:utf-8 -*-
 
+
 import os
 
 import numpy as np
@@ -8,11 +9,9 @@ from catboost import CatBoostRegressor
 from lightgbm import LGBMRegressor
 from sklearn.decomposition import PCA
 from sklearn.neural_network.multilayer_perceptron import MLPRegressor
-
 from script.data_handler.DatasetPackLoader import DatasetPackLoader
 from script.data_handler.DummyDataset import DummyDataset
 from script.data_handler.HousePrices import HousePricesHelper
-from script.data_handler.titanic import build_transform
 from script.data_handler.wine_quality import wine_qualityPack
 from script.model.sklearn_like_model.AE.CVAE import CVAE, CVAE_MixIn
 from script.model.sklearn_like_model.GAN.C_GAN import C_GAN
@@ -30,6 +29,13 @@ from script.util.numpy_utils import np_stat_dict, np_minmax_normalize
 from script.util.pandas_util import df_to_onehot_embedding, df_to_np_onehot_embedding
 from unit_test.data_handler.test_wine_quality import load_wine_quality_dataset
 from unit_test.model.sklearn_like_model.GAN.test_GAN import to_zero_one_encoding
+from script.model.sklearn_like_model.BaseModel import BaseModel
+from script.util.Stacker import Stacker
+from script.util.tensor_ops import *
+from tqdm import trange
+import tensorflow as tf
+
+NpArr = np.array
 
 bprint = print
 logger = StdoutOnlyLogger()
@@ -69,7 +75,7 @@ def exp_stacking_metaclf(print, pprint):
 
 @deco_timeit
 @deco_save_log
-def exp_stackingCV_metaclf(print, pprint):
+def exp_stackingCV_metaclf(pprint):
     dataset = DatasetPackLoader().load_dataset("titanic")
     train_set, valid_set = dataset.split('train', 'train', 'valid', (7, 3))
     train_Xs, train_Ys = train_set.full_batch(['Xs', 'Ys'])
@@ -321,7 +327,7 @@ def exp_titanic_data_difficulty():
 
             stat_dicts = {
                 'mean': [],
-                'std':  []
+                'std': []
             }
             for idx, predict in enumerate(predicts):
                 row_stat = np_stat_dict(predict)
@@ -589,42 +595,40 @@ def main():
     pass
 
 
-def exp_titanic_corr_heatmap():
-    import matplotlib.pyplot as plt
-    import seaborn as sns
-
-    def plot_corr_matrix(data, attr, fig_no):
-        corr = data.corr()
-        # f, ax = plt.subplots(figsize=(11, 9))
-
-        # Generate a custom diverging colormap
-        cmap = sns.diverging_palette(220, 10, as_cmap=True)
-
-        # Draw the heatmap with the mask and correct aspect ratio
-        sns.heatmap(corr, cmap=cmap, vmax=1.0, vmin=-1.0, center=0,
-                    square=True, linewidths=.5, cbar_kws={
-                "shrink": .5
-            })
-        plt.show()
-
-    path = 'temp.csv'
-    if not os.path.exists(path):
-        df = build_transform(titanic_load_merge_set())
-        df.to_csv(path, index=False)
-        pprint(df.info())
-
-    df = pd.read_csv(path, index_col=False)
-    df = df.query('not Survived.isna()')
-    pprint(df.info())
-
-    df = df_to_onehot_embedding(df)
-    pprint(df.info())
-
-    corr = df.corr()
-    # pprint(corr)
-    pprint(list(corr['Survived_0.0'].items()))
-    pprint(list(corr['Survived_1.0'].items()))
-    # plot_corr_matrix(df, df.keys(), 3)
+# def exp_titanic_corr_heatmap():
+#     import matplotlib.pyplot as plt
+#     import seaborn as sns
+#
+#     def plot_corr_matrix(data, attr, fig_no):
+#         corr = data.corr()
+#         # f, ax = plt.subplots(figsize=(11, 9))
+#
+#         # Generate a custom diverging colormap
+#         cmap = sns.diverging_palette(220, 10, as_cmap=True)
+#
+#         # Draw the heatmap with the mask and correct aspect ratio
+#         sns.heatmap(corr, cmap=cmap, vmax=1.0, vmin=-1.0, center=0,
+#                     square=True, linewidths=.5, cbar_kws={"shrink": .5})
+#         plt.show()
+#
+#     path = 'temp.csv'
+#     if not os.path.exists(path):
+#         df = build_transform(titanic_load_merge_set())
+#         df.to_csv(path, index=False)
+#         pprint(df.info())
+#
+#     df = pd.read_csv(path, index_col=False)
+#     df = df.query('not Survived.isna()')
+#     pprint(df.info())
+#
+#     df = df_to_onehot_embedding(df)
+#     pprint(df.info())
+#
+#     corr = df.corr()
+#     # pprint(corr)
+#     pprint(list(corr['Survived_0.0'].items()))
+#     pprint(list(corr['Survived_1.0'].items()))
+#     # plot_corr_matrix(df, df.keys(), 3)
 
 
 def exp_C_GAN_with_titanic():
@@ -860,15 +864,6 @@ def titanic_submit():
     # clf_pack.dump(path)
 
 
-from script.model.sklearn_like_model.BaseModel import BaseModel
-from script.util.Stacker import Stacker
-from script.util.tensor_ops import *
-from tqdm import trange
-
-NpArr = np.array
-import tensorflow as tf
-
-
 class autoOnehot(BaseModel, CVAE_MixIn):
     _params_keys = [
         'batch_size',
@@ -1063,19 +1058,19 @@ class autoOnehot(BaseModel, CVAE_MixIn):
                 # train_ops = [self.train_op, self.train_aux]
                 train_ops = self.__train_ops
                 self.sess.run(train_ops, feed_dict={
-                    self._Xs:     Xs,
-                    self._Ys:     Ys,
+                    self._Xs: Xs,
+                    self._Ys: Ys,
                     self._noises: noise
                 })
 
                 recon = self.sess.run(self.Xs_recon, feed_dict={
-                    self._Xs:     Xs,
-                    self._Ys:     Ys,
+                    self._Xs: Xs,
+                    self._Ys: Ys,
                     self._noises: noise
                 })
                 self.sess.run(train_ops, feed_dict={
-                    self._Xs:     recon,
-                    self._Ys:     Ys,
+                    self._Xs: recon,
+                    self._Ys: Ys,
                     self._noises: noise
                 })
 
@@ -1088,14 +1083,14 @@ class autoOnehot(BaseModel, CVAE_MixIn):
     def code(self, Xs):
         noise = self.get_noises(Xs.shape)
         return self.get_tf_values(self._code_ops, {
-            self._Xs:     Xs,
+            self._Xs: Xs,
             self._noises: noise
         })
 
     def recon(self, Xs):
         noise = self.get_noises(Xs.shape)
         return self.get_tf_values(self._recon_ops, {
-            self._Xs:     Xs,
+            self._Xs: Xs,
             self._noises: noise
         })
 
@@ -1104,14 +1099,14 @@ class autoOnehot(BaseModel, CVAE_MixIn):
         metric_ops = self.__metric_ops
         ae_loss, aux_reg_loss, index_loss = self.get_tf_values(metric_ops,
                                                                {
-                                                                   self._Xs:     Xs,
-                                                                   self.Ys:      Ys,
+                                                                   self._Xs: Xs,
+                                                                   self.Ys: Ys,
                                                                    self._noises: noise
                                                                })
         return {
-            'ae_loss':      np.mean(ae_loss),
+            'ae_loss': np.mean(ae_loss),
             'aux_reg_loss': np.mean(aux_reg_loss),
-            'index_loss':   np.mean(index_loss)
+            'index_loss': np.mean(index_loss)
         }
 
     def generate(self, zs, Ys):
@@ -1123,8 +1118,8 @@ class autoOnehot(BaseModel, CVAE_MixIn):
     def predict(self, Xs, Ys):
         noise = self.get_noises(Xs.shape)
         return self.get_tf_values(self.h_aux_reg, {
-            self._Xs:     Xs,
-            self.Ys:      Ys,
+            self._Xs: Xs,
+            self.Ys: Ys,
             self._noises: noise
         })
         pass
@@ -1303,8 +1298,8 @@ def exp_data_aug_VAE_wine_quality():
     metric = np.mean(metric)
     print(metric)
 
-    def train_doubling_batch_size(tf_model, Xs, Ys, epoch=100, iter=3):
-        for _ in range(iter):
+    def train_doubling_batch_size(tf_model, Xs, Ys, epoch=100, iter_=3):
+        for _ in range(iter_):
             tf_model.train(Xs, Ys, epoch=epoch)
             metric = tf_model.metric(Xs, Ys)
             metric = np.mean(metric)

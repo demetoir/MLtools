@@ -83,8 +83,6 @@ def exploit_data():
     print(cols)
 
 
-
-
 @deco_timeit
 def main():
     # SamsungInference().pipeline()
