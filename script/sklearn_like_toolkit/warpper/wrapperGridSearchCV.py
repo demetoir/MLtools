@@ -1,7 +1,7 @@
-from progressbar import ProgressBar
 from sklearn import model_selection
 from sklearn.externals.joblib import Parallel
-from script.sklearn_like_toolkit.base.MixIn import ClfWrapperMixIn, meta_BaseWrapperClf_with_ABC
+from tqdm import tqdm
+from script.sklearn_like_toolkit.warpper.base.MixIn import ClfWrapperMixIn, MetaBaseWrapperClfWithABC
 import multiprocessing
 
 CPU_COUNT = multiprocessing.cpu_count()
@@ -26,8 +26,9 @@ class GridSearchCVProgressBar(model_selection.GridSearchCV):
 
         class ParallelProgressBar(Parallel):
             def __call__(self, iterable):
-                bar = ProgressBar(max_value=max_value, title='GridSearchCV')
-                iterable = bar(iterable)
+                bar = tqdm(max_value=max_value, title='GridSearchCV')
+                bar.iterable = iterable
+                # iterable = bar(iterable)
                 return super(ParallelProgressBar, self).__call__(iterable)
 
         # Monkey patch
@@ -36,7 +37,7 @@ class GridSearchCVProgressBar(model_selection.GridSearchCV):
         return iterator
 
 
-class wrapperGridSearchCV(GridSearchCVProgressBar, ClfWrapperMixIn, metaclass=meta_BaseWrapperClf_with_ABC):
+class wrapperGridSearchCV(GridSearchCVProgressBar, ClfWrapperMixIn, metaclass=MetaBaseWrapperClfWithABC):
 
     def __init__(self, estimator, param_grid, scoring=None, fit_params=None, n_jobs=CPU_COUNT, iid=True, refit=True,
                  cv=None, verbose=0, pre_dispatch='2*n_jobs', error_score='raise', return_train_score="warn"):

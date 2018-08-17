@@ -1,11 +1,11 @@
 from hyperopt import hp
 from sklearn.linear_model import Lasso as _LassoReg
 
-from script.sklearn_like_toolkit.base.BaseWrapperReg import BaseWrapperReg
-from script.sklearn_like_toolkit.base.MixIn import meta_BaseWrapperReg_with_ABC
+from script.sklearn_like_toolkit.warpper.base.BaseWrapperReg import BaseWrapperReg
+from script.sklearn_like_toolkit.warpper.base.MixIn import MetaBaseWrapperRegWithABC
 
 
-class skLassoReg(_LassoReg, BaseWrapperReg, metaclass=meta_BaseWrapperReg_with_ABC):
+class skLassoReg(_LassoReg, BaseWrapperReg, metaclass=MetaBaseWrapperRegWithABC):
 
     def __init__(self, alpha=1.0, fit_intercept=True, normalize=False, precompute=False, copy_X=True, max_iter=1000,
                  tol=1e-4, warm_start=False, positive=False, random_state=None, selection='cyclic'):

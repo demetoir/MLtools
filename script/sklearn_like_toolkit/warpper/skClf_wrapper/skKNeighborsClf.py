@@ -1,10 +1,10 @@
 from hyperopt import hp
 from sklearn.neighbors import KNeighborsClassifier as _KNeighborsClassifier
-from script.sklearn_like_toolkit.base.BaseWrapperClf import BaseWrapperClf
-from script.sklearn_like_toolkit.base.MixIn import meta_BaseWrapperClf_with_ABC
+from script.sklearn_like_toolkit.warpper.base.BaseWrapperClf import BaseWrapperClf
+from script.sklearn_like_toolkit.warpper.base.MixIn import MetaBaseWrapperClfWithABC
 
 
-class skKNeighborsClf(_KNeighborsClassifier, BaseWrapperClf, metaclass=meta_BaseWrapperClf_with_ABC):
+class skKNeighborsClf(_KNeighborsClassifier, BaseWrapperClf, metaclass=MetaBaseWrapperClfWithABC):
 
     def __init__(self, n_neighbors=5, weights='uniform', algorithm='auto', leaf_size=30, p=2, metric='minkowski',
                  metric_params=None, n_jobs=1, **kwargs):

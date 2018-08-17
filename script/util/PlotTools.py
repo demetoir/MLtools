@@ -1,11 +1,15 @@
 import itertools
 import warnings
 import numpy as np
-from inspect import signature
+import pandas as pd
+import os
 from PIL import Image
+from inspect import signature
+import matplotlib
+from matplotlib import font_manager, rc
+from script.util.MixIn import LoggerMixIn
 from script.util.misc_util import time_stamp, path_join, setup_file
 from script.util.numpy_utils import np_image_save, np_img_to_tile
-import pandas as pd
 
 DF = pd.DataFrame
 
@@ -97,9 +101,9 @@ def deco_rollback_plt(func):
     return wrapper
 
 
-class PlotTools:
-
-    def __init__(self, dpi=300, save=True, show=False, extend='.png', figsize=(7, 7)):
+class PlotTools(LoggerMixIn):
+    def __init__(self, dpi=300, save=True, show=False, extend='.png', figsize=(7, 7), verbose=0):
+        super().__init__(verbose)
         warnings.filterwarnings(module='matplotlib*', action='ignore', category=UserWarning)
 
         self.fig_count = 0
@@ -198,10 +202,10 @@ class PlotTools:
         setup_file(path)
 
         if dpi is None:
-            dpi = 300
+            dpi = self.dpi
 
         if save:
-            fig.savefig(path, dpi=300)
+            fig.savefig(path, dpi=dpi)
 
         if show:
             self.plt.show()
@@ -212,6 +216,17 @@ class PlotTools:
         self.sns.set()
         self.sns.set_style('whitegrid')
         self.sns.set_color_codes()
+
+        # fix unicode minus
+        matplotlib.rcParams['axes.unicode_minus'] = False
+
+        # set korean font
+        font_path = "c:/Windows/Fonts/malgun.ttf"
+        if os.path.exists(font_path):
+            font_name = font_manager.FontProperties(fname=font_path).get_name()
+            rc('font', family=font_name)
+        else:
+            self.log.warn("font not found, font may broken")
 
         self.plt.subplots(figsize=self.figsize)
 
@@ -443,65 +458,67 @@ class PlotTools:
         np_image_save(np_img_tile, path)
 
     def plot_percentage_stack_bar(self, df, col, stackby_col, path=None, **kwargs):
-        self.setup_matplot()
-
-        df = DF(df[[col, stackby_col]])
-        df['dummy'] = [0 for i in range(len(df))]
-
-        # for key in list(df.keys()):
-        #     df[key] = df[key].astype(str)
-        #     df[key] = df[key].fillna('none')
+        # TODO implement
+        raise NotImplemented
+        # self.setup_matplot()
         #
+        # df = DF(df[[col, stackby_col]])
+        # df['dummy'] = [0 for i in range(len(df))]
         #
+        # # for key in list(df.keys()):
+        # #     df[key] = df[key].astype(str)
+        # #     df[key] = df[key].fillna('none')
+        # #
+        # #
+        # # print(df.info())
+        #
+        # groupby_df = DF(df.groupby([col, stackby_col])['dummy'].count().unstack(fill_value=0).stack())
+        # groupby_df['dummy'] = groupby_df[0]
+        # groupby_df = groupby_df.drop(columns=0)
+        # print(groupby_df)
+        #
+        # groupby_df['index_col'] = groupby_df.index
+        # groupby_df = groupby_df.reset_index(drop=True)
+        # groupby_df['count'] = groupby_df['dummy']
+        # groupby_df[[col, stackby_col]] = groupby_df['index_col'].apply(pd.Series)
+        # groupby_df = groupby_df.drop(columns=['dummy', 'index_col'])
+        # print(groupby_df)
+        #
+        # unique = df[col].unique()
         # print(df.info())
-
-        groupby_df = DF(df.groupby([col, stackby_col])['dummy'].count().unstack(fill_value=0).stack())
-        groupby_df['dummy'] = groupby_df[0]
-        groupby_df = groupby_df.drop(columns=0)
-        print(groupby_df)
-
-        groupby_df['index_col'] = groupby_df.index
-        groupby_df = groupby_df.reset_index(drop=True)
-        groupby_df['count'] = groupby_df['dummy']
-        groupby_df[[col, stackby_col]] = groupby_df['index_col'].apply(pd.Series)
-        groupby_df = groupby_df.drop(columns=['dummy', 'index_col'])
-        print(groupby_df)
-
-        unique = df[col].unique()
-        print(df.info())
-        print(df[col].value_counts())
-        r = [i for i in range(len(groupby_df[stackby_col].unique()))]
-        bars = []
-        for key in r:
-            val = groupby_df[groupby_df[stackby_col] == key]['count']
-            print(val)
-            bars += [list(val.values)]
-
-        print(bars)
-        bars = np.array(bars, dtype=float)
-        totals = np.sum(bars, axis=0)
-
-        bars = (bars / totals) * 100
-
-        cums = []
-        for i in range(len(bars)):
-            cums += [sum(bars[:i + 1])]
-        # print(cums)
-
-        print(unique)
-        self.plt.bar(unique, bars[0])
-        for i in range(1, len(bars)):
-            self.plt.bar(unique, bars[i], bottom=cums[i - 1])
-
-        self.plt.xticks(unique, unique)
-        self.plt.xlabel(col)
-        self.plt.ylabel(stackby_col)
-
-        self.plt.show()
-
-        fig = None
-
-        self.teardown_matplot(fig, path=path, **kwargs)
+        # print(df[col].value_counts())
+        # r = [i for i in range(len(groupby_df[stackby_col].unique()))]
+        # bars = []
+        # for key in r:
+        #     val = groupby_df[groupby_df[stackby_col] == key]['count']
+        #     print(val)
+        #     bars += [list(val.values)]
+        #
+        # print(bars)
+        # bars = np.array(bars, dtype=float)
+        # totals = np.sum(bars, axis=0)
+        #
+        # bars = (bars / totals) * 100
+        #
+        # cums = []
+        # for i in range(len(bars)):
+        #     cums += [sum(bars[:i + 1])]
+        # # print(cums)
+        #
+        # print(unique)
+        # self.plt.bar(unique, bars[0])
+        # for i in range(1, len(bars)):
+        #     self.plt.bar(unique, bars[i], bottom=cums[i - 1])
+        #
+        # self.plt.xticks(unique, unique)
+        # self.plt.xlabel(col)
+        # self.plt.ylabel(stackby_col)
+        #
+        # self.plt.show()
+        #
+        # fig = None
+        #
+        # self.teardown_matplot(fig, path=path, **kwargs)
 
     def plot_table(self, df, path=None, **kwargs):
         self.setup_matplot()

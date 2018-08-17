@@ -12,8 +12,8 @@ Series = pd.Series
 
 class null_clean_methodMixIn:
     @staticmethod
-    def drop_col(df: DF, key) -> DF:
-        return df.drop(columns=key)
+    def drop_col(df: DF, key):
+        return df.drop(key, axis=1)
 
     @staticmethod
     def fill_major_value_cate(df: DF, key) -> DF:

@@ -11,18 +11,17 @@ from mlxtend.classifier import StackingCVClassifier as _StackingCVClassifier
 from mlxtend.classifier import StackingClassifier as _StackingClassifier
 from mlxtend.regressor.linear_regression import \
     LinearRegression as _LinearRegression
-from script.sklearn_like_toolkit.base.BaseWrapperReg import BaseWrapperReg
-from script.sklearn_like_toolkit.base.BaseWrapperClf import BaseWrapperClf
+from script.sklearn_like_toolkit.warpper.base.BaseWrapperReg import BaseWrapperReg
+from script.sklearn_like_toolkit.warpper.base.BaseWrapperClf import BaseWrapperClf
 from script.sklearn_like_toolkit.warpper.skClf_wrapper.skBernoulli_NBClf import \
     skBernoulli_NBClf
-from script.sklearn_like_toolkit.base.MixIn import meta_BaseWrapperClf
-from script.sklearn_like_toolkit.base.MixIn import meta_BaseWrapperClf_with_ABC
-from script.sklearn_like_toolkit.base.MixIn import meta_BaseWrapperReg_with_ABC
+from script.sklearn_like_toolkit.warpper.base.MixIn import MetaBaseWrapperClfWithABC, MetaBaseWrapperClf
+from script.sklearn_like_toolkit.warpper.base.MixIn import MetaBaseWrapperRegWithABC
 import warnings
 
 
 class mlxAdalineClf(_Adaline, BaseWrapperClf,
-                    metaclass=meta_BaseWrapperClf_with_ABC):
+                    metaclass=MetaBaseWrapperClfWithABC):
     HyperOpt_space = {
         'eta': hp.uniform('eta', 0, 1),
         'epochs': hp.qloguniform('epochs', 3, 6, 1),
@@ -48,7 +47,7 @@ class mlxAdalineClf(_Adaline, BaseWrapperClf,
 
 
 class mlxLogisticRegressionClf(_LogisticRegression, BaseWrapperClf,
-                               metaclass=meta_BaseWrapperClf_with_ABC):
+                               metaclass=MetaBaseWrapperClfWithABC):
     HyperOpt_space = {
         'eta': hp.uniform('eta', 0, 1),
         'epochs': hp.qloguniform('epochs', 3, 6, 1),
@@ -74,7 +73,7 @@ class mlxLogisticRegressionClf(_LogisticRegression, BaseWrapperClf,
 
 
 class mlxMLPClf(_MultiLayerPerceptron, BaseWrapperClf,
-                metaclass=meta_BaseWrapperClf_with_ABC):
+                metaclass=MetaBaseWrapperClfWithABC):
     tuning_grid = {
         'eta': [i / 10.0 for i in range(1, 10 + 1, 3)],
         'epochs': [64, 128, 256],
@@ -107,7 +106,7 @@ class mlxMLPClf(_MultiLayerPerceptron, BaseWrapperClf,
 
 
 class mlxPerceptronClf(_Perceptron, BaseWrapperClf,
-                       metaclass=meta_BaseWrapperClf_with_ABC):
+                       metaclass=MetaBaseWrapperClfWithABC):
     HyperOpt_space = {
         'eta': hp.uniform('eta', 0, 1),
         'epochs': hp.qloguniform('epochs', 3, 6, 1),
@@ -125,7 +124,7 @@ class mlxPerceptronClf(_Perceptron, BaseWrapperClf,
 
 
 class mlxSoftmaxRegressionClf(_SoftmaxRegression, BaseWrapperClf,
-                              metaclass=meta_BaseWrapperClf_with_ABC):
+                              metaclass=MetaBaseWrapperClfWithABC):
     tuning_grid = {
         'eta': [i / 10.0 for i in range(1, 10 + 1, 3)],
         'epochs': [64, 128, 256],
@@ -163,8 +162,7 @@ class mlxVotingClf(_EnsembleVoteClassifier):
         super().__init__(clfs, voting, weights, verbose, refit)
 
 
-class mlxStackingClf(BaseWrapperClf, _StackingClassifier,
-                     metaclass=meta_BaseWrapperClf):
+class mlxStackingClf(BaseWrapperClf, _StackingClassifier, metaclass=MetaBaseWrapperClf):
     tuning_grid = {}
 
     HyperOpt_space = {}
@@ -184,13 +182,12 @@ class mlxStackingClf(BaseWrapperClf, _StackingClassifier,
             verbose, use_features_in_secondary, store_train_meta_features,
             use_clones)
 
-    def score_pack(self, X, y):
+    def score_pack(self, x, y):
         y = self.np_arr_to_index(y)
-        return self._apply_metric_pack(y, self.predict(X))
+        return self._apply_metric_pack(y, self.predict(x))
 
 
-class mlxStackingCVClf(BaseWrapperClf, _StackingCVClassifier,
-                       metaclass=meta_BaseWrapperClf):
+class mlxStackingCVClf(BaseWrapperClf, _StackingCVClassifier, metaclass=MetaBaseWrapperClf):
     tuning_grid = {}
 
     HyperOpt_space = {}
@@ -211,12 +208,11 @@ class mlxStackingCVClf(BaseWrapperClf, _StackingCVClassifier,
             use_features_in_secondary, stratify, shuffle, verbose,
             store_train_meta_features, use_clones)
 
-    def score_pack(self, X, y):
-        return self._apply_metric_pack(y, self.predict(X))
+    def score_pack(self, x, y):
+        return self._apply_metric_pack(y, self.predict(x))
 
 
-class mlxLinearReg(BaseWrapperReg, _LinearRegression,
-                   metaclass=meta_BaseWrapperReg_with_ABC):
+class mlxLinearReg(BaseWrapperReg, _LinearRegression, metaclass=MetaBaseWrapperRegWithABC):
     HyperOpt_space = {
         'eta': hp.uniform('eta', 0, 1),
         'epochs': hp.qloguniform('epochs', 3, 6, 1),
@@ -246,7 +242,7 @@ class mlxLinearReg(BaseWrapperReg, _LinearRegression,
 
 
 class mlxStackingCVReg(BaseWrapperReg, _StackingCVRegressor,
-                       metaclass=meta_BaseWrapperReg_with_ABC):
+                       metaclass=MetaBaseWrapperRegWithABC):
     tuning_grid = {}
 
     HyperOpt_space = {}
@@ -260,8 +256,7 @@ class mlxStackingCVReg(BaseWrapperReg, _StackingCVRegressor,
         BaseWrapperReg.__init__(self)
 
 
-class mlxStackingReg(BaseWrapperReg, _StackingRegressor,
-                     metaclass=meta_BaseWrapperReg_with_ABC):
+class mlxStackingReg(BaseWrapperReg, _StackingRegressor, metaclass=MetaBaseWrapperRegWithABC):
     tuning_grid = {}
 
     HyperOpt_space = {}

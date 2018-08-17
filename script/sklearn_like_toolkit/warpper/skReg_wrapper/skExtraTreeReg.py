@@ -1,11 +1,11 @@
 from hyperopt import hp
 from sklearn.tree import ExtraTreeRegressor as _ExtraTreeRegressor
 
-from script.sklearn_like_toolkit.base.BaseWrapperReg import BaseWrapperReg
-from script.sklearn_like_toolkit.base.MixIn import meta_BaseWrapperReg_with_ABC
+from script.sklearn_like_toolkit.warpper.base.BaseWrapperReg import BaseWrapperReg
+from script.sklearn_like_toolkit.warpper.base.MixIn import MetaBaseWrapperRegWithABC
 
 
-class skExtraTreeReg(_ExtraTreeRegressor, BaseWrapperReg, metaclass=meta_BaseWrapperReg_with_ABC):
+class skExtraTreeReg(_ExtraTreeRegressor, BaseWrapperReg, metaclass=MetaBaseWrapperRegWithABC):
 
     def __init__(self, criterion="mse", splitter="random", max_depth=None, min_samples_split=2, min_samples_leaf=1,
                  min_weight_fraction_leaf=0., max_features="auto", random_state=None, min_impurity_decrease=0.,

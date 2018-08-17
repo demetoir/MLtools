@@ -1,7 +1,7 @@
 from pprint import pprint
 
 from script.sklearn_like_toolkit.warpper.skClf_wrapper.skBernoulli_NBClf import skBernoulli_NBClf
-from script.sklearn_like_toolkit.warpper.wrapperGridSearchCV import wrapperGridSearchCV
+from script.sklearn_like_toolkit.param_search.HyperOpt.wrapperGridSearchCV import wrapperGridSearchCV
 from script.data_handler.DatasetPackLoader import DatasetPackLoader
 from script.sklearn_like_toolkit.ClassifierPack import ClassifierPack
 

@@ -1,4 +1,4 @@
-from script.sklearn_like_toolkit.base.BaseWrapperClfPack import BaseWrapperClfPack
+from script.sklearn_like_toolkit.warpper.base.BaseWrapperClfPack import BaseWrapperClfPack
 from script.sklearn_like_toolkit.FoldingHardVoteClf import FoldingHardVoteClf
 from script.sklearn_like_toolkit.warpper.mlxtend_wrapper import mlxStackingCVClf, mlxStackingClf
 

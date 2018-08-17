@@ -293,7 +293,7 @@ class CVAE(BaseModel, CVAE_MixIn, VAE_loss_builder_MixIn):
                 noise = self.get_noises(Xs.shape, self.noise_intensity)
                 self.sess.run(self._train_ops, feed_dict={self._Xs: Xs, self._Ys: Ys, self._noises: noise})
 
-            Xs, Ys = dataset.next_batch(batch_size, look_up=False)
+            Xs, Ys = dataset.next_batch(batch_size, update_cursor=False)
             noise = self.get_noises(Xs.shape)
             loss = self.sess.run(self._metric_ops, feed_dict={self._Xs: Xs, self._Ys: Ys, self._noises: noise})
             self.log.info("e:{e} loss : {loss}".format(e=e, loss=np.mean(loss)))

@@ -1,62 +1,41 @@
 import inspect
 import pandas as pd
 import numpy as np
-from tqdm import trange
 from script.data_handler.Base.df_plotterMixIn import df_plotterMixIn
+from script.sklearn_like_toolkit.FETools import FETools
 from script.util.MixIn import LoggerMixIn
 from script.util.PlotTools import PlotTools
 from script.util.pandas_util import df_binning, df_minmax_normalize, df_to_onehot_embedding
-from sklearn.preprocessing import Imputer
-from sklearn.preprocessing import OneHotEncoder
-from sklearn.preprocessing import LabelEncoder
 
 DF = pd.DataFrame
 Series = pd.Series
 NpArr = np.array
 
 
-class df_PreprocessingMixIn:
-    @staticmethod
-    def MinMaxScaler(df, x_col, y_col):
-        pass
-
-    @staticmethod
-    def MaxAbsScaler():
-        pass
-
-    @staticmethod
-    def RobustScaler():
-        pass
-
-    @staticmethod
-    def StandardScaler():
-        pass
-
-
 class transform_methodMixIn:
 
-    def corr_maximize_bins(self, df, x_col, y_col, n_iter, size):
-        best = 0
-        best_bins = None
-        for _ in trange(n_iter):
-            seed = np.arange(min(df[x_col]), max(df[x_col]), 0.1)
-            rand_bins = np.random.choice(seed, size=size)
-
-            bins = [min(df[x_col]) - 1] + list(sorted(rand_bins)) + [max(df[x_col]) + 1]
-            col_binning = x_col + '_binning'
-            binning_df = self.binning(df, x_col, bins)
-
-            col_encode = col_binning + '_encoded'
-            encoding_df = self.LabelEncoder(binning_df, col_binning)
-            part = self.df_concat(df[[y_col]], encoding_df)
-
-            corr = DF(part.corr())
-            new_val = float(corr.loc[y_col, col_encode])
-            if best < np.abs(new_val):
-                best = np.abs(new_val)
-                best_bins = bins
-
-        return best_bins, best
+    # def corr_maximize_bins(self, df, x_col, y_col, n_iter, size):
+    #     best = 0
+    #     best_bins = None
+    #     for _ in trange(n_iter):
+    #         seed = np.arange(min(df[x_col]), max(df[x_col]), 0.1)
+    #         rand_bins = np.random.choice(seed, size=size)
+    #
+    #         bins = [min(df[x_col]) - 1] + list(sorted(rand_bins)) + [max(df[x_col]) + 1]
+    #         col_binning = x_col + '_binning'
+    #         binning_df = self.binning(df, x_col, bins)
+    #
+    #         col_encode = col_binning + '_encoded'
+    #         encoding_df = self.LabelEncoder(binning_df, col_binning)
+    #         part = self.df_concat(df[[y_col]], encoding_df)
+    #
+    #         corr = DF(part.corr())
+    #         new_val = float(corr.loc[y_col, col_encode])
+    #         if best < np.abs(new_val):
+    #             best = np.abs(new_val)
+    #             best_bins = bins
+    #
+    #     return best_bins, best
 
     @staticmethod
     def mixmax_scale(df: DF, col: str) -> DF:
@@ -92,58 +71,11 @@ class transform_methodMixIn:
         for value in values:
             idxs = df.loc[:, col_key] == value
             df.loc[idxs, col_key] = new_values
-
         return df
 
     @staticmethod
     def drop(df: DF, col: str):
         return df.drop(columns=col)
-
-    @staticmethod
-    def Imputer(df, x_col, y_col=None, missing_values="NaN", strategy="mean"):
-        imputer = Imputer(missing_values=missing_values, strategy=strategy)
-        imputer.fit(x_col, y_col)
-        df[x_col] = imputer.transform(x_col)
-        return df
-
-    @staticmethod
-    def _Encoder_common(enc, df, col, with_mapper=False):
-
-        col_encode = col + "_encoded"
-        enc.fit(df[col])
-
-        new_df = DF({
-            col_encode: enc.transform(df[col])
-        })
-
-        if with_mapper:
-            unique = df[col].unique()
-            mapped = enc.transform(unique)
-            encoder = {zip(unique, mapped)}
-            decoder = {zip(mapped, unique)}
-
-            return new_df, encoder, decoder
-        else:
-
-            return new_df
-
-    @staticmethod
-    def LabelEncoder(df, col, with_mapper=False):
-        return transform_methodMixIn._Encoder_common(
-            LabelEncoder(),
-            df,
-            col,
-            with_mapper=with_mapper
-        )
-
-    @staticmethod
-    def OnehotEncoder(df, col, with_mapper=False):
-        return transform_methodMixIn._Encoder_common(
-            OneHotEncoder(),
-            df,
-            col,
-            with_mapper=with_mapper
-        )
 
 
 class Base_df_transformer(LoggerMixIn, df_plotterMixIn, transform_methodMixIn):
@@ -162,6 +94,7 @@ class Base_df_transformer(LoggerMixIn, df_plotterMixIn, transform_methodMixIn):
         LoggerMixIn.__init__(self, verbose)
         df_plotterMixIn.__init__(self)
         transform_methodMixIn.__init__(self)
+        self.fetools = FETools()
 
         self.df = df
         self.df_Xs_keys = df_Xs_keys

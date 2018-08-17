@@ -134,7 +134,7 @@ class HousePricesHelper:
 
 class HousePrices_train(BaseDataset):
 
-    def load(self, path, limit=None):
+    def load(self, path):
         train_path = path_join(path, 'transformed_train.csv')
 
         merged_df = HousePricesHelper.load_merge_set(path)
@@ -143,7 +143,7 @@ class HousePrices_train(BaseDataset):
 
 
 class HousePrices_test(BaseDataset):
-    def load(self, path, limit=None):
+    def load(self, path):
         pass
 
 

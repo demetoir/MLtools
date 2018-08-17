@@ -197,7 +197,7 @@ class AE(BaseModel, basicAEPropertyMixIn):
                 noise = self.get_noises(Xs.shape, self.noise_intensity)
                 self.sess.run(self._train_ops, feed_dict={self._Xs: Xs, self._noises: noise})
 
-            Xs = dataset.next_batch(batch_size, batch_keys=['Xs'], look_up=False)
+            Xs = dataset.next_batch(batch_size, batch_keys=['Xs'], update_cursor=False)
             loss = self.metric(Xs)
             self.log.info("e:{e} loss : {loss}".format(e=e, loss=np.mean(loss)))
             # if np.isnan(np.mean(loss)) or np.inf(np.mean(loss)):

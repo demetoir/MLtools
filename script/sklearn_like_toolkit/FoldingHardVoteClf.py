@@ -1,6 +1,6 @@
 import numpy as np
 from script.data_handler.DummyDataset import DummyDataset
-from script.sklearn_like_toolkit.base.BaseWrapperClf import BaseWrapperClf
+from script.sklearn_like_toolkit.warpper.base.BaseWrapperClf import BaseWrapperClf
 
 
 class FoldingHardVoteClf(BaseWrapperClf):

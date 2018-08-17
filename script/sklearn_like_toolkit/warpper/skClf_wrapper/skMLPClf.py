@@ -1,12 +1,12 @@
 import warnings
 from sklearn.exceptions import ConvergenceWarning
 from sklearn.neural_network import MLPClassifier as _skMLPClassifier
-from script.sklearn_like_toolkit.base.BaseWrapperClf import BaseWrapperClf
-from script.sklearn_like_toolkit.base.MixIn import meta_BaseWrapperClf_with_ABC
+from script.sklearn_like_toolkit.warpper.base.BaseWrapperClf import BaseWrapperClf
+from script.sklearn_like_toolkit.warpper.base.MixIn import MetaBaseWrapperClfWithABC
 from hyperopt import hp
 
 
-class skMLPClf(BaseWrapperClf, _skMLPClassifier, metaclass=meta_BaseWrapperClf_with_ABC):
+class skMLPClf(BaseWrapperClf, _skMLPClassifier, metaclass=MetaBaseWrapperClfWithABC):
     def __init__(self, hidden_layer_sizes=(100,), activation="relu", solver='adam', alpha=0.0001, batch_size='auto',
                  learning_rate="constant", learning_rate_init=0.001, power_t=0.5, max_iter=200, shuffle=True,
                  random_state=None, tol=1e-4, verbose=False, warm_start=False, momentum=0.9, nesterovs_momentum=True,

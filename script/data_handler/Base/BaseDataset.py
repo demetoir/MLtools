@@ -2,10 +2,9 @@ from script.util.misc_util import *
 import traceback
 import sys
 import numpy as np
-import os
 import sklearn.utils
 import pandas as pd
-from script.util.MixIn import LoggerMixIn
+from script.util.MixIn import LoggerMixIn, PickleMixIn
 from script.util.numpy_utils import reformat_np_arr
 
 
@@ -17,363 +16,494 @@ class MetaDataset(type):
     def __init__(cls, name, bases, cls_dict):
         type.__init__(cls, name, bases, cls_dict)
 
-        # hook if_need_download, after_load for AbstractDataset.load
+        # hook  after_load for BaseDataset.load
         new_load = None
         if 'load' in cls_dict:
-            def new_load(self, path, limit):
+            def new_load(self, path, **kwargs):
                 try:
-                    self.if_need_download(path)
-                    cls_dict['load'](self, path, limit)
-                    self._after_load(limit)
+                    func = cls_dict['load']
+                    func(self, path, **kwargs)
+                    self._after_load()
                 except Exception:
                     exc_type, exc_value, exc_traceback = sys.exc_info()
                     err_msg = traceback.format_exception(exc_type, exc_value, exc_traceback)
                     self.log.error(*err_msg)
+
         setattr(cls, 'load', new_load)
 
 
-class DownloadInfo:
-    """download information for dataset
-    self.url : download url
-    self.is_zipped :
-    self.zip_file_name:
-    self.file_type :
+class BaseDataset(LoggerMixIn, PickleMixIn, metaclass=MetaDataset):
 
-    """
-
-    def __init__(self, url, is_zipped=False, download_file_name=None, extracted_file_names=None):
-        """create dataset download info
-
-        :type url: str
-        :type is_zipped: bool
-        :type download_file_name: str
-        :type extracted_file_names: list
-        :param url: download url
-        :param is_zipped: if zip file set True, else False
-        :param download_file_name: file name of downloaded file
-        :param extracted_file_names: file names of unzipped file
-        """
-        self.url = url
-        self.is_zipped = is_zipped
-        self.download_file_name = download_file_name
-        self.extracted_file_names = extracted_file_names
-
-    def attrs(self):
-        return self.url, self.is_zipped, self.download_file_name, self.extracted_file_names
-
-
-class BaseDataset(LoggerMixIn, metaclass=MetaDataset):
-
-    def __init__(self, verbose=20, caching=True, **kwargs):
-        """create dataset handler class
-
-        ***bellow attrs must initiate other value after calling super()***
-        self.download_infos: (list) dataset download info
-        self.batch_keys: (str) feature label of dataset,
-            managing batch keys in dict_keys.dataset_batch_keys recommend
-        """
+    def __init__(self, x=None, y=None, base='DataFrame', verbose=20, caching=True, with_id=True, **kwargs):
         LoggerMixIn.__init__(self, verbose)
-        self.batch_keys = []
-
-        self.data = {}
-        self.cursor = 0
-        self.data_size = 0
-        self.input_shapes = {}
         self.caching = caching
-        self._downloadInfos = []
+        self.with_id = with_id
+        self.base = base
+
+        self._data = {}
+
+        if isinstance(x, np.ndarray):
+            self._from_np_x(x)
+        elif isinstance(x, pd.DataFrame):
+            self._from_x_df(x)
+
+        if isinstance(y, np.ndarray):
+            self._from_np_y(y)
+        elif isinstance(y, pd.DataFrame):
+            self._from_y_df(y)
+
+        self.cursor = 0
+        self._cursor_group_by_class = None
+        self._idxs_group_by_label = None
+        self._n_classes = None
+        self._classes = None
+        self._size_group_by_class = None
+
+        self.kwargs = kwargs
+
+    def __str__(self):
+        __str__ = f"{self.__class__.__name__}\n" \
+                  f"size = {self.size}\n" \
+                  f"keys = {self.keys}\n" \
+                  f"x_keys = {self.x_keys}\n"
+        if self.y_keys:
+            __str__ += f"y_keys = {self.y_keys}\n" \
+                       f"classes = {self.classes}\n" \
+                       f"size group by class = {self.size_group_by_class}\n"
+        return __str__
 
     def __repr__(self):
-        return self.__class__.__name__
+        __str__ = f"{self.__class__.__name__}\n" \
+                  f"size = {self.size}\n" \
+                  f"keys = {self.keys}\n" \
+                  f"x_keys = {self.x_keys}\n"
+        if self.y_keys:
+            __str__ += f"y_keys = {self.y_keys}\n" \
+                       f"classes = {self.classes}\n" \
+                       f"size group by class = {self.size_group_by_class}\n"
+        return __str__
+
+    def __getitem__(self, item):
+        return self._data.__getitem__(item)
+
+    def __setitem__(self, key, value):
+        return self._data.__setitem__(key, np.array(value))
 
     @property
-    def downloadInfos(self):
-        return self._downloadInfos
+    def data(self):
+        return self._data
+
+    @property
+    def classes(self):
+        if self._classes is None:
+            if self.y_label is not None:
+                self._classes = sorted(list(np.unique(self.y_label)))
+
+        return self._classes
+
+    @property
+    def n_classes(self):
+        if self._n_classes is None:
+            self._n_classes = len(self.classes)
+
+        return self._n_classes
 
     @property
     def size(self):
-        size = 0
-        for key in self.data:
-            size = max(len(self.data[key]), size)
-        return size
+        return max([len(val) for key, val in self.data.items()])
 
-    def __getitem__(self, item):
-        return self.data.__getitem__(item)
+    @property
+    def size_group_by_class(self):
+        if self._size_group_by_class is None:
+            self._size_group_by_class = {
+                class_: len(self.idxs_group_by_class[class_])
+                for class_ in self.idxs_group_by_class
+            }
 
-    def __setitem__(self, key, value):
-        return self.data.__setitem__(key, value)
+        return self._size_group_by_class
 
-    def add_data(self, key, data):
-        self.data[key] = data
-        self.cursor = 0
-        self.data_size = len(data)
-        self.batch_keys += [key]
+    @property
+    def idxs_group_by_class(self):
+        if self._idxs_group_by_label is None:
+            self._idxs_group_by_label = {
+                class_: np.where(self.y_label == class_)[0]
+                for class_ in self.classes
+            }
 
+        return self._idxs_group_by_label
+
+    @property
+    def input_shapes(self):
+        return {key: list(self.data[key].shape[1:]) for key in self.data}
+
+    @property
+    def y(self):
+        if 'y' in self._data:
+            return self._data['y']
+        elif self.y_keys:
+            if len(self.y_keys) == 1:
+                y = self.data[self.y_keys[0]]
+            else:
+                y = {
+                    key: self.data[key]
+                    for key in self.y_keys
+                }
+        else:
+            y = None
+
+        return y
+
+    @property
+    def x(self):
+        if 'x' in self._data:
+            return self._data['x']
+
+        if self.x_keys is None:
+            keys = self.keys
+            return {
+                key: self.data[key]
+                for key in keys
+            }
+        else:
+            keys = self.x_keys
+
+            return {
+                key: self.data[key]
+                for key in keys
+            }
+
+    @property
+    def y_label(self):
+        if self.y is None:
+            return None
+        else:
+            return reformat_np_arr(self.y, 'index')
+
+    @property
+    def y_onehot(self):
+        if self.y is None:
+            return None
+        else:
+            return reformat_np_arr(self.y, 'onehot')
+
+    @property
     def keys(self):
-        return self.data.keys()
+        return self._data.keys()
 
-    def if_need_download(self, path):
-        """check dataset is valid and if dataset is not valid download dataset
+    @property
+    def cursor_group_by_class(self):
+        if self._cursor_group_by_class is None:
+            self._cursor_group_by_class = {
+                class_: 0
+                for class_ in self.classes
+            }
 
-        :type path: str
-        :param path: dataset path
-        """
-        try:
-            os.makedirs(path)
-        except FileExistsError:
-            pass
+        return self._cursor_group_by_class
 
-        for info in self.downloadInfos:
-            if self._is_invalid(path, info):
-                self.download_data(path, info)
+    def _clone(self, **kwargs):
+        return self.__class__(**kwargs)
 
-    @staticmethod
-    def _is_invalid(path, downloadInfos):
-        """check dataset file validation"""
-        validation = None
-        files = glob(os.path.join(path, '**'), recursive=True)
-        names = list(map(lambda file: os.path.split(file)[1], files))
+    def _invalidate(self):
+        self._cursor_group_by_class = None
+        self._idxs_group_by_label = None
+        self._n_classes = None
+        self._classes = None
+        self._size_group_by_class = None
+        self.reset_id()
 
-        if downloadInfos.is_zipped:
-            file_list = downloadInfos.extracted_file_names
-            for data_file in file_list:
-                if data_file not in names:
-                    validation = True
-        else:
-            if downloadInfos.download_file_name not in names:
-                validation = True
+    def _iter_batch(self, data, batch_size, cursor=None):
+        if batch_size == 0:
+            raise ValueError(f'batch size > 0')
 
-        return validation
+        if cursor is None:
+            cursor = self.cursor
 
-    def _clone(self):
-        obj = self.__class__(self.verbose)
-        return obj
-
-    def _append_data(self, batch_key, data):
-        if batch_key not in self.data:
-            self.data[batch_key] = np.array(data)
-        else:
-            self.data[batch_key] = np.concatenate((self.data[batch_key], data))
-
-    def _iter_batch(self, data, batch_size):
-        cursor = self.cursor
         data_size = len(data)
 
-        # if batch size exceeds the size of data set
-        over_data = batch_size // (data_size + 1)
-        if over_data > 0:
-            whole_data = np.concatenate((data[cursor:], data[:cursor]))
-            batch_to_append = np.repeat(whole_data, over_data, axis=0)
-            batch_size -= data_size * over_data
+        batch_to_append = None
+        if batch_size >= data_size:
+            batch_to_append = np.repeat(data, batch_size // data_size, axis=0)
+            batch_size = batch_size % data_size
+
+        if batch_size > 0:
+            begin, end = cursor, (cursor + batch_size) % data_size
+
+            if begin < end:
+                batch = data[begin:end]
+            else:
+                first, second = data[begin:], data[:end]
+                batch = np.concatenate((first, second))
+
+                if batch_to_append is not None:
+                    batch = np.concatenate((batch, batch_to_append))
         else:
-            batch_to_append = None
-
-        begin, end = cursor, (cursor + batch_size) % data_size
-
-        if begin < end:
-            batch = data[begin:end]
-        else:
-            first, second = data[begin:], data[:end]
-            batch = np.concatenate((first, second))
-
-        if batch_to_append:
-            batch = np.concatenate((batch_to_append, batch))
+            batch = batch_to_append
 
         return batch
 
-    def download_data(self, path, downloadInfos):
-        """donwnload data if need
+    def _after_load(self):
+        if self.with_id:
+            self.reset_id()
 
-        :param path:
-        :param downloadInfos:
-        :return:
-        """
-        head, _ = os.path.split(path)
-        download_file = os.path.join(path, downloadInfos.download_file_name)
+        self.log.debug(f'{self.__class__.__name__} {self.size} loaded')
 
-        self.log.info('download %s at %s ' % (downloadInfos.download_file_name, download_file))
-        download_from_url(downloadInfos.url, download_file)
+    def _iter_batch_balanced(self, key, batch_size_group_by_class):
+        batch = [
+            self._iter_batch(
+                self.data[key][self.idxs_group_by_class[class_]],
+                batch_size_group_by_class[class_],
+                self.cursor_group_by_class[class_]
+            )
+            for class_ in self.classes
+        ]
+        return np.concatenate(batch, axis=0)
 
-        if downloadInfos.is_zipped:
-            self.log.info("extract %s at %s" % (downloadInfos.download_file_name, path))
-            extract_file(download_file, path)
+    @staticmethod
+    def _concat_batch(batch):
+        feature_size = len(batch)
+        batch_size = len(list(batch.values())[0])
 
-    def _after_load(self, limit=None):
-        """after task for dataset and do execute preprocess for dataset
+        if feature_size == 1:
+            batch = list(batch.values())[0]
+        else:
+            batch = batch.items()
 
-        init cursor for each batch_key
-        limit dataset size
-        execute preprocess
+            batch = np.vstack(batch)
+            batch = batch.reshape([batch_size, -1])
 
-        :type limit: int
-        :param limit: limit size of dataset
-        """
+        if batch.ndim >= 2 and batch.shape[1] == 1:
+            batch = batch.reshape([batch_size])
 
-        if limit is not None:
-            for key in self.batch_keys:
-                self.data[key] = self.data[key][:limit]
+        return batch
 
-        for key in self.data:
-            self.data_size = max(len(self.data[key]), self.data_size)
-            self.log.debug("batch data '%s' %d item(s) loaded" % (key, len(self.data[key])))
+    def _collect_iter_batch(self, keys, size, balanced_class=False, update_cursor=True, out_type=None):
+        if balanced_class:
+            div = size // self.n_classes
+            batch_size_group_by_class = {key: div for key in self.classes}
+            plus_one_idx_key = np.random.choice(self.classes, size % self.n_classes, replace=False)
+            for key in plus_one_idx_key:
+                batch_size_group_by_class[key] += 1
 
-        if 'id_' in self.data.keys():
-            self.log.warn(f"overwrite column 'id_', column already exist")
-        self.data['id_'] = np.array([i for i in range(1, self.data_size + 1)]).reshape([self.data_size, 1])
-        self.log.debug("insert 'id_' column")
+            batch = {
+                key: self._iter_batch_balanced(key, batch_size_group_by_class)
+                for key in keys
+            }
 
-        self.transform()
-        self.log.debug(f'{self.__str__()} transformed')
+            if update_cursor:
+                for class_ in self.classes:
+                    self._cursor_group_by_class[class_] += batch_size_group_by_class[class_]
+                    self._cursor_group_by_class[class_] %= self.size_group_by_class[class_]
 
-        self.log.debug("generate input_shapes")
-        self.input_shapes = {}
-        for key in self.data:
-            self.input_shapes[key] = list(self.data[key].shape[1:])
-            self.log.debug("key=%s, shape=%s" % (key, self.input_shapes[key]))
+        else:
+            batch = {
+                key: self._iter_batch(self.data[key], size)
+                for key in keys
+            }
 
-        self.log.debug('%s fully loaded' % self.__str__())
+            if update_cursor:
+                self.cursor = (self.cursor + size) % self.size
 
-    def load(self, path, limit=None):
+        batch = self._batch_convert(batch, out_type)
+
+        return batch
+
+    def _from_x_df(self, x_df):
+        for key in x_df:
+            self.add_data(key, x_df[key])
+        self.x_keys = list(x_df.columns)
+
+    def _from_y_df(self, y_df):
+        for key in y_df:
+            self.add_data(key, y_df[key])
+        self.y_keys = list(y_df.columns)
+
+    def _from_np_x(self, np_x):
+        self.add_data('x', np_x)
+        self.x_keys = ['x']
+
+    def _from_np_y(self, np_y):
+        self.add_data('y', np_y)
+        self.y_keys = ['y']
+
+    def add_data(self, key, data):
+        self._data[key] = np.array(data)
+
+    def append_data(self, key, data):
+        if key not in self._data:
+            self._data[key] = np.array(data)
+        else:
+            self._data[key] = np.concatenate((self._data[key], data))
+
+    def reset_id(self):
+        if 'id_' not in self._data.keys():
+            self._data['id_'] = np.array([i for i in range(1, self.size + 1)]).reshape([self.size, 1])
+            self.log.debug("insert 'id_' column")
+
+    def load(self, path):
         """load dataset from file should implement
 
         save data at self.data, expect dict type
 
         :param path:
-        :param limit:
         :return: None
         """
-        pass
+        raise NotImplementedError
 
-    def save(self):
-        """
+    def _batch_convert(self, batch, out_type):
+        self.convert_out_type_func = {
+            'concat': self._concat_batch,
+            'DataFrame': pd.DataFrame,
+            'df': pd.DataFrame,
+            'np_dict': lambda x: x
+        }
+        convert_func = self.convert_out_type_func[out_type]
+        return convert_func(batch)
 
-        :return: None
-        """
-        pass
-
-    def transform(self):
-        """preprocess for loaded data
-
-        """
-        pass
-
-    def next_batch(self, batch_size, batch_keys=('Xs', 'Ys'), look_up=False):
-        """return iter mini batch
-
-        ex)
-        dataset.next_batch(3, ["train_x", "train_label"]) =
-            [[train_x1, train_x2, train_x3], [train_label1, train_label2, train_label3]]
-
-        dataset.next_batch(3, ["train_x", "train_label"], lookup=True) =
-            [[train_x4, train_x5, train_x6], [train_label4, train_label5, train_label6]]
-
-        dataset.next_batch(3, ["train_x", "train_label"]) =
-            [[train_x4, train_x5, train_x6], [train_label4, train_label5, train_label6]]
-
-        :param batch_size: size of mini batch
-        :param batch_keys: (iterable type) select keys,
-            if  batch_keys length is 1 than just return mini batch
-            else return list of mini batch
-        :param look_up: lookup == True cursor will not update
-        :return: (numpy array type) list of mini batch, order is same with batch_keys
-        """
-
+    def next_batch(self, batch_size, batch_keys=None, update_cursor=True, balanced_class=False, out_type='concat'):
         if type(batch_keys) is str:
             batch_keys = [batch_keys]
 
-        batches = []
-        for key in batch_keys:
-            batches += [self._iter_batch(self.data[key], batch_size)]
+        if batch_keys is None:
+            x = self._collect_iter_batch(
+                self.x_keys,
+                batch_size,
+                balanced_class,
+                update_cursor=update_cursor,
+                out_type=out_type
+            )
 
-        if not look_up:
-            self.cursor = (self.cursor + batch_size) % self.data_size
+            y = None
+            if self.y_keys is not None:
+                y = self._collect_iter_batch(
+                    self.y_keys,
+                    batch_size,
+                    balanced_class,
+                    update_cursor=update_cursor,
+                    out_type=out_type
+                )
 
-        return batches[0] if len(batches) == 1 else batches
+            if y is None:
+                return x
+            else:
+                return x, y
+        else:
+            batch = self._collect_iter_batch(
+                batch_keys,
+                batch_size,
+                balanced_class,
+                update_cursor=update_cursor,
+                out_type=out_type
+            )
 
-    def full_batch(self, batch_keys=('Xs', 'Ys')):
-        if type(batch_keys) is str:
-            batch_keys = [batch_keys]
+            return batch
 
-        batches = []
-        for key in batch_keys:
-            batches += [self.data[key]]
+    def full_batch(self, batch_keys=None, out_type='concat'):
+        return self.next_batch(self.size, batch_keys, out_type=out_type)
 
-        return batches[0] if len(batches) == 1 else batches
-
-    def split(self, ratio=(7, 3), shuffle=False) -> ("BaseDataset", "BaseDataset"):
-        """return split part of dataset"""
+    def split(self, ratio=(7, 3), shuffle=False, random_state=None, balanced_class=True):
+        if shuffle:
+            self.shuffle(random_state)
 
         a_set = self._clone()
         b_set = self._clone()
-        a_set.input_shapes = self.input_shapes
-        b_set.input_shapes = self.input_shapes
 
         a_ratio = ratio[0] / sum(ratio)
-        index = int(self.data_size * a_ratio)
-        for key in self.data:
-            a_set.add_data(key, self.data[key][:index])
-            b_set.add_data(key, self.data[key][index:])
+        b_ratio = ratio[0] / sum(ratio)
 
-        a_set.batch_keys = self.data.keys()
-        b_set.batch_keys = self.data.keys()
+        if balanced_class:
+            for key in self.keys:
+
+                a_data = []
+                b_data = []
+                for class_ in self.classes:
+                    idxs = self.idxs_group_by_class[class_]
+
+                    a_size = int(self.size_group_by_class[class_] * a_ratio)
+                    b_size = int(self.size_group_by_class[class_] * b_ratio)
+                    if a_size <= 0 or b_size <= 0:
+                        raise ValueError(f'{class_} can not balanece class split, '
+                                         f'total_size = {self.size_group_by_class[class_]}, '
+                                         f'a_size = {a_size}, '
+                                         f'b_size = {b_size}')
+
+                    a_idxs = idxs[:a_size]
+                    b_idxs = idxs[a_size:]
+                    a_data += [self.data[key][a_idxs]]
+                    b_data += [self.data[key][b_idxs]]
+
+                a_data = np.concatenate(a_data)
+                b_data = np.concatenate(b_data)
+                a_set.add_data(key, a_data)
+                b_set.add_data(key, b_data)
+
+        else:
+            index = int(self.size * a_ratio)
+            for key in self._data:
+                a_set.add_data(key, self._data[key][:index])
+                b_set.add_data(key, self._data[key][index:])
+
         if shuffle:
-            a_set.shuffle()
-            b_set.shuffle()
+            self.sort()
+
+        a_set.x_keys = self.x_keys
+        b_set.x_keys = self.x_keys
+
+        a_set.y_keys = self.y_keys
+        b_set.y_keys = self.y_keys
+        a_set._invalidate()
+        b_set._invalidate()
 
         return a_set, b_set
 
     def merge(self, a_set, b_set):
-        """merge to dataset"""
-        if set(a_set.batch_keys) is set(b_set.batch_keys):
+        if set(a_set.data.key()) is set(b_set.data.keys()):
             raise KeyError("dataset can not merge, key does not match")
 
         new_set = self._clone()
         for key in a_set.batch_keys:
-            concated = np.concatenate((a_set.data[key], b_set.data[key]), axis=0)
-            new_set.add_data(key, concated)
+            concat = np.concatenate((a_set.data[key], b_set.data[key]), axis=0)
+            new_set.add_data(key, concat)
+
+        new_set._invalidate()
 
         return new_set
 
     def shuffle(self, random_state=None):
-        """shuffle dataset"""
         if random_state is None:
             random_state = np.random.randint(1, 12345678)
 
-        for key in self.data:
-            self.data[key] = sklearn.utils.shuffle(self.data[key], random_state=random_state)
+        for key in self._data:
+            self._data[key] = sklearn.utils.shuffle(self._data[key], random_state=random_state)
 
-    def reset_cursor(self):
-        """reset cursor"""
-        self.cursor = 0
+        self._invalidate()
 
     def sort(self, sort_key=None):
         if sort_key is None:
             sort_key = 'id_'
 
-        for key in self.data:
+        for key in self._data:
             if key is sort_key:
                 continue
 
-            zipped = list(zip(self.data[sort_key], self.data[key]))
-            data = sorted(zipped, key=lambda a: a[0])
+            zipped = list(zip(self._data[sort_key], self._data[key]))
+            data = sorted(zipped, key=lambda x: x[0])
             a, data = zip(*data)
-            self.data[key] = np.array(data)
+            self._data[key] = np.array(data)
 
-        self.data[sort_key] = np.array(sorted(self.data[sort_key]))
+        self._data[sort_key] = np.array(sorted(self._data[sort_key]))
 
-    def to_DataFrame(self, keys=None):
-        if keys is None:
-            keys = self.data.keys()
+        self._invalidate()
 
+    def _to_DataFrame(self, keys):
         df = pd.DataFrame({})
         for key in keys:
             try:
                 shape = self.data[key].shape
-                data = self.data[key]
 
-                if shape[1] > 1:
-                    data = [str(i) for i in data]
+                if self.data[key].ndim > 1:
+                    data = [str(i) for i in self.data[key]]
                 else:
-                    data = data.reshape([shape[0]])
+                    data = self.data[key].reshape([shape[0]])
 
                 df[key] = data
             except BaseException as e:
@@ -381,31 +511,46 @@ class BaseDataset(LoggerMixIn, metaclass=MetaDataset):
 
         return df
 
+    def to_DataFrame(self, keys=None, id_=False):
+        if keys is None:
+            keys = list(self._data.keys())
+            if not id_:
+                keys.remove('id_')
+
+            return self._to_DataFrame(keys)
+        else:
+            x_df = self._to_DataFrame(self.x_keys)
+            if self.y_keys:
+                y_df = self._to_DataFrame(self.y_keys)
+                return x_df, y_df
+            else:
+                return x_df
+
+    def from_DataFrame(self, x_df, y_df=None):
+        obj = self._clone()
+        obj._from_x_df(x_df)
+        if y_df is not None:
+            obj._from_y_df(y_df)
+
+        return obj
+
     def to_dummyDataset(self, keys=None):
         dataset = BaseDataset()
 
         if keys is None:
-            keys = self.data.keys()
+            keys = self._data.keys()
 
         for key in keys:
-            dataset.add_data(key, self.data[key])
+            dataset.add_data(key, self._data[key])
 
         return dataset
 
-    @property
-    def Ys(self):
-        return self.data['Ys']
+    def to_np_arr(self):
+        return self.full_batch()
 
-    @property
-    def Xs(self):
-        return self.data['Xs']
-
-    @property
-    def Ys_index_label(self):
-        return reformat_np_arr(self.Ys, 'index')
-
-    @property
-    def Ys_onehot_label(self):
-        return reformat_np_arr(self.Ys, 'onehot')
-
-
+    def from_np_arr(self, x_np, y_np=None):
+        obj = self._clone()
+        obj._from_np_x(x_np)
+        if y_np is not None:
+            obj._from_np_y(y_np)
+        return obj

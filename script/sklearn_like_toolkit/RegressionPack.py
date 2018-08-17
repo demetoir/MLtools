@@ -1,8 +1,8 @@
-from script.sklearn_like_toolkit.base.BaseWrapperRegPack import BaseWrapperRegPack
+from script.sklearn_like_toolkit.warpper.base.BaseWrapperRegPack import BaseWrapperRegPack
 from script.sklearn_like_toolkit.warpper.catboost_wrapper import CatBoostReg
 from script.sklearn_like_toolkit.warpper.lightGBM_wrapper import LightGBMReg
 from script.sklearn_like_toolkit.warpper.xgboost_wrapper import XGBoostReg
-from script.sklearn_like_toolkit.warpper.mlxtend_wrapper import mlxLinearReg, mlxStackingReg, mlxStackingCVReg
+from script.sklearn_like_toolkit.warpper.mlxtend_wrapper import mlxStackingReg, mlxStackingCVReg
 from script.sklearn_like_toolkit.warpper.skReg_wrapper.skHuberReg import skHuberReg
 from script.sklearn_like_toolkit.warpper.skReg_wrapper.skKernelRidgeReg import skKernelRidgeReg
 from script.sklearn_like_toolkit.warpper.skReg_wrapper.skTheilSenReg import skTheilSenReg
@@ -24,7 +24,6 @@ from script.sklearn_like_toolkit.warpper.skReg_wrapper.skBaggingReg import skBag
 from script.sklearn_like_toolkit.warpper.skReg_wrapper.skRandomForestReg import skRandomForestReg
 from script.sklearn_like_toolkit.warpper.skReg_wrapper.skGradientBoostingReg import skGradientBoostingReg
 from script.sklearn_like_toolkit.warpper.skReg_wrapper.skSGDReg import skSGDReg
-from script.sklearn_like_toolkit.warpper.skReg_wrapper.skPassiveAggressiveReg import skPassiveAggressiveReg
 from script.sklearn_like_toolkit.warpper.skReg_wrapper.skMLPReg import skMLPReg
 from script.sklearn_like_toolkit.warpper.skReg_wrapper.skLassoCVReg import skLassoCVReg
 from script.sklearn_like_toolkit.warpper.skReg_wrapper.skLassoReg import skLassoReg

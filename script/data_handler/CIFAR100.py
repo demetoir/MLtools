@@ -39,7 +39,7 @@ class CIFAR100_train(BaseDataset):
             )
         ]
 
-    def load(self, path, limit=None):
+    def load(self, path):
         # load train data
         file_path = os.path.join(path, self._FOLDER_NAME, self._PATTERN_TRAIN_FILE)
         with open(file_path, 'rb') as fo:
@@ -55,7 +55,7 @@ class CIFAR100_train(BaseDataset):
         pass
 
     def transform(self):
-        self.data['Xs'] = X_transform(self.data['Xs'])
+        self._data['Xs'] = X_transform(self._data['Xs'])
 
 
 class CIFAR100_test(BaseDataset):
@@ -81,7 +81,7 @@ class CIFAR100_test(BaseDataset):
             )
         ]
 
-    def load(self, path, limit=None):
+    def load(self, path):
         # load test data
         file_path = os.path.join(path, self._FOLDER_NAME, self._PATTERN_TEST_FILE)
         with open(file_path, 'rb') as fo:
@@ -97,7 +97,7 @@ class CIFAR100_test(BaseDataset):
         pass
 
     def transform(self):
-        self.data['Xs'] = X_transform(self.data['Xs'])
+        self._data['Xs'] = X_transform(self._data['Xs'])
 
 
 class CIFAR100(BaseDatasetPack):

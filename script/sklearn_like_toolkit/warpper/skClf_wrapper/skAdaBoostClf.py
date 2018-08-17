@@ -1,11 +1,12 @@
 from hyperopt import hp
 from sklearn.ensemble import AdaBoostClassifier as _skAdaBoostClassifier
 
-from script.sklearn_like_toolkit.base.BaseWrapperClf import BaseWrapperClf
-from script.sklearn_like_toolkit.base.MixIn import meta_BaseWrapperClf_with_ABC
+from script.sklearn_like_toolkit.warpper.base.BaseWrapperClf import BaseWrapperClf
+from script.sklearn_like_toolkit.warpper.base.MixIn import MetaBaseWrapperClfWithABC
+import numpy as np
 
 
-class skAdaBoostClf(BaseWrapperClf, _skAdaBoostClassifier, metaclass=meta_BaseWrapperClf_with_ABC):
+class skAdaBoostClf(BaseWrapperClf, _skAdaBoostClassifier, metaclass=MetaBaseWrapperClfWithABC):
     def __init__(self, base_estimator=None, n_estimators=50, learning_rate=1., algorithm='SAMME.R', random_state=None):
         n_estimators = int(n_estimators)
         _skAdaBoostClassifier.__init__(self, base_estimator, n_estimators, learning_rate, algorithm, random_state)
@@ -27,3 +28,18 @@ class skAdaBoostClf(BaseWrapperClf, _skAdaBoostClassifier, metaclass=meta_BaseWr
         'random_state': None,
 
     }
+
+    @property
+    def feature_importances(self):
+        return np.mean([
+            tree.feature_importances_ for tree in self.estimators_
+        ], axis=0)
+
+    @property
+    def feature_importances_pack(self):
+        return {
+            'mean': self.feature_importances,
+            'std': np.std([
+                tree.feature_importances_ for tree in self.estimators_
+            ], axis=0)
+        }

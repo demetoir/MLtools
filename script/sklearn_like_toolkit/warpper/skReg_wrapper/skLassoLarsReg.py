@@ -2,11 +2,11 @@ import numpy as np
 from hyperopt import hp
 from sklearn.linear_model import LassoLars as _LassoLars
 
-from script.sklearn_like_toolkit.base.BaseWrapperReg import BaseWrapperReg
-from script.sklearn_like_toolkit.base.MixIn import meta_BaseWrapperReg_with_ABC
+from script.sklearn_like_toolkit.warpper.base.BaseWrapperReg import BaseWrapperReg
+from script.sklearn_like_toolkit.warpper.base.MixIn import MetaBaseWrapperRegWithABC
 
 
-class skLassoLarsReg(_LassoLars, BaseWrapperReg, metaclass=meta_BaseWrapperReg_with_ABC):
+class skLassoLarsReg(_LassoLars, BaseWrapperReg, metaclass=MetaBaseWrapperRegWithABC):
 
     def __init__(self, alpha=1.0, fit_intercept=True, verbose=False, normalize=True, precompute='auto',
                  max_iter=500, eps=np.finfo(np.float).eps, copy_X=True, fit_path=True, positive=False):

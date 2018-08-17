@@ -1,13 +1,13 @@
 from hyperopt import hp
 
-from script.sklearn_like_toolkit.base.BaseWrapperClf import BaseWrapperClf
-from script.sklearn_like_toolkit.base.MixIn import meta_BaseWrapperClf_with_ABC, meta_BaseWrapperReg_with_ABC
-from script.sklearn_like_toolkit.base.BaseWrapperReg import BaseWrapperReg
+from script.sklearn_like_toolkit.warpper.base.BaseWrapperClf import BaseWrapperClf
+from script.sklearn_like_toolkit.warpper.base.MixIn import MetaBaseWrapperClfWithABC, MetaBaseWrapperRegWithABC
+from script.sklearn_like_toolkit.warpper.base.BaseWrapperReg import BaseWrapperReg
 import warnings
 import xgboost as xgb
 
 
-class XGBoostClf(xgb.XGBClassifier, BaseWrapperClf, metaclass=meta_BaseWrapperClf_with_ABC):
+class XGBoostClf(xgb.XGBClassifier, BaseWrapperClf, metaclass=MetaBaseWrapperClfWithABC):
     HyperOpt_space = {
         'n_estimators': 10 + hp.randint('n_estimators', 400),
         'max_depth': 4 + hp.randint('max_depth', 11),
@@ -75,8 +75,12 @@ class XGBoostClf(xgb.XGBClassifier, BaseWrapperClf, metaclass=meta_BaseWrapperCl
         # params.update({'nthread': 1})
         # params.update({"silent": 1})
 
+    @property
+    def feature_importances(self):
+        return self.feature_importances_
 
-class XGBoostReg(xgb.XGBRegressor, BaseWrapperReg, metaclass=meta_BaseWrapperReg_with_ABC):
+
+class XGBoostReg(xgb.XGBRegressor, BaseWrapperReg, metaclass=MetaBaseWrapperRegWithABC):
     HyperOpt_space = {
         'n_estimators': 10 + hp.randint('n_estimators', 400),
         'max_depth': 4 + hp.randint('max_depth', 11),
@@ -136,3 +140,7 @@ class XGBoostReg(xgb.XGBRegressor, BaseWrapperReg, metaclass=meta_BaseWrapperReg
         # params.update({"tree_method": 'gpu_exact'})
         # params.update({'nthread': 1})
         # params.update({"silent": 1})
+
+    @property
+    def feature_importances(self):
+        return self.feature_importances_

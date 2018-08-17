@@ -36,6 +36,7 @@ df_Xs_keys = [
 
 df_Ys_key = 'col_10_Survived'
 
+# TODO remake
 
 def np_str_labels_to_index(np_arr, labels):
     np_arr = np.asarray(np_arr)
@@ -67,7 +68,7 @@ def load_merge_set(cache=True):
         train_df = pd.read_csv(train_path)
         test_df = pd.read_csv(test_path)
 
-        merged_df = pd.concat([train_df, test_df], axis=0, sort=True)
+        merged_df = pd.concat([train_df, test_df], axis=0)
         merged_df = df_add_col_num(merged_df)
 
         merged_df.to_csv(merge_set_path, index=False)
@@ -153,10 +154,9 @@ class titanic_transformer(Base_df_transformer):
 
         binning_df[binning_df[col_key_binning] == 'bin7_[81~1000)'] = 'bin8_missing'
         # print(binning_df[col_key_binning].value_counts())
-
         df = self.df_concat(df, binning_df)
 
-        encoded_df = self.LabelEncoder(binning_df, col_key + '_binning')
+        encoded_df = self.fetools.to_label(binning_df, col_key + '_binning')
         df = self.df_concat(df, encoded_df)
 
         return df
@@ -176,13 +176,13 @@ class titanic_transformer(Base_df_transformer):
         cabin_head.loc[head_na.index, col_key] = 'None'
         df = self.df_concat(df, cabin_head)
 
-        encoded_df = self.LabelEncoder(cabin_head, col_key)
+        encoded_df = self.fetools.to_label(cabin_head, col_key)
         df = self.df_concat(df, encoded_df)
 
         return df
 
     def col_02_Embarked(self, df: DF, col_key: str, partial_df: DF, series: Series, Xs_key: list, Ys_key: list):
-        encoded_df = self.LabelEncoder(df, col_key)
+        encoded_df = self.fetools.to_label(df, col_key)
         df = self.df_concat(df, encoded_df)
 
         return df
@@ -210,7 +210,7 @@ class titanic_transformer(Base_df_transformer):
 
         binning_df = self.binning(df, col_key, bins)
         df = self.df_concat(df, binning_df)
-        encode_df = self.LabelEncoder(df, col_key + '_binning')
+        encode_df = self.fetools.to_label(df, col_key + '_binning')
         df = self.df_concat(df, encode_df)
 
         return df
@@ -232,8 +232,8 @@ class titanic_transformer(Base_df_transformer):
 
         name_df = pd.DataFrame({
             col_key + "_first_name": first_name.astype(str),
-            col_key + "_Honorific":  Honorific.astype(str),
-            col_key + "_last_name":  last_name.astype(str)
+            col_key + "_Honorific": Honorific.astype(str),
+            col_key + "_last_name": last_name.astype(str)
         })
         df = self.df_concat(df, name_df)
 
@@ -255,7 +255,7 @@ class titanic_transformer(Base_df_transformer):
         df = self.df_concat(df, Honorific_binned)
         # print(df.info())
 
-        encoded_df = self.LabelEncoder(Honorific_binned, col_Honorific_binned)
+        encoded_df = self.fetools.to_label(Honorific_binned, col_Honorific_binned)
         df = self.df_concat(df, encoded_df)
         return df
 
@@ -269,7 +269,7 @@ class titanic_transformer(Base_df_transformer):
         return df
 
     def col_08_Sex(self, df: DF, col_key: str, partial_df: DF, series: Series, Xs_key: list, Ys_key: list):
-        encoded_df = self.LabelEncoder(df, col_key)
+        encoded_df = self.fetools.to_label(df, col_key)
         df = self.df_concat(df, encoded_df)
         return df
 
@@ -366,7 +366,7 @@ class titanic_transformer(Base_df_transformer):
         binned = self.binning(family_size_df, col, bins)
         df = self.df_concat(df, binned)
 
-        encoded_df = self.LabelEncoder(binned, col + '_binning')
+        encoded_df = self.fetools.to_label(binned, col + '_binning')
         df = self.df_concat(df, encoded_df)
 
         return df
@@ -380,7 +380,7 @@ class titanic_transformer(Base_df_transformer):
         groupby_df[col_ticket] = groupby_df.index
         groupby_df[col] = groupby_df[col_id]
         groupby_df = groupby_df.drop(columns=col_id)
-        groupby_df = groupby_df.reset_index(drop=True)
+        # groupby_df = groupby_df.reset_index(drop=True)
 
         partial = df[[col_ticket, col_id]]
         merged = pd.merge(groupby_df, partial, on=[col_ticket])
@@ -404,7 +404,7 @@ class titanic_transformer(Base_df_transformer):
         binned = self.binning(roommate_size_df, col, bins)
         df = self.df_concat(df, binned)
 
-        encoded_df = self.LabelEncoder(binned, col + '_binning')
+        encoded_df = self.fetools.to_label(binned, col + '_binning')
         df = self.df_concat(df, encoded_df)
 
         return df
@@ -484,19 +484,14 @@ def build_dataset(path):
 class titanic_train(BaseDataset):
     FILE_NAME = "train.csv"
 
-    def load(self, path, limit=None):
+    def load(self, path):
         trans_path = os.path.join(path, "trans_train.csv")
 
         if not self.caching or not os.path.exists(trans_path):
             build_dataset(path)
 
         df = pd.read_csv(trans_path, index_col=None)
-        self.data = df_to_np_dict(df)
 
-    def save(self):
-        pass
-
-    def transform(self):
         Xs_col = [
             'col_00_Age_binning_encoded',
             'col_01_Cabin_head_encoded',
@@ -512,36 +507,27 @@ class titanic_train(BaseDataset):
             'col_14_group_first_name_count',
             'col_15_with_only_family'
         ]
-        Xs_df = self.to_DataFrame(Xs_col)
+        Xs_df = df[Xs_col]
         onehot_np_arr = df_to_np_onehot_embedding(Xs_df)
-        self.add_data('Xs', onehot_np_arr)
+        self.add_data('x', onehot_np_arr)
+        self.x_keys = Xs_col
 
-        id_ = self.to_DataFrame(['id_'])
-        self.add_data('id_', np.array(id_))
-
-        Ys_df = self.to_DataFrame(['col_10_Survived'])
+        Ys_df = df[['col_10_Survived']]
         Ys_df = df_to_onehot_embedding(Ys_df)
-        self.add_data('Ys', np.array(Ys_df))
+        self.add_data('y', np.array(Ys_df))
+        self.y_keys = ['col_10_Survived']
 
 
 class titanic_test(BaseDataset):
     FILE_NAME = "test.csv"
 
-    def load(self, path, limit=None):
+    def load(self, path):
         trans_path = os.path.join(path, "trans_test.csv")
 
         if not self.caching or not os.path.exists(trans_path):
             build_dataset(path)
 
         df = pd.read_csv(trans_path, index_col=False)
-        self.data = df_to_np_dict(df)
-
-    def save(self):
-        pass
-
-    def transform(self):
-        id_ = self.to_DataFrame(['id_'])
-        self.add_data('id_', np.array(id_))
 
         Xs_col = [
             'col_00_Age_binning_encoded',
@@ -558,9 +544,10 @@ class titanic_test(BaseDataset):
             'col_14_group_first_name_count',
             'col_15_with_only_family'
         ]
-        Xs_df = self.to_DataFrame(Xs_col)
+        Xs_df = df[Xs_col]
         onehot_np_arr = df_to_np_onehot_embedding(Xs_df)
-        self.add_data('Xs', onehot_np_arr)
+        self.add_data('x', onehot_np_arr)
+        self.x_keys = Xs_col
 
 
 class titanic(BaseDatasetPack):

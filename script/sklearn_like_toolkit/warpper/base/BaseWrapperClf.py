@@ -1,4 +1,4 @@
-from script.sklearn_like_toolkit.base.MixIn import ClfWrapperMixIn
+from script.sklearn_like_toolkit.warpper.base.MixIn import ClfWrapperMixIn
 
 
 class BaseWrapperClf(ClfWrapperMixIn):

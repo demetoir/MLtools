@@ -1,12 +1,12 @@
-from script.sklearn_like_toolkit.base.BaseWrapperClf import BaseWrapperClf
-from script.sklearn_like_toolkit.base.BaseWrapperReg import BaseWrapperReg
-from script.sklearn_like_toolkit.base.MixIn import meta_BaseWrapperClf_with_ABC, meta_BaseWrapperReg_with_ABC
+from script.sklearn_like_toolkit.warpper.base.BaseWrapperClf import BaseWrapperClf
+from script.sklearn_like_toolkit.warpper.base.BaseWrapperReg import BaseWrapperReg
+from script.sklearn_like_toolkit.warpper.base.MixIn import MetaBaseWrapperClfWithABC, MetaBaseWrapperRegWithABC
 import warnings
 import lightgbm
 from hyperopt import hp
 
 
-class LightGBMClf(lightgbm.LGBMClassifier, BaseWrapperClf, metaclass=meta_BaseWrapperClf_with_ABC):
+class LightGBMClf(lightgbm.LGBMClassifier, BaseWrapperClf, metaclass=MetaBaseWrapperClfWithABC):
     HyperOpt_space = {
         'boosting_type': hp.choice('boosting_type', ['dart', "gbdt"]),
         'max_depth': 2 + hp.randint('max_depth', 10),
@@ -83,8 +83,12 @@ class LightGBMClf(lightgbm.LGBMClassifier, BaseWrapperClf, metaclass=meta_BaseWr
 
         BaseWrapperClf.__init__(self)
 
+    @property
+    def feature_importances(self):
+        return self.feature_importances_
 
-class LightGBMReg(lightgbm.LGBMRegressor, BaseWrapperReg, metaclass=meta_BaseWrapperReg_with_ABC):
+
+class LightGBMReg(lightgbm.LGBMRegressor, BaseWrapperReg, metaclass=MetaBaseWrapperRegWithABC):
     HyperOpt_space = {
         'boosting_type': hp.choice('boosting_type', ['dart', "gbdt"]),
         'max_depth': 2 + hp.randint('max_depth', 10),
@@ -158,3 +162,8 @@ class LightGBMReg(lightgbm.LGBMRegressor, BaseWrapperReg, metaclass=meta_BaseWra
             colsample_bytree, reg_alpha, reg_lambda, random_state, n_jobs, silent, **kwargs)
 
         BaseWrapperReg.__init__(self)
+
+
+    @property
+    def feature_importances(self):
+        return self.feature_importances_

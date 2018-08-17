@@ -5,7 +5,7 @@ from functools import wraps
 from hyperopt import fmin, tpe, STATUS_OK, STATUS_FAIL, hp
 from hyperopt.mongoexp import MongoTrials
 from tqdm import tqdm
-from script.sklearn_like_toolkit.HyperOpt.FreeTrials import FreeTrials
+from script.sklearn_like_toolkit.param_search.HyperOpt.FreeTrials import FreeTrials
 from script.util.MixIn import singletonPoolMixIn
 from script.util.misc_util import log_error_trace
 
@@ -72,8 +72,8 @@ CPU_COUNT = mp.cpu_count() - 1
 class HyperOpt(singletonPoolMixIn):
     _pool_singleton = None
 
-    def __init__(self, min_best=True, n_job=CPU_COUNT):
-        singletonPoolMixIn.__init__(self, n_job)
+    def __init__(self, min_best=True, n_jobs=CPU_COUNT):
+        singletonPoolMixIn.__init__(self, n_jobs)
         self._min_best = min_best
         self._trials = None
         self._best_param = None
@@ -171,6 +171,9 @@ class HyperOpt(singletonPoolMixIn):
             trials=trials,
         )
 
+        if pbar is not None:
+            pbar.close()
+
         self._trials = trials
         return self._trials
 
@@ -206,11 +209,11 @@ class HyperOpt(singletonPoolMixIn):
                 })
             childs += [child]
 
+        print('collect job')
+
+        n_already_done = len(base_trials)
         if pbar:
             childs = tqdm(childs)
-
-        print('collect job')
-        n_already_done = len(base_trials)
         for child in childs:
             trials = child.get()
             partial = trials.partial_deepcopy(n_already_done, n_already_done + 1)

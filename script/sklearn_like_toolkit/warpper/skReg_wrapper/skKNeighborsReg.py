@@ -1,11 +1,11 @@
 from hyperopt import hp
 from sklearn.neighbors import KNeighborsRegressor as _KNeighborsRegressor
 
-from script.sklearn_like_toolkit.base.BaseWrapperReg import BaseWrapperReg
-from script.sklearn_like_toolkit.base.MixIn import meta_BaseWrapperReg_with_ABC
+from script.sklearn_like_toolkit.warpper.base.BaseWrapperReg import BaseWrapperReg
+from script.sklearn_like_toolkit.warpper.base.MixIn import MetaBaseWrapperRegWithABC
 
 
-class skKNeighborsReg(_KNeighborsRegressor, BaseWrapperReg, metaclass=meta_BaseWrapperReg_with_ABC):
+class skKNeighborsReg(_KNeighborsRegressor, BaseWrapperReg, metaclass=MetaBaseWrapperRegWithABC):
 
     def __init__(self, n_neighbors=5, weights='uniform', algorithm='auto', leaf_size=30, p=2, metric='minkowski',
                  metric_params=None, n_jobs=1, **kwargs):

@@ -1,11 +1,11 @@
 from hyperopt import hp
 from sklearn.naive_bayes import MultinomialNB as _skMultinomialNB
 
-from script.sklearn_like_toolkit.base.BaseWrapperClf import BaseWrapperClf
-from script.sklearn_like_toolkit.base.MixIn import meta_BaseWrapperClf_with_ABC
+from script.sklearn_like_toolkit.warpper.base.BaseWrapperClf import BaseWrapperClf
+from script.sklearn_like_toolkit.warpper.base.MixIn import MetaBaseWrapperClfWithABC
 
 
-class skMultinomial_NBClf(BaseWrapperClf, _skMultinomialNB, metaclass=meta_BaseWrapperClf_with_ABC):
+class skMultinomial_NBClf(BaseWrapperClf, _skMultinomialNB, metaclass=MetaBaseWrapperClfWithABC):
     def __init__(self, alpha=1.0, fit_prior=True, class_prior=None):
         _skMultinomialNB.__init__(self, alpha, fit_prior, class_prior)
         BaseWrapperClf.__init__(self)

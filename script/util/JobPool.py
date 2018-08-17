@@ -1,8 +1,8 @@
 import multiprocessing as mp
 import tqdm
 from script.util.IdDict import IdDict
-from multiprocessing_on_dill.pool import Pool as _Pool
-from multiprocessing_on_dill.context import TimeoutError
+from multiprocessing.pool import Pool as _Pool
+from multiprocessing.context import TimeoutError
 from queue import Queue
 
 from script.util.MixIn import LoggerMixIn
