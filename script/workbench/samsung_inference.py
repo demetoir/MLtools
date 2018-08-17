@@ -1,7 +1,8 @@
 import math
 import os
-from pprint import pprint
 import numpy as np
+from pprint import pprint
+from script.data_handler.Base.BaseDataset import BaseDataset
 from script.data_handler.samsun_contest import samsung_contest, path_head, load_samsung, add_col_num, save_samsung
 from script.sklearn_like_toolkit.ClassifierPack import ClassifierPack
 from script.util.PlotTools import PlotTools
@@ -24,6 +25,25 @@ class SamsungInference:
         self._test_df = None
         self._p_types = None
         self._model = None
+
+        self.x_cols = list([
+            # 'c00_주야',
+            # 'c01_요일',
+            'c02_사망자수',
+            'c03_사상자수',
+            'c04_중상자수',
+            'c05_경상자수',
+            'c06_부상신고자수',
+            # 'c07_발생지시도',
+            # 'c08_발생지시군구',
+            'c09_사고유형_대분류',
+            'c10_사고유형_중분류',
+            'c11_법규위반',
+            'c12_도로형태_대분류',
+            'c13_도로형태',
+            'c14_당사자종별_1당_대분류',
+            'c15_당사자종별_2당_대분류',
+        ])
 
     @property
     def dataset_pack(self):
@@ -112,7 +132,6 @@ class SamsungInference:
             clfs = load_pickle(path)
             return clfs
 
-        full_set = self.full_set
         full_df = self.full_set.to_DataFrame()
         print(full_df.info())
         print('load data')
@@ -123,24 +142,8 @@ class SamsungInference:
         clf_dict = {}
         for p_type, p_type_str in zip(p_types, p_types_str):
             print(f'train type : {p_type_str }')
-            x_cols = list([
-                # 'c00_주야',
-                # 'c01_요일',
-                'c02_사망자수',
-                'c03_사상자수',
-                'c04_중상자수',
-                'c05_경상자수',
-                'c06_부상신고자수',
-                # 'c07_발생지시도',
-                # 'c08_발생지시군구',
-                'c09_사고유형_대분류',
-                'c10_사고유형_중분류',
-                'c11_법규위반',
-                'c12_도로형태_대분류',
-                'c13_도로형태',
-                'c14_당사자종별_1당_대분류',
-                'c15_당사자종별_2당_대분류',
-            ])
+
+            x_cols = list(self.x_cols)
 
             for y_col in p_type:
                 x_cols.remove(y_col)
@@ -150,9 +153,10 @@ class SamsungInference:
                 print(f'train label : {y_col}')
                 print(x_cols, y_col)
 
-                full_set.set_x_keys(x_cols)
-                full_set.set_y_keys([y_col])
-                train_set, test_set = full_set.split()
+                x_df = full_df[x_cols]
+                y_df = full_df[[y_col]]
+                dataset = BaseDataset(x=x_df, y=y_df)
+                train_set, test_set = dataset.split()
                 train_xs, train_ys = train_set.full_batch(out_type='df')
                 test_xs, test_ys = test_set.full_batch(out_type='df')
                 # print(train_xs.info())
@@ -193,24 +197,7 @@ class SamsungInference:
             p_type_str = str(p_type)
             print(f'predict {idx}, {p_type_str}')
 
-            x_cols = list([
-                # 'c00_주야',
-                # 'c01_요일',
-                'c02_사망자수',
-                'c03_사상자수',
-                'c04_중상자수',
-                'c05_경상자수',
-                'c06_부상신고자수',
-                # 'c07_발생지시도',
-                # 'c08_발생지시군구',
-                'c09_사고유형_대분류',
-                'c10_사고유형_중분류',
-                'c11_법규위반',
-                'c12_도로형태_대분류',
-                'c13_도로형태',
-                'c14_당사자종별_1당_대분류',
-                'c15_당사자종별_2당_대분류',
-            ])
+            x_cols = list(self.x_cols)
 
             for y_col in p_type:
                 x_cols.remove(y_col)
