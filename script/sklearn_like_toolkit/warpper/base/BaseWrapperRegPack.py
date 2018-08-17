@@ -1,17 +1,13 @@
 import os
-from pprint import pformat
 from env_settting import SKLEARN_PARAMS_SAVE_PATH
-from script.data_handler.DummyDataset import DummyDataset
-from script.sklearn_like_toolkit.param_search.HyperOpt.HyperOpt import HyperOpt, HyperOpt_fn
-from script.sklearn_like_toolkit.param_search.ParamOpt import ParamOptimizer
+from script.sklearn_like_toolkit.param_search.HyperOpt.HyperOpt import HyperOpt_fn
 from script.sklearn_like_toolkit.warpper.base.MixIn import RegWrapperMixIn, \
     MetaBaseWrapperReg
-from script.sklearn_like_toolkit.warpper.wrapperGridSearchCV import \
-    wrapperGridSearchCV
 from script.util.misc_util import time_stamp, dump_pickle, load_pickle, \
-    path_join, log_error_trace
+    log_error_trace
 
 
+# TODO remake
 class regpack_HyperOpt_fn(HyperOpt_fn):
 
     @staticmethod
@@ -61,118 +57,6 @@ class BaseWrapperRegPack(RegWrapperMixIn, metaclass=MetaBaseWrapperReg):
 
     def __getitem__(self, item):
         return self.pack.__getitem__(item)
-
-    @property
-    def HyperOpt_results(self):
-        return self._HyperOpt_results
-
-    @property
-    def HyperOpt_Trials(self):
-        return self._HyperOpt_trials
-
-    @property
-    def HyperOpt_losses(self):
-        return self._HyperOpt_losses
-
-    @property
-    def HyperOpt_best_loss(self):
-        return self._HyperOpt_best_loss
-
-    @property
-    def HyperOpt_best_params(self):
-        return self._HyperOpt_best_params
-
-    @property
-    def HyperOpt_best_result(self):
-        return self._HyperOpt_best_result
-
-    @property
-    def HyperOpt_opt_info(self):
-        return {key: self.optimizers[key].opt_info for key in self.pack}
-
-    def HyperOptSearch(self, Xs, Ys, n_iter, min_best=True, parallel=False,
-                       **kwargs):
-        dataset = DummyDataset()
-        dataset.add_data('Xs', Xs)
-        dataset.add_data('Ys', Ys)
-
-        total = len(self.pack)
-        for idx, (key, clf) in enumerate(self.pack.items()):
-            self.log.info(f'HyperOpt at {key} {idx}/{total}')
-            try:
-                opt = HyperOpt(min_best=min_best)
-
-                if parallel:
-                    opt_func = opt.fit_parallel
-                else:
-                    opt_func = opt.fit_serial
-
-                trials = opt_func(
-                    regpack_HyperOpt_fn,
-                    clf.HyperOpt_space,
-                    n_iter,
-                    feed_args=(),
-                    feed_kwargs={
-                        'reg_cls': clf.__class__,
-                        'dataset': dataset
-                    },
-                )
-
-                self.optimizers[key] = opt
-                self._HyperOpt_trials[key] = trials
-                self._HyperOpt_results[key] = trials.results
-                self._HyperOpt_losses[key] = trials.losses
-                self._HyperOpt_best_params[key] = opt.best_param
-                self._HyperOpt_best_loss[key] = opt.best_loss
-                self._HyperOpt_best_result[key] = opt.best_result
-                self.optimize_result[key] = opt.result
-
-                if opt.best_param is not None:
-                    clf = clf.__class__(**opt.best_param)
-                    clf.fit(Xs, Ys)
-                    self.pack[key] = clf
-
-            except BaseException as e:
-                log_error_trace(self.log.warn, e,
-                                head=f'while HyperOpt at {key}')
-                self.log.warn(f'while, HyperOpt at {key}, raise ')
-
-    def param_search(self, Xs, Ys):
-        result_csv_path = path_join('.', 'param_search_result', time_stamp())
-        Ys = self.np_arr_to_index(Ys)
-        for key in self.pack:
-            cls = self.pack[key].__class__
-            obj = cls()
-
-            optimizer = ParamOptimizer(obj, obj.tuning_grid)
-            self.pack[key] = optimizer.optimize(Xs, Ys)
-            self.optimize_result[key] = optimizer.result
-
-            path = path_join(result_csv_path, cls.__name__ + '.csv')
-            optimizer.result_to_csv(path)
-
-            self.log.info("top 5 result")
-            for result in optimizer.top_k_result():
-                self.log.info(pformat(result))
-
-    def gridSearchCV(self, Xs, Ys, **kwargs):
-        Ys = self.np_arr_to_index(Ys)
-
-        total = len(self.pack)
-        current = 0
-        for key, clf in self.pack.items():
-            current += 1
-            try:
-                self.log.info(f'gridSearchCV at {key} {current}/{total}')
-                optimizer = wrapperGridSearchCV(clf, clf.tuning_grid, **kwargs)
-                optimizer.fit(Xs, Ys)
-                self.pack[key] = optimizer.best_estimator_
-                self.optimize_result = optimizer.cv_results_
-                # self.optimizers[key] = optimizer
-            except BaseException as e:
-                log_error_trace(self.log.warn, e,
-                                head=f'while GridSearchCV at {key}')
-                self.log.warn(f'while, GridSearchCV at {key}, raise ')
 
     def fit(self, Xs, Ys):
         Ys = self.np_arr_to_index(Ys)
