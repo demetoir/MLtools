@@ -36,6 +36,7 @@ df_Xs_keys = [
 
 df_Ys_key = 'col_10_Survived'
 
+# TODO remake
 
 def np_str_labels_to_index(np_arr, labels):
     np_arr = np.asarray(np_arr)
@@ -490,12 +491,7 @@ class titanic_train(BaseDataset):
             build_dataset(path)
 
         df = pd.read_csv(trans_path, index_col=None)
-        self.data = df_to_np_dict(df)
 
-    def save(self):
-        pass
-
-    def transform(self):
         Xs_col = [
             'col_00_Age_binning_encoded',
             'col_01_Cabin_head_encoded',
@@ -511,16 +507,15 @@ class titanic_train(BaseDataset):
             'col_14_group_first_name_count',
             'col_15_with_only_family'
         ]
-        Xs_df = self.to_DataFrame(Xs_col)
+        Xs_df = df[Xs_col]
         onehot_np_arr = df_to_np_onehot_embedding(Xs_df)
-        self.add_data('Xs', onehot_np_arr)
+        self.add_data('x', onehot_np_arr)
+        self.x_keys = Xs_col
 
-        id_ = self.to_DataFrame(['id_'])
-        self.add_data('id_', np.array(id_))
-
-        Ys_df = self.to_DataFrame(['col_10_Survived'])
+        Ys_df = df[['col_10_Survived']]
         Ys_df = df_to_onehot_embedding(Ys_df)
-        self.add_data('Ys', np.array(Ys_df))
+        self.add_data('y', np.array(Ys_df))
+        self.y_keys = ['col_10_Survived']
 
 
 class titanic_test(BaseDataset):
@@ -533,14 +528,6 @@ class titanic_test(BaseDataset):
             build_dataset(path)
 
         df = pd.read_csv(trans_path, index_col=False)
-        self.data = df_to_np_dict(df)
-
-    def save(self):
-        pass
-
-    def transform(self):
-        id_ = self.to_DataFrame(['id_'])
-        self.add_data('id_', np.array(id_))
 
         Xs_col = [
             'col_00_Age_binning_encoded',
@@ -557,9 +544,10 @@ class titanic_test(BaseDataset):
             'col_14_group_first_name_count',
             'col_15_with_only_family'
         ]
-        Xs_df = self.to_DataFrame(Xs_col)
+        Xs_df = df[Xs_col]
         onehot_np_arr = df_to_np_onehot_embedding(Xs_df)
-        self.add_data('Xs', onehot_np_arr)
+        self.add_data('x', onehot_np_arr)
+        self.x_keys = Xs_col
 
 
 class titanic(BaseDatasetPack):
