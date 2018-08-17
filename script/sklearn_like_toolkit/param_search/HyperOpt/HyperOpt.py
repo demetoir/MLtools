@@ -209,11 +209,11 @@ class HyperOpt(singletonPoolMixIn):
                 })
             childs += [child]
 
+        print('collect job')
+
+        n_already_done = len(base_trials)
         if pbar:
             childs = tqdm(childs)
-
-        print('collect job')
-        n_already_done = len(base_trials)
         for child in childs:
             trials = child.get()
             partial = trials.partial_deepcopy(n_already_done, n_already_done + 1)
