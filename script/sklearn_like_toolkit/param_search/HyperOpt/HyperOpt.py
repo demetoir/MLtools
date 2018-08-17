@@ -171,7 +171,9 @@ class HyperOpt(singletonPoolMixIn):
             trials=trials,
         )
 
-        pbar.close()
+        if pbar is not None:
+            pbar.close()
+
         self._trials = trials
         return self._trials
 
