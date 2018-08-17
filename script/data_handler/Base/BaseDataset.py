@@ -34,21 +34,23 @@ class MetaDataset(type):
 
 class BaseDataset(LoggerMixIn, PickleMixIn, metaclass=MetaDataset):
 
-    def __init__(self, x=None, y=None, verbose=20, caching=True, with_id=True, x_keys=None, y_keys=None, **kwargs):
+    def __init__(self, x=None, y=None, base='DataFrame', verbose=20, caching=True, with_id=True, **kwargs):
         LoggerMixIn.__init__(self, verbose)
         self.caching = caching
         self.with_id = with_id
+        self.base = base
 
         self._data = {}
 
-        if x:
-            self.add_data('x', x)
+        if isinstance(x, np.ndarray):
+            self._from_np_x(x)
+        elif isinstance(x, pd.DataFrame):
+            self._from_x_df(x)
 
-        if y:
-            self.add_data('y', y)
-
-        self.x_keys = x_keys
-        self.y_keys = y_keys
+        if isinstance(y, np.ndarray):
+            self._from_np_y(y)
+        elif isinstance(y, pd.DataFrame):
+            self._from_y_df(y)
 
         self.cursor = 0
         self._cursor_group_by_class = None
@@ -136,9 +138,9 @@ class BaseDataset(LoggerMixIn, PickleMixIn, metaclass=MetaDataset):
 
     @property
     def y(self):
-        if self.y_keys is None:
-            y = None
-        else:
+        if 'y' in self._data:
+            return self._data['y']
+        elif self.y_keys:
             if len(self.y_keys) == 1:
                 y = self.data[self.y_keys[0]]
             else:
@@ -146,20 +148,29 @@ class BaseDataset(LoggerMixIn, PickleMixIn, metaclass=MetaDataset):
                     key: self.data[key]
                     for key in self.y_keys
                 }
+        else:
+            y = None
 
         return y
 
     @property
     def x(self):
+        if 'x' in self._data:
+            return self._data['x']
+
         if self.x_keys is None:
             keys = self.keys
+            return {
+                key: self.data[key]
+                for key in keys
+            }
         else:
             keys = self.x_keys
 
-        return {
-            key: self.data[key]
-            for key in keys
-        }
+            return {
+                key: self.data[key]
+                for key in keys
+            }
 
     @property
     def y_label(self):
@@ -201,6 +212,9 @@ class BaseDataset(LoggerMixIn, PickleMixIn, metaclass=MetaDataset):
         self.reset_id()
 
     def _iter_batch(self, data, batch_size, cursor=None):
+        if batch_size == 0:
+            raise ValueError(f'batch size > 0')
+
         if cursor is None:
             cursor = self.cursor
 
@@ -219,11 +233,11 @@ class BaseDataset(LoggerMixIn, PickleMixIn, metaclass=MetaDataset):
             else:
                 first, second = data[begin:], data[:end]
                 batch = np.concatenate((first, second))
-        else:
-            batch = np.array([])
 
-        if batch_to_append is not None:
-            batch = np.concatenate((batch_to_append, batch))
+                if batch_to_append is not None:
+                    batch = np.concatenate((batch, batch_to_append))
+        else:
+            batch = batch_to_append
 
         return batch
 
@@ -246,14 +260,20 @@ class BaseDataset(LoggerMixIn, PickleMixIn, metaclass=MetaDataset):
 
     @staticmethod
     def _concat_batch(batch):
-        size = len(batch.items()[0])
-        batch = batch.items()
+        feature_size = len(batch)
+        batch_size = len(list(batch.values())[0])
 
-        batch = np.vstack(batch)
-        batch = batch.reshape([size, -1])
+        if feature_size == 1:
+            batch = list(batch.values())[0]
+        else:
+            batch = batch.items()
 
-        if batch.shape[1] == 1:
-            batch = batch.reshape([size])
+            batch = np.vstack(batch)
+            batch = batch.reshape([batch_size, -1])
+
+        if batch.ndim >= 2 and batch.shape[1] == 1:
+            batch = batch.reshape([batch_size])
+
         return batch
 
     def _collect_iter_batch(self, keys, size, balanced_class=False, update_cursor=True, out_type=None):
@@ -286,6 +306,24 @@ class BaseDataset(LoggerMixIn, PickleMixIn, metaclass=MetaDataset):
         batch = self._batch_convert(batch, out_type)
 
         return batch
+
+    def _from_x_df(self, x_df):
+        for key in x_df:
+            self.add_data(key, x_df[key])
+        self.x_keys = list(x_df.columns)
+
+    def _from_y_df(self, y_df):
+        for key in y_df:
+            self.add_data(key, y_df[key])
+        self.y_keys = list(y_df.columns)
+
+    def _from_np_x(self, np_x):
+        self.add_data('x', np_x)
+        self.x_keys = ['x']
+
+    def _from_np_y(self, np_y):
+        self.add_data('y', np_y)
+        self.y_keys = ['y']
 
     def add_data(self, key, data):
         self._data[key] = np.array(data)
@@ -490,15 +528,9 @@ class BaseDataset(LoggerMixIn, PickleMixIn, metaclass=MetaDataset):
 
     def from_DataFrame(self, x_df, y_df=None):
         obj = self._clone()
-
-        for key in x_df:
-            obj.add_data(key, x_df[key])
-        self.x_keys = list(x_df.columns)
-
+        obj._from_x_df(x_df)
         if y_df is not None:
-            for key in y_df:
-                obj.add_data(key, y_df[key])
-            self.y_keys = list(y_df.columns)
+            obj._from_y_df(y_df)
 
         return obj
 
@@ -517,12 +549,8 @@ class BaseDataset(LoggerMixIn, PickleMixIn, metaclass=MetaDataset):
         return self.full_batch()
 
     def from_np_arr(self, x_np, y_np=None):
-        raise NotImplementedError
-
-    def set_x_keys(self, x_keys):
-        self.x_keys = x_keys
-        self._invalidate()
-
-    def set_y_keys(self, y_keys):
-        self.y_keys = y_keys
-        self._invalidate()
+        obj = self._clone()
+        obj._from_np_x(x_np)
+        if y_np is not None:
+            obj._from_np_y(y_np)
+        return obj
