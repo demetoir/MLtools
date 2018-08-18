@@ -80,7 +80,6 @@ class BaseWrapperClfPack(ClfWrapperMixIn, metaclass=MetaBaseWrapperClf):
             tqdm.write(f'fit {key}')
 
             try:
-                print(x.shape, label_Ys.shape)
                 self.pack[key].fit(x, label_Ys)
             except BaseException as e:
                 log_error_trace(self.log.warn, e)
@@ -150,7 +149,7 @@ class BaseWrapperClfPack(ClfWrapperMixIn, metaclass=MetaBaseWrapperClf):
         y = self.np_arr_to_index(y)
 
         ret = {}
-        for clf_k, predict in tqdm(self.predict(x).items()):
+        for clf_k, predict in tqdm(self.predict(x, decode_df=False).items()):
             tqdm.write(f'score_pack {clf_k}')
 
             ret[clf_k] = self._apply_metric_pack(y, predict)
