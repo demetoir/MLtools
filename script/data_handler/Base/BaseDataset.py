@@ -245,7 +245,7 @@ class BaseDataset(LoggerMixIn, PickleMixIn, metaclass=MetaDataset):
         if self.with_id:
             self.reset_id()
 
-        self.log.debug(f'{self.__class__.__name__} {self.size} loaded')
+        self.log.debug(f'{self.__class__.__name__} {self.size} rows loaded')
 
     def _iter_batch_balanced(self, key, batch_size_group_by_class):
         batch = [
@@ -337,7 +337,6 @@ class BaseDataset(LoggerMixIn, PickleMixIn, metaclass=MetaDataset):
     def reset_id(self):
         if 'id_' not in self._data.keys():
             self._data['id_'] = np.array([i for i in range(1, self.size + 1)]).reshape([self.size, 1])
-            self.log.debug("insert 'id_' column")
 
     def load(self, path):
         """load dataset from file should implement
