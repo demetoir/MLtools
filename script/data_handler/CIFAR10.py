@@ -33,10 +33,10 @@ class CIFAR10_train(BaseDataset):
                 dict_ = pickle.load(fo, encoding='bytes')
 
             x = dict_[self._PKCL_KEY_TRAIN_DATA]
-            self._append_data('Xs', x)
+            self.append_data('Xs', x)
 
             label = dict_[self._PKCL_KEY_TRAIN_LABEL]
-            self._append_data('Ys', label)
+            self.append_data('Ys', label)
 
     def save(self):
         pass
@@ -61,10 +61,10 @@ class CIFAR10_test(BaseDataset):
                 dict_ = pickle.load(fo, encoding='bytes')
 
             x = dict_[self._PKCL_KEY_TEST_DATA]
-            self._append_data('Xs', x)
+            self.append_data('Xs', x)
 
             label = dict_[self._PKCL_KEY_TEST_LABEL]
-            self._append_data('Ys', label)
+            self.append_data('Ys', label)
 
     def save(self):
         pass

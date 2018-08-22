@@ -1,7 +1,8 @@
 import math
 import os
-from pprint import pprint
 import numpy as np
+from pprint import pprint
+from script.data_handler.Base.BaseDataset import BaseDataset
 from script.data_handler.samsun_contest import samsung_contest, path_head, load_samsung, add_col_num, save_samsung
 from script.sklearn_like_toolkit.ClassifierPack import ClassifierPack
 from script.util.PlotTools import PlotTools
@@ -12,6 +13,7 @@ DF = pd.DataFrame
 
 
 class SamsungInference:
+    path_head = path_head
 
     def __init__(self) -> None:
         super().__init__()
@@ -24,6 +26,25 @@ class SamsungInference:
         self._test_df = None
         self._p_types = None
         self._model = None
+
+        self.x_cols = list([
+            # 'c00_주야',
+            # 'c01_요일',
+            'c02_사망자수',
+            'c03_사상자수',
+            'c04_중상자수',
+            'c05_경상자수',
+            'c06_부상신고자수',
+            # 'c07_발생지시도',
+            # 'c08_발생지시군구',
+            'c09_사고유형_대분류',
+            'c10_사고유형_중분류',
+            'c11_법규위반',
+            'c12_도로형태_대분류',
+            'c13_도로형태',
+            'c14_당사자종별_1당_대분류',
+            'c15_당사자종별_2당_대분류',
+        ])
 
     @property
     def dataset_pack(self):
@@ -109,10 +130,12 @@ class SamsungInference:
         p_types = self.p_types
 
         if os.path.exists(path) and cache:
+            print('models cache found, use cache')
             clfs = load_pickle(path)
             return clfs
 
-        full_set = self.full_set
+        print('train_model')
+
         full_df = self.full_set.to_DataFrame()
         print(full_df.info())
         print('load data')
@@ -121,26 +144,10 @@ class SamsungInference:
         pprint(p_types)
 
         clf_dict = {}
-        for p_type, p_type_str in zip(p_types, p_types_str):
+        for p_type, p_type_str in list(zip(p_types, p_types_str)):
             print(f'train type : {p_type_str }')
-            x_cols = list([
-                # 'c00_주야',
-                # 'c01_요일',
-                'c02_사망자수',
-                'c03_사상자수',
-                'c04_중상자수',
-                'c05_경상자수',
-                'c06_부상신고자수',
-                # 'c07_발생지시도',
-                # 'c08_발생지시군구',
-                'c09_사고유형_대분류',
-                'c10_사고유형_중분류',
-                'c11_법규위반',
-                'c12_도로형태_대분류',
-                'c13_도로형태',
-                'c14_당사자종별_1당_대분류',
-                'c15_당사자종별_2당_대분류',
-            ])
+
+            x_cols = list(self.x_cols)
 
             for y_col in p_type:
                 x_cols.remove(y_col)
@@ -150,28 +157,54 @@ class SamsungInference:
                 print(f'train label : {y_col}')
                 print(x_cols, y_col)
 
-                full_set.set_x_keys(x_cols)
-                full_set.set_y_keys([y_col])
-                train_set, test_set = full_set.split()
+                x_df = full_df[x_cols]
+                y_df = full_df[[y_col]]
+                dataset = BaseDataset(x=x_df, y=y_df)
+                dataset.shuffle()
+                train_set, test_set = dataset.split()
                 train_xs, train_ys = train_set.full_batch(out_type='df')
                 test_xs, test_ys = test_set.full_batch(out_type='df')
                 # print(train_xs.info())
 
-                clf_name = 'skDecisionTreeClf'
-                clf = ClassifierPack([clf_name])
+                class_pack_names = [
+                    'skMLPClf',
+                    # 'skRandomForestClf',
+                    # 'skExtraTreesClf',
+                    # 'skAdaBoostClf',
+                    # 'skGradientBoostingClf',
+                    # 'skLinear_SVCClf',
+                    # 'skBaggingClf',
+                    #
+                    'XGBoostClf',
+                    # 'LightGBMClf',
+                    # 'skRidgeCVClf',
+                ]
+                clf_name = 'XGBoostClf'
+                class_pack_names = [clf_name]
+                clf = ClassifierPack(class_pack_names)
+
+                # opt = ParamOpt(cv=3, n_jobs=6, n_iter=10)
+                # clf.pack[clf_name] = opt.fit(clf[clf_name], train_xs, train_ys)
                 clf.fit(train_xs, train_ys)
 
                 train_score = clf.score(train_xs, train_ys)
                 test_score = clf.score(test_xs, test_ys)
                 if len(train_score) == 0:
                     raise ValueError(f'{y_col} in {p_type} fail')
+                pprint(train_score)
+                pprint(test_score)
+                score_pack = clf.score_pack(test_xs, test_ys)
+                pprint(score_pack)
+                print(clf.feature_importance)
                 pprint(f'score train = {train_score},\n test = {test_score}')
 
                 predict = clf.predict(train_xs[:1])[clf_name]
                 print(f'predict = {predict}, test_ys= {test_ys[:1]}')
+
                 clfs[y_col] = clf
 
             clf_dict[p_type_str] = clfs
+            # exit()
 
         dump_pickle(clf_dict, path)
 
@@ -179,38 +212,21 @@ class SamsungInference:
 
     def predict(self, cache=True):
         test_df_trans = self.test_df_trans
-        # p_types = self.p_types
-        # p_types_str = self.p_types_str
         clf_dicts = self.model
 
         path = path_join(path_head, 'predict.csv')
         if os.path.exists(path) and cache:
+            print('predict cache found, use cache')
             df = load_samsung(path)
             return df
 
+        print('predict')
         for idx in range(len(test_df_trans)):
             p_type = self.get_p_type(test_df_trans, idx)
             p_type_str = str(p_type)
             print(f'predict {idx}, {p_type_str}')
 
-            x_cols = list([
-                # 'c00_주야',
-                # 'c01_요일',
-                'c02_사망자수',
-                'c03_사상자수',
-                'c04_중상자수',
-                'c05_경상자수',
-                'c06_부상신고자수',
-                # 'c07_발생지시도',
-                # 'c08_발생지시군구',
-                'c09_사고유형_대분류',
-                'c10_사고유형_중분류',
-                'c11_법규위반',
-                'c12_도로형태_대분류',
-                'c13_도로형태',
-                'c14_당사자종별_1당_대분류',
-                'c15_당사자종별_2당_대분류',
-            ])
+            x_cols = list(self.x_cols)
 
             for y_col in p_type:
                 x_cols.remove(y_col)
@@ -223,8 +239,9 @@ class SamsungInference:
 
                 clf = clf_dicts[p_type_str][y_col]
                 print(clf)
-                # print(x_df)
-                predict = clf.predict(x_df)['skDecisionTreeClf'][0][0]
+
+                clf_name = 'XGBoostClf'
+                predict = clf.predict(x_df)[clf_name][0][0]
                 test_df_trans.loc[idx, y_col] = predict
                 print(f'predict = {predict}, at_df:{test_df_trans.loc[idx, y_col]}')
 
@@ -307,18 +324,13 @@ class SamsungInference:
 
         return test_df
 
-    def pipeline(self):
-        test_df = self.test_df
-        print(test_df.head())
+    def pipeline(self, train_cache=False, predict_cache=False):
+        self.train_models(cache=train_cache)
+        predict_df = self.predict(cache=predict_cache)
 
-        self.train_models(cache=False)
-
-        predict_df = self.predict(cache=False)
-        print(predict_df.head(5))
-
-        predict_df = self.transformer.inverse_transform(predict_df)
-        print(predict_df.head())
-        save_samsung(predict_df, './predict.csv')
+        inverse_predict_df = self.transformer.inverse_transform(predict_df)
+        transformed_result_df = self.transform_to_result(inverse_predict_df)
+        save_samsung(transformed_result_df, path_join(path_head, 'result_predict.csv'))
 
     def plot_all(self):
         path = "./data/samsung_contest/data_tansformed.csv"
@@ -401,3 +413,27 @@ class SamsungInference:
         # TODO
         # autoencoder or gan one model to all type
         pass
+
+    def transform_to_result(self, predict_df):
+        result_df = load_samsung(path_join(path_head, 'result_kor.csv'))
+        size = len(result_df)
+        predict_cols = list(predict_df.columns)
+        result_cols = [str.upper(a) for a in 'abcdefghijklmnopqrstuvwxyz']
+        result_cols = result_cols[:len(predict_cols)]
+
+        result_col_tp_result_col = dict(zip(result_cols, predict_cols))
+
+        for i in range(size):
+            a = result_df.loc[i, :]
+            row = int(a['열']) - 2
+            col = a['행']
+            predict_col = result_col_tp_result_col[col]
+            result_df.loc[i, '값'] = predict_df.loc[row, predict_col]
+            # print(row, col, type(row), type(col), predict_col)
+
+        return result_df
+
+    def test_bench(self):
+        predict_df = load_samsung(path_join(path_head, 'predict.csv'))
+        transformed_result_df = self.transform_to_result(predict_df)
+        save_samsung(transformed_result_df, path_join(path_head, 'result_predict.csv'))

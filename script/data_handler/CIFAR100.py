@@ -1,4 +1,4 @@
-from script.data_handler.Base.BaseDataset import BaseDataset, DownloadInfo
+from script.data_handler.Base.BaseDataset import BaseDataset
 from script.data_handler.Base.BaseDatasetPack import BaseDatasetPack
 import pickle
 import os
@@ -23,22 +23,6 @@ class CIFAR100_train(BaseDataset):
     _pkcl_key_train_fine_labels = b"fine_labels"
     _pkcl_key_train_coarse_labels = b"coarse_labels"
 
-    @property
-    def downloadInfos(self):
-        return [
-            DownloadInfo(
-                url='https://www.cs.toronto.edu/~kriz/cifar-100-python.tar.gz',
-                is_zipped=True,
-                download_file_name="cifar-100-python.tar.gz",
-                extracted_file_names=[
-                    "meta",
-                    # "test",
-                    "train",
-                    "file.txt~"
-                ]
-            )
-        ]
-
     def load(self, path):
         # load train data
         file_path = os.path.join(path, self._FOLDER_NAME, self._PATTERN_TRAIN_FILE)
@@ -47,9 +31,9 @@ class CIFAR100_train(BaseDataset):
         x = dict_[self._pkcl_key_train_data]
         coarse_labels = dict_[self._pkcl_key_train_coarse_labels]
         fine_labels = dict_[self._pkcl_key_train_fine_labels]
-        self._append_data('Xs', x)
-        self._append_data(BATCH_KEY_TRAIN_COARSE_LABELS, coarse_labels)
-        self._append_data(BATCH_KEY_TRAIN_FINE_LABELS, fine_labels)
+        self.append_data('Xs', x)
+        self.append_data(BATCH_KEY_TRAIN_COARSE_LABELS, coarse_labels)
+        self.append_data(BATCH_KEY_TRAIN_FINE_LABELS, fine_labels)
 
     def save(self):
         pass
@@ -65,22 +49,6 @@ class CIFAR100_test(BaseDataset):
     _pkcl_key_test_fine_labels = b"fine_labels"
     _pkcl_key_test_coarse_labels = b"coarse_labels"
 
-    @property
-    def downloadInfos(self):
-        return [
-            DownloadInfo(
-                url='https://www.cs.toronto.edu/~kriz/cifar-100-python.tar.gz',
-                is_zipped=True,
-                download_file_name="cifar-100-python.tar.gz",
-                extracted_file_names=[
-                    "meta",
-                    "test",
-                    # "train",
-                    "file.txt~"
-                ]
-            )
-        ]
-
     def load(self, path):
         # load test data
         file_path = os.path.join(path, self._FOLDER_NAME, self._PATTERN_TEST_FILE)
@@ -89,9 +57,9 @@ class CIFAR100_test(BaseDataset):
         x = dict_[self._pkcl_key_test_data]
         coarse_labels = dict_[self._pkcl_key_test_coarse_labels]
         fine_labels = dict_[self._pkcl_key_test_fine_labels]
-        self._append_data('Xs', x)
-        self._append_data(BATCH_KEY_TEST_COARSE_LABELS, coarse_labels)
-        self._append_data(BATCH_KEY_TEST_FINE_LABELS, fine_labels)
+        self.append_data('Xs', x)
+        self.append_data(BATCH_KEY_TEST_COARSE_LABELS, coarse_labels)
+        self.append_data(BATCH_KEY_TEST_FINE_LABELS, fine_labels)
 
     def save(self):
         pass

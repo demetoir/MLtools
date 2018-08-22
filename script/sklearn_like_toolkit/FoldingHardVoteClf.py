@@ -15,7 +15,7 @@ class FoldingHardVoteClf(BaseWrapperClf):
     def _collect_predict(self, Xs):
         return np.array([clf.predict(Xs) for clf in self.clfs])
 
-    def fit(self, Xs, Ys):
+    def fit(self, Xs, Ys, **kwargs):
         self.class_size = self.np_arr_to_onehot(Ys).shape[1]
         dset = DummyDataset()
         dset.add_data('Xs', Xs)
@@ -37,10 +37,10 @@ class FoldingHardVoteClf(BaseWrapperClf):
         )
         return bincount
 
-    def predict_proba(self, Xs):
+    def predict_proba(self, Xs, **kwargs):
         return self.predict_bincount(Xs) / float(self.n)
 
-    def predict(self, Xs):
+    def predict(self, Xs, **kwargs):
         predicts = self._collect_predict(Xs).transpose()
         predicts = predicts.astype(int)
         maj = np.apply_along_axis(

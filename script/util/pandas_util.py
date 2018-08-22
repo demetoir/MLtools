@@ -87,9 +87,9 @@ def df_binning(df: DF, key: str, bin_seq: list, column_tail='_binning', with_int
     return new_df
 
 
-def df_minmax_normalize(df: DF, key: str, min=None, max=None, col_tail='_normailized') -> DF:
+def df_minmax_normalize(df: DF, key: str, min_=None, max_=None, col_tail='_normailized') -> DF:
     np_x = NpArr(df[key])
-    np_x_normalized = np_minmax_normalize(np_x, min, max)
+    np_x_normalized = np_minmax_normalize(np_x, min_, max_)
     new_df = DF({
         key + col_tail: np_x_normalized
     })

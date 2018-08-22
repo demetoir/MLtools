@@ -56,48 +56,38 @@ class ClassifierPack(BaseWrapperClfPack):
         CatBoostClf.__name__: CatBoostClf,
         skPassiveAggressiveClf.__name__: skPassiveAggressiveClf,
         skRidgeCVClf.__name__: skRidgeCVClf,
-        # skQDAClf.__name__: skQDAClf,
-        # skRidgeClf.__name__: skRidgeClf,
-        # skNearestCentroidClf.__name__: skNearestCentroidClf,
-        # skRadiusNeighborsClf.__name__: skRadiusNeighborsClf,
-        # mlxAdalineClf.__name__: mlxAdalineClf,
-        # mlxLogisticRegressionClf.__name__: mlxLogisticRegressionClf,
-        # mlxMLPClf.__name__: mlxMLPClf,
-        # mlxPerceptronClf.__name__: mlxPerceptronClf,
-        # mlxSoftmaxRegressionClf.__name__: mlxSoftmaxRegressionClf,
     }
 
     def to_FoldingHardVote(self):
-        clfs = [v for k, v in self.pack.items()]
-        return FoldingHardVoteClf(clfs)
+        return FoldingHardVoteClf([v for k, v in self.pack.items()])
 
     def to_stackingClf(self, meta_clf=None):
-        clfs = [clf for k, clf in self.pack.items() if hasattr(clf, 'get_params')]
-        return mlxStackingClf(clfs, meta_clf)
+        return mlxStackingClf(
+            [
+                clf
+                for k, clf in self.pack.items()
+                if hasattr(clf, 'get_params')
+            ],
+            meta_clf)
 
     def to_stackingCVClf(self, meta_clf=None):
-        clfs = [clf for k, clf in self.pack.items() if hasattr(clf, 'get_params')]
-        return mlxStackingCVClf(clfs, meta_clf)
+        return mlxStackingCVClf(
+            [
+                clf
+                for k, clf in self.pack.items()
+                if hasattr(clf, 'get_params')
+            ],
+            meta_clf)
 
     def to_ensembleClfpack(self, meta_clf=None):
-        clfs = [clf for k, clf in self.pack.items() if hasattr(clf, 'get_params')]
-        return EnsembleClfPack(clfs, meta_clf)
-
-    def clone_top_k_tuned(self, k=5):
-        new_pack = {}
-        for key in self.pack:
-            new_pack[key] = self.pack[key]
-            results = self.optimize_result[key][1:k]
-
-            for i, result in enumerate(results):
-                param = result["param"]
-                cls = self.pack[key].__class__
-                new_key = str(cls.__name__) + '_' + str(i + 1)
-                clf = cls(**param)
-                new_pack[new_key] = clf
-
-        self.pack = new_pack
-        return self.pack
+        return EnsembleClfPack(
+            [
+                clf
+                for k, clf in self.pack.items()
+                if hasattr(clf, 'get_params')
+            ],
+            meta_clf
+        )
 
     def add_clf(self, key, clf):
         if key in self.pack:

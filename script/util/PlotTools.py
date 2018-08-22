@@ -388,11 +388,9 @@ class PlotTools(LoggerMixIn):
             mask = np.zeros_like(np_arr)
             mask[np.triu_indices_from(mask)] = True
             with self.sns.axes_style(mask_color):
-                sns_plot = self.sns.heatmap(np_arr, mask=mask, vmax=vmax, vmin=vmin, center=center, fmt=fmt,
-                                            cmap=cmap,
-                                            annot=annot, annot_kws={
-                        'fontsize': 'xx-small'
-                    })
+                sns_plot = self.sns.heatmap(
+                    np_arr, mask=mask, vmax=vmax, vmin=vmin, center=center, fmt=fmt,
+                    cmap=cmap, annot=annot, annot_kws={'fontsize': 'xx-small'})
         else:
             sns_plot = self.sns.heatmap(np_arr, mask=mask, vmax=vmax, vmin=vmin, center=center, fmt=fmt, cmap=cmap,
                                         annot=annot)

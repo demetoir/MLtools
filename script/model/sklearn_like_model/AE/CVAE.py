@@ -1,7 +1,7 @@
 import numpy as np
 from tqdm import trange
+
 from script.model.sklearn_like_model.AE.AE import basicAEPropertyMixIn
-from script.model.sklearn_like_model.AE.VAE import tf_minmax_scaling
 from script.model.sklearn_like_model.BaseModel import BaseModel
 from script.model.sklearn_like_model.Mixin import Ys_MixIn
 from script.util.Stacker import Stacker

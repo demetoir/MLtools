@@ -105,10 +105,12 @@ class clf_feature_selection:
         return SelectKBest(chi2, k=k).fit_transform(df[x_col], df[y_col])
 
     def mutual_info_classif(self, df, x_col, y_col, k):
+        # TODO
         raise NotImplementedError
         # return SelectKBest(chi2, k=k).fit_transform(df[x_col], df[y_col])
 
     def f_classif(self, df, x_col, y_col, k):
+        # TODO
         raise NotImplementedError
         # return SelectKBest(chi2, k=k).fit_transform(df[x_col], df[y_col])
 

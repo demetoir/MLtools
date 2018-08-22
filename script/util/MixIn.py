@@ -47,16 +47,18 @@ class PickleMixIn:
 
 
 class JsonMixIn:
-    def _dump_json(self, obj, path):
+    @staticmethod
+    def _dump_json(obj, path):
         dump_json(obj, path)
 
-    def _load_json(self, path):
+    @staticmethod
+    def _load_json(path):
         return load_json(path)
 
-    def _from_json(self, path):
-        return load_json(path)
+    def from_json(self, path):
+        return self._load_json(path)
 
-    def _to_json(self, obj, path):
+    def to_json(self, obj, path):
         self._dump_json(obj, path)
 
 

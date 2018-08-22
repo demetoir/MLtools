@@ -1,5 +1,5 @@
 from tensorflow.examples.tutorials.mnist import input_data
-from script.data_handler.Base.BaseDataset import BaseDataset, DownloadInfo
+from script.data_handler.Base.BaseDataset import BaseDataset
 from script.data_handler.Base.BaseDatasetPack import BaseDatasetPack
 import numpy as np
 
@@ -17,21 +17,8 @@ class Fashion_MNIST_train(BaseDataset):
     TRAIN_SIZE = 60000
     LABEL_SIZE = 10
 
-    @property
-    def downloadInfos(self):
-        return [
-            DownloadInfo(
-                url='http://fashion-mnist.s3-website.eu-central-1.amazonaws.com/',
-                is_zipped=True,
-                download_file_name='...',
-                extracted_file_names=[]
-            )
-        ]
-
     def load(self, path):
-        fashion_mnist = input_data.read_data_sets(path,
-                                                  source_url=self.downloadInfos[0].url,
-                                                  one_hot=True)
+        fashion_mnist = input_data.read_data_sets(path, one_hot=True)
         # load train data
         Xs, Ys = fashion_mnist.train.next_batch(self.TRAIN_SIZE)
         self._data['Xs'] = Xs
@@ -47,19 +34,9 @@ class Fashion_MNIST_train(BaseDataset):
 class Fashion_MNIST_test(BaseDataset):
     TEST_SIZE = 10000
     LABEL_SIZE = 10
-    download_infos = [
-        DownloadInfo(
-            url='http://fashion-mnist.s3-website.eu-central-1.amazonaws.com/',
-            is_zipped=True,
-            download_file_name='...',
-            extracted_file_names=[]
-        )
-    ]
 
     def load(self, path):
-        fashion_mnist = input_data.read_data_sets(path,
-                                                  source_url=self.download_infos[0].url,
-                                                  one_hot=True)
+        fashion_mnist = input_data.read_data_sets(path, one_hot=True)
         Xs, Ys = fashion_mnist.test.next_batch(self.TEST_SIZE)
         self._data['Xs'] = Xs
         self._data['Ys'] = Ys
