@@ -445,14 +445,14 @@ class PlotTools(LoggerMixIn):
 
         np_image_save(np_img, path)
 
-    def plot_image_tile(self, np_imgs, column=10, path=None, title=None, **kwargs):
+    def plot_image_tile(self, np_imgs, column=10, path=None, title=None, padding=3, padding_value=0, **kwargs):
         if title is None:
             title = time_stamp() + self.finger_print(6)
 
         extend = self.extend
         if path is None:
             path = path_join('.', 'matplot', title + extend)
-        np_img_tile = np_img_to_tile(np_imgs, column_size=column)
+        np_img_tile = np_img_to_tile(np_imgs, column_size=column, padding=padding, padding_value=padding_value)
         np_image_save(np_img_tile, path)
 
     def plot_percentage_stack_bar(self, df, col, stackby_col, path=None, **kwargs):

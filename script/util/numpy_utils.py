@@ -79,7 +79,7 @@ def np_img_load_file(path):
     return io.imread(path)
 
 
-def np_img_to_tile(np_imgs, column_size=10):
+def np_img_to_tile(np_imgs, column_size=10, padding=3, padding_value=0):
     """convert multiple numpy images to one grid tile image
 
     :type np_imgs: numpy.array
@@ -101,6 +101,16 @@ def np_img_to_tile(np_imgs, column_size=10):
 
     if np_imgs_check_shape(np_imgs.shape) == 'NHW':
         np_imgs = np_img_gray_to_rgb(np_imgs)
+
+        padder = ((0, 0), (padding, padding), (padding, padding))
+        const_val = ((padding_value, padding_value), (padding_value, padding_value), (padding_value, padding_value))
+    else:
+        padder = ((0, 0), (padding, padding), (padding, padding), (0, 0))
+        const_val = (
+            (padding_value, padding_value), (padding_value, padding_value), (padding_value, padding_value),
+            (padding_value, padding_value))
+
+    np_imgs = np.pad(np_imgs, padder, 'constant', constant_values=const_val)
 
     n, h, w, c = np_imgs.shape
     row_size = int(math.ceil(float(np_imgs.shape[0]) / float(column_size)))
