@@ -245,7 +245,7 @@ class BaseDataset(LoggerMixIn, PickleMixIn, metaclass=MetaDataset):
         if self.with_id:
             self.reset_id()
 
-        self.log.debug(f'{self.__class__.__name__} {self.size} rows loaded')
+        self.log.info(f'{self.__class__.__name__} {self.size} rows loaded')
 
     def _iter_batch_balanced(self, key, batch_size_group_by_class):
         batch = [
