@@ -1,5 +1,4 @@
 import os
-from pprint import pprint
 import numpy as np
 from glob import glob
 import pandas as pd
@@ -111,7 +110,10 @@ def _RLE_mask_encoding(np_arr):
 
 
 def RLE_mask_encoding(np_arr):
-    return [_RLE_mask_encoding(np_arr) for np_arr in np_arr]
+    if np_arr.ndim == 3:
+        return [_RLE_mask_encoding(np_arr) for np_arr in np_arr]
+    else:
+        return _RLE_mask_encoding(np_arr)
 
 
 def make_submission_csv(ids, masks):
