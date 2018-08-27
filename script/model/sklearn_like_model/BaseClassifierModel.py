@@ -70,7 +70,7 @@ class BaseClassifierModel(BaseModel, basicClfProperty):
 
             Xs, Ys = dataset.next_batch(batch_size, batch_keys=['Xs', 'Ys'], update_cursor=False)
             loss = self.sess.run(self._metric_ops, feed_dict={self._Xs: Xs, self._Ys: Ys})
-            self.log.info("e:{}, i:{} loss : {}".format(e, iter_num, loss))
+            self.log.info(f"e:{e}, i:{iter_num} loss : {loss}")
 
             if save_interval is not None and e % save_interval == 0:
                 self.save()
