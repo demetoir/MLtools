@@ -5,12 +5,11 @@ from script.model.sklearn_like_model.AE.VAE import VAE
 from script.sklearn_like_toolkit.param_search.param_grid import param_grid_full
 from script.util.PlotTools import PlotTools
 from script.util.misc_util import params_to_dict
-from script.workbench.bench_code import DF, pprint, print
 
 class_ = VAE
 data_pack = DatasetPackLoader().load_dataset("MNIST")
 dataset = data_pack['train']
-Xs, Ys = dataset.full_batch(['Xs', 'Ys'])
+Xs, Ys = dataset.full_batch()
 sample_X = Xs[:2]
 
 
@@ -147,24 +146,24 @@ def test_VAE_latent_space(n_iter=100):
 
     model = VAE
     params = {
-        'loss_type':          'VAE',
-        'learning_rate':      0.01,
-        'latent_code_size':   2,
+        'loss_type': 'VAE',
+        'learning_rate': 0.01,
+        'latent_code_size': 2,
         'encoder_net_shapes': (512, 256, 128, 64, 32),
-        'encoder_kwargs':     {
-            'tail_bn':                 False,
-            'tail_activation':         'lrelu',
-            'linear_stack_bn':         False,
+        'encoder_kwargs': {
+            'tail_bn': False,
+            'tail_activation': 'lrelu',
+            'linear_stack_bn': False,
             'linear_stack_activation': 'lrelu',
         },
         'decoder_net_shapes': (32, 64, 128, 256, 512),
-        'decoder_kwargs':     {
-            'tail_bn':                 True,
-            'tail_activation':         'sigmoid',
-            'linear_stack_bn':         True,
+        'decoder_kwargs': {
+            'tail_bn': True,
+            'tail_activation': 'sigmoid',
+            'linear_stack_bn': True,
             'linear_stack_activation': 'relu'
         },
-        'batch_size':         256,
+        'batch_size': 256,
         # 'KL_D_rate': 0.01
     }
     ae = model(**params)
