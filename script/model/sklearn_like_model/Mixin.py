@@ -371,7 +371,7 @@ class predictMethodMixIn:
         # return getattr(self, 'predict_index')
 
     def predict(self, x):
-        run_func = getattr(self, 'sess')
+        run_func = getattr(self, 'sess').run
         feed_dict = {
             getattr(self, '_Xs'): x
         }
@@ -385,7 +385,7 @@ class predict_probaMethodMixIn:
         raise NotImplementedError
 
     def predict_proba(self, x):
-        run_func = getattr(self, 'sess')
+        run_func = getattr(self, 'sess').run
         feed_dict = {
             getattr(self, '_Xs'): x
         }
@@ -400,7 +400,7 @@ class scoreMethodMixIn:
         raise NotImplementedError
 
     def score(self, x, y):
-        run_func = getattr(self, 'sess')
+        run_func = getattr(self, 'sess').run
         feed_dict = {
             getattr(self, '_Xs'): x,
             getattr(self, '_Ys'): y
@@ -415,7 +415,7 @@ class supervised_metricMethodMixIn:
         raise NotImplementedError
 
     def metric(self, x, y):
-        run_func = getattr(self, 'sess')
+        run_func = getattr(self, 'sess').run
         feed_dict = {
             getattr(self, '_Xs'): x,
             getattr(self, '_Ys'): y
@@ -430,7 +430,7 @@ class unsupervised_metricMethodMixIn:
         raise NotImplementedError
 
     def metric(self, x):
-        run_func = getattr(self, 'sess')
+        run_func = getattr(self, 'sess').run
         feed_dict = {
             getattr(self, '_Xs'): x
         }
