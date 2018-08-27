@@ -60,8 +60,6 @@ class BaseModel(LoggerMixIn, input_shapesMixIN, metadataMixIN, paramsMixIn, loss
             self._close_session()
             self._close_saver()
             # reset tensorflow graph
-            tf.reset_default_graph()
-
         except BaseException:
             pass
 
@@ -77,6 +75,7 @@ class BaseModel(LoggerMixIn, input_shapesMixIN, metadataMixIN, paramsMixIn, loss
             if self.sess is None:
                 self.sess = tf.Session()
                 self.sess.run(tf.global_variables_initializer())
+
         except BaseException as e:
             log_error_trace(self.log.error, e, head='fail to open tf.Session()')
 
@@ -86,6 +85,8 @@ class BaseModel(LoggerMixIn, input_shapesMixIN, metadataMixIN, paramsMixIn, loss
             self.sess = None
 
     def _build(self):
+        tf.reset_default_graph()
+
         try:
             with tf.variable_scope(str(self.id)):
                 with tf.variable_scope("misc_ops"):
@@ -194,16 +195,15 @@ class BaseModel(LoggerMixIn, input_shapesMixIN, metadataMixIN, paramsMixIn, loss
         return self.instance_path
 
     def load(self, path):
+        self._close_session()
+        self._close_saver()
+
         self._load_metadata(os.path.join(path, 'meta.json'))
         self._load_params(os.path.join(path, 'params.json'))
         self._load_input_shapes(os.path.join(path, 'input_shapes.json'))
 
         self._build()
-
-        self._close_session()
         self._open_session()
-
-        self._close_saver()
         self._open_saver()
         self.saver.restore(self.sess, self.check_point_path)
         return self
