@@ -6,13 +6,15 @@ from sklearn.decomposition import PCA
 from sklearn.manifold import TSNE
 
 from script.data_handler.TGS_salt import TRAIN_IMAGE_PATH, collect_images, TRAIN_MASK_PATH, RLE_mask_encoding, \
-    TEST_IMAGE_PATH
+    TEST_IMAGE_PATH, TGS_salt, HEAD_PATH
 from script.model.sklearn_like_model.BaseModel import BaseModel
+from script.model.sklearn_like_model.UNet import UNet
 from script.util.Logger import pprint_logger, Logger
 from script.util.deco import deco_timeit
 from script.util.PlotTools import PlotTools
 
 # print(built-in function) is not good for logging
+from script.util.misc_util import path_join
 from script.util.numpy_utils import np_img_gray_to_rgb
 
 bprint = print
@@ -143,6 +145,7 @@ class experiment:
         limit = None
         print(f'collect train images')
         train_images, _, _ = collect_images(TRAIN_IMAGE_PATH, limit=limit)
+        train_images = train_images.reshape([-1, 101, 101])
 
         print(f'collect train mask images')
         train_mask_images, _, _ = collect_images(TRAIN_MASK_PATH, limit=limit)
@@ -276,13 +279,45 @@ def empty_mask_clf():
 
 
 def image_augmentation():
-    # TODO
+    # reflection on edge
+    # shift
+    # crop
+    # horizontal flip
+    # intensity variation
+    # horizon sheeing
+    # zooming
+    # bright
+    # contrast
+    # small rotation
+    # blur
+    # combine half half
+    # add noise
+    # tilt
+    # skew
+    # distortion
+    # sharpend
+
     # image + mask
+    # from 101*101
+    # keras
+    # tensorflow
+    # pytorch
+    # tflearn
+    # cv2
+    # augmentor
+    # imgaug
+    #
+
     pass
 
 
-class learning_rate_mixIn:
-    pass
+
+
+
+def down_size():
+    # TODO
+    # from 128 * 128 to 101 * 101
+    return None
 
 
 class FusionNet(BaseModel):
@@ -290,12 +325,124 @@ class FusionNet(BaseModel):
     pass
 
 
+class resnettype_Unet():
+    pass
+
+
+class deeplab_v2():
+    pass
+
+
+class deeplab_v3():
+    pass
+
+
+class fully_connected_CRF():
+    pass
+
+
+class mask_label_encoder:
+    @staticmethod
+    def to_label(x):
+        return np.array(x / 255, dtype=int)
+
+    @staticmethod
+    def from_label(x):
+        return np.array(x * 255, dtype=float)
+
+
+def test_Unet_toy_set():
+    x = np.zeros([100, 128, 128, 1])
+    y = np.ones([100, 128, 128, 1])
+    y_gt = y
+
+    y_encode = mask_label_encoder.to_label(y)
+    print(x.shape)
+    print(y_encode.shape)
+
+    Unet = UNet(stage=4, batch_size=10)
+    Unet.train(x, y_encode, epoch=100)
+
+    score = Unet.score(x, y_encode)
+    pprint(score)
+
+    predict = Unet.predict(x)
+    pprint(predict[0])
+    pprint(predict.shape)
+
+    proba = Unet.predict_proba(x)
+    pprint(proba[0])
+    pprint(proba.shape)
+
+    metric = Unet.metric(x, y_encode)
+    print(metric)
+
+    predict = mask_label_encoder.from_label(predict)
+    plot.plot_image_tile(np.concatenate([x, predict, y_gt], axis=0), title='predict', column=10)
+
+
+def test_UNet():
+    sample_IMAGE_PATH = path_join(HEAD_PATH, 'sample/images')
+    sample_MASK_PATH = path_join(HEAD_PATH, 'sample/masks')
+
+    sample_size = 7
+    limit = None
+    print(f'collect sample images')
+    train_images, _, _ = collect_images(sample_IMAGE_PATH, limit=limit)
+    train_images = train_images.reshape([-1, 101, 101])
+    print(f'collect sample images')
+    train_mask_images, _, _ = collect_images(sample_MASK_PATH, limit=limit)
+    train_mask_images = train_mask_images.reshape([-1, 101, 101])
+
+    x = train_images
+    y = train_mask_images
+
+    import cv2
+
+    x = np.array([cv2.resize(a, (128, 128)) for a in x]).reshape([-1, 128, 128, 1])
+
+    y = np.array([cv2.resize(a, (128, 128)) for a in y]).reshape([-1, 128, 128, 1])
+    y_gt = y
+
+    y_encode = mask_label_encoder.to_label(y)
+    print(x.shape)
+    print(y_encode.shape)
+
+    Unet = UNet(stage=4, batch_size=7)
+    Unet.train(x, y_encode, epoch=100)
+
+    score = Unet.score(x, y_encode)
+    pprint(score)
+
+    predict = Unet.predict(x)
+    pprint(predict[0])
+    pprint(predict.shape)
+
+    proba = Unet.predict_proba(x)
+    pprint(proba[0])
+    pprint(proba.shape)
+
+    metric = Unet.metric(x, y_encode)
+    print(metric)
+
+    predict = mask_label_encoder.from_label(predict)
+    plot.plot_image_tile(np.concatenate([x, predict, y_gt], axis=0), title='predict', column=sample_size)
+
+
+class DAGAN():
+    pass
+
+
 @deco_timeit
 def main():
+    test_Unet_toy_set()
     # exp = experiment()
+    # exp.plot_train_image_with_mask()
     # exp.tsne_cluster_image()
     # exp.pca_cluster_image()
-
     # plot_test_image()
-    # chopped_mask_image()
+    #  chopped_mask_image()
+
+    # test_UNet()
+
     pass
