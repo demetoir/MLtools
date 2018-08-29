@@ -15,6 +15,18 @@ import json
 import sys
 
 
+def isPickleAble(obj):
+    import pickle
+    try:
+        pickled = pickle.dumps(obj, protocol=-1)
+        un_pickled_obj = pickle.loads(pickled)
+        return True
+
+    except BaseException as e:
+        print(e)
+        return False
+
+
 def dump_pickle(obj, path):
     """dump pickle
 
