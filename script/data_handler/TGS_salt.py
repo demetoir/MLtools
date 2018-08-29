@@ -129,6 +129,34 @@ def make_submission_csv(ids, masks):
     return df_submission
 
 
+def load_sample_image():
+    sample_IMAGE_PATH = path_join(HEAD_PATH, 'sample/images')
+    sample_MASK_PATH = path_join(HEAD_PATH, 'sample/masks')
+
+    sample_size = 7
+    limit = None
+    print(f'collect sample images')
+    train_images, _, _ = collect_images(sample_IMAGE_PATH, limit=limit)
+    train_images = train_images.reshape([-1, 101, 101, 1])
+    print(f'collect sample images')
+    train_mask_images, _, _ = collect_images(sample_MASK_PATH, limit=limit)
+    train_mask_images = train_mask_images.reshape([-1, 101, 101, 1])
+    x = train_images
+    y = train_mask_images
+
+    return x, y
+
+
+class mask_label_encoder:
+    @staticmethod
+    def to_label(x):
+        return np.array(x / 255, dtype=int)
+
+    @staticmethod
+    def from_label(x):
+        return np.array(x * 255, dtype=float)
+
+
 class train_set(BaseDataset):
 
     def load(self, path):
