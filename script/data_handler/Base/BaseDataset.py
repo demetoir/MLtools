@@ -245,7 +245,7 @@ class BaseDataset(LoggerMixIn, PickleMixIn, metaclass=MetaDataset):
         if self.with_id:
             self.reset_id()
 
-        self.log.debug(f'{self.__class__.__name__} {self.size} rows loaded')
+        self.log.info(f'{self.__class__.__name__} {self.size} rows loaded')
 
     def _iter_batch_balanced(self, key, batch_size_group_by_class):
         batch = [
@@ -276,7 +276,23 @@ class BaseDataset(LoggerMixIn, PickleMixIn, metaclass=MetaDataset):
 
         return batch
 
-    def _collect_iter_batch(self, keys, size, balanced_class=False, update_cursor=True, out_type=None):
+    def _update_cursor(self, size):
+        self.cursor = (self.cursor + size) % self.size
+
+    def _update_cursor_group_by_class(self, size):
+        div = size // self.n_classes
+        batch_size_group_by_class = {key: div for key in self.classes}
+        for class_ in self.classes:
+            self._cursor_group_by_class[class_] += batch_size_group_by_class[class_]
+            self._cursor_group_by_class[class_] %= self.size_group_by_class[class_]
+
+    def update_cursor(self, size, balanced_class=False):
+        if balanced_class:
+            self._update_cursor_group_by_class(size)
+        else:
+            self._update_cursor(size)
+
+    def _collect_iter_batch(self, keys, size, balanced_class=False, out_type=None):
         if balanced_class:
             div = size // self.n_classes
             batch_size_group_by_class = {key: div for key in self.classes}
@@ -288,20 +304,11 @@ class BaseDataset(LoggerMixIn, PickleMixIn, metaclass=MetaDataset):
                 key: self._iter_batch_balanced(key, batch_size_group_by_class)
                 for key in keys
             }
-
-            if update_cursor:
-                for class_ in self.classes:
-                    self._cursor_group_by_class[class_] += batch_size_group_by_class[class_]
-                    self._cursor_group_by_class[class_] %= self.size_group_by_class[class_]
-
         else:
             batch = {
                 key: self._iter_batch(self.data[key], size)
                 for key in keys
             }
-
-            if update_cursor:
-                self.cursor = (self.cursor + size) % self.size
 
         batch = self._batch_convert(batch, out_type)
 
@@ -367,7 +374,6 @@ class BaseDataset(LoggerMixIn, PickleMixIn, metaclass=MetaDataset):
                 self.x_keys,
                 batch_size,
                 balanced_class,
-                update_cursor=update_cursor,
                 out_type=out_type
             )
 
@@ -377,24 +383,22 @@ class BaseDataset(LoggerMixIn, PickleMixIn, metaclass=MetaDataset):
                     self.y_keys,
                     batch_size,
                     balanced_class,
-                    update_cursor=update_cursor,
                     out_type=out_type
                 )
 
-            if y is None:
-                return x
-            else:
-                return x, y
+            batch = x if y is None else (x, y)
         else:
             batch = self._collect_iter_batch(
                 batch_keys,
                 batch_size,
                 balanced_class,
-                update_cursor=update_cursor,
                 out_type=out_type
             )
 
-            return batch
+        if update_cursor:
+            self.update_cursor(batch_size, balanced_class)
+
+        return batch
 
     def full_batch(self, batch_keys=None, out_type='concat'):
         return self.next_batch(self.size, batch_keys, out_type=out_type)

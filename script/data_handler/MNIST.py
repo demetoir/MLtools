@@ -4,9 +4,6 @@ from script.data_handler.Base.BaseDataset import BaseDataset
 from script.data_handler.Base.BaseDatasetPack import BaseDatasetPack
 import numpy as np
 
-Xs = 'Xs'
-Xs_img = 'Xs_img'
-Ys = 'Ys'
 TRAIN_SIZE = 60000
 TEST_SIZE = 10000
 LABEL_SIZE = 10
@@ -15,50 +12,38 @@ LABEL_SIZE = 10
 class MNIST_train(BaseDataset):
     SIZE = TRAIN_SIZE
     LABEL_SIZE = LABEL_SIZE
-    Xs_img = Xs_img
-    BATCH_KEYS = [
-        Xs,
-        Ys,
-        Xs_img
-    ]
 
     def load(self, path):
         mnist = input_data.read_data_sets(path, one_hot=True)
-        self._data[Xs], self._data[Ys] = mnist.train.next_batch(self.SIZE)
+        x, y = mnist.train.next_batch(self.SIZE)
+        self.add_data('x', x)
+        self.add_data('y', y)
 
-    def save(self):
-        pass
-
-    def transform(self):
-        data = self._data[Xs]
+        data = self._data['x']
         shape = data.shape
         data = np.reshape(data, [shape[0], 28, 28, 1])
-        self._data[Xs] = data
+        self._data['x'] = data
+        self.x_keys = ['x']
+        self.y_keys = ['y']
 
 
 class MNIST_test(BaseDataset):
     SIZE = TEST_SIZE
     LABEL_SIZE = LABEL_SIZE
-    Xs_img = Xs_img
-    BATCH_KEYS = [
-        Xs,
-        Ys,
-        Xs_img
-    ]
 
     def load(self, path):
         mnist = input_data.read_data_sets(path, one_hot=True)
 
-        self._data[Xs], self._data[Ys] = mnist.test.next_batch(self.SIZE)
+        x, y = mnist.test.next_batch(self.SIZE)
+        self.add_data('x', x)
+        self.add_data('y', y)
 
-    def save(self):
-        pass
-
-    def transform(self):
-        data = self._data[Xs]
+        data = self._data['x']
         shape = data.shape
         data = np.reshape(data, [shape[0], 28, 28, 1])
-        self._data[Xs] = data
+        self._data['x'] = data
+        self.x_keys = ['x']
+        self.y_keys = ['y']
 
 
 class MNIST(BaseDatasetPack):

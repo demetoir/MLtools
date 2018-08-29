@@ -79,7 +79,7 @@ def np_img_load_file(path):
     return io.imread(path)
 
 
-def np_img_to_tile(np_imgs, column_size=10):
+def np_img_to_tile(np_imgs, column_size=10, padding=3, padding_value=0):
     """convert multiple numpy images to one grid tile image
 
     :type np_imgs: numpy.array
@@ -101,6 +101,16 @@ def np_img_to_tile(np_imgs, column_size=10):
 
     if np_imgs_check_shape(np_imgs.shape) == 'NHW':
         np_imgs = np_img_gray_to_rgb(np_imgs)
+
+        padder = ((0, 0), (padding, padding), (padding, padding))
+        const_val = ((padding_value, padding_value), (padding_value, padding_value), (padding_value, padding_value))
+    else:
+        padder = ((0, 0), (padding, padding), (padding, padding), (0, 0))
+        const_val = (
+            (padding_value, padding_value), (padding_value, padding_value), (padding_value, padding_value),
+            (padding_value, padding_value))
+
+    np_imgs = np.pad(np_imgs, padder, 'constant', constant_values=const_val)
 
     n, h, w, c = np_imgs.shape
     row_size = int(math.ceil(float(np_imgs.shape[0]) / float(column_size)))
@@ -273,3 +283,21 @@ def np_image_save(np_img, path):
     setup_file(path)
     with open(path, 'wb') as fp:
         pil_img.save(fp)
+
+
+def np_img_to_img_scatter(images, xy, panel_x=10000, panel_y=10000):
+    img_x = images.shape[1]
+    img_y = images.shape[2]
+
+    if images.ndim == 3:
+        panel = np.zeros([panel_x + img_x, panel_y + img_y], dtype=images.dtype)
+    else:
+        panel = np.zeros([panel_x, panel_y, 3], dtype=images.dtype)
+
+    xs, ys = xy[:, 0], xy[:, 1]
+    for image, x, y in zip(images, xs, ys):
+        a = int(x * panel_x)
+        b = int(y * panel_y)
+        panel[a:a + img_x, b: b + img_y] = image
+
+    return panel

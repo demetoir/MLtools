@@ -137,7 +137,7 @@ def conv2d_transpose(input_, output_shape, filter_, name="conv2d_transpose", std
         conv_transpose = tf.nn.conv2d_transpose(input_, weight, output_shape=output_shape, strides=[1, d_h, d_w, 1])
 
         bias = tf.get_variable('bias', [output_shape[-1]], initializer=tf.constant_initializer(0.0))
-        conv_transpose = tf.reshape(tf.nn.bias_add(conv_transpose, bias), conv_transpose.get_shape())
+        conv_transpose = tf.nn.bias_add(conv_transpose, bias)
 
         if with_w:
             return conv_transpose, weight, bias
@@ -169,7 +169,7 @@ def conv2d(input_, output_channel, filter_, stddev=0.02, name="conv2d"):
         conv = tf.nn.conv2d(input_, weight, strides=[1, d_h, d_w, 1], padding='SAME')
 
         bias = tf.get_variable('bias', [output_channel], initializer=tf.constant_initializer(0.0))
-        conv = tf.reshape(tf.nn.bias_add(conv, bias), conv.get_shape())
+        conv = tf.nn.bias_add(conv, bias)
 
         return conv
 
@@ -211,8 +211,10 @@ def upscale_2x(input_, output_channel, filter_, name='upscale_2x'):
     :rtype tensorflow.Variable
     """
     shape = input_.get_shape()
-    n, h, w, _ = shape
-    output_shape = [int(n), int(h) * 2, int(w) * 2, int(output_channel)]
+    n, h, w, c = list(shape)
+    if n.value is None:
+        n = -1
+    output_shape = [n, int(h) * 2, int(w) * 2, int(output_channel)]
     return conv2d_transpose(input_, output_shape, filter_, name=name)
 
 

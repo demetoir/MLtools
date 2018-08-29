@@ -1,7 +1,8 @@
+from script.util.MixIn import LoggerMixIn
 from script.util.tensor_ops import *
 
 
-class Stacker:
+class Stacker(LoggerMixIn):
     """help easily make graph model by stacking layer and naming for tensorflow
 
     ex)
@@ -20,13 +21,14 @@ class Stacker:
     last_layer = stacker.last_layer
     """
 
-    def __init__(self, start_layer=None, reuse=False, name="stacker"):
+    def __init__(self, start_layer=None, reuse=False, name="stacker", verbose=0):
         """create SequenceModel
 
         :param start_layer:the start layer
         :param reuse:reuse option for tensorflow graph
         :param name:prefix name for layer
         """
+        LoggerMixIn.__init__(self, verbose)
         self.reuse = reuse
         self.layer_count = 1
         self.last_layer = start_layer
@@ -50,6 +52,8 @@ class Stacker:
 
             self.layer_seq += [self.last_layer]
             self.layer_count += 1
+
+        self.log.info(self.last_layer)
         return self.last_layer
 
     def bn(self):

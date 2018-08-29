@@ -35,6 +35,11 @@ class input_shapesMixIN:
         dump_json(self.input_shapes, path)
 
 
+class BaseInputMixIn:
+    # TODO
+    pass
+
+
 class Xs_MixIn:
     _Xs_shapes_key = 'Xs'
     _Xs_input_shapes_keys = [
@@ -201,6 +206,49 @@ class Ys_MixIn:
         return reduce(lambda a, b: a * b, x)
 
 
+class cs_MixIn:
+    _cs_shapes_key = 'cs'
+    _cs_input_shape_keys = [
+        'c_shape',
+        'cs_shape',
+    ]
+
+    def __init__(self):
+        if not hasattr(self, '_input_shape_keys'):
+            self._input_shape_keys = []
+
+        self._input_shape_keys += self._cs_input_shape_keys
+
+        self.c_shape = None
+        self.cs_shape = None
+
+    @property
+    def _cs(self):
+        return getattr(self, self._cs_shapes_key, None)
+
+    def _build_cs_input_shape(self, shapes):
+        shape = shapes[self._cs_shapes_key]
+        c_shape = shape[1:]
+        cs_shape = [None] + list(c_shape)
+
+        return {
+            'c_shape':  c_shape,
+            'cs_shape': cs_shape
+        }
+
+    @staticmethod
+    def _flatten_shape(x):
+        return reduce(lambda a, b: a * b, x)
+
+    @staticmethod
+    def get_c_rand_uniform(shape):
+        return np.random.uniform(-1.0, 1.0, size=shape)
+
+    @staticmethod
+    def get_c_rand_normal(shape):
+        return np.random.normal(size=shape)
+
+
 class metadataMixIN:
     _metadata_keys = [
         'id',
@@ -288,44 +336,103 @@ class loss_packMixIn:
         return pack
 
 
-class cs_MixIn:
-    _cs_shapes_key = 'cs'
-    _cs_input_shape_keys = [
-        'c_shape',
-        'cs_shape',
-    ]
+class supervised_trainMethodMixIn:
 
-    def __init__(self):
-        if not hasattr(self, '_input_shape_keys'):
-            self._input_shape_keys = []
-
-        self._input_shape_keys += self._cs_input_shape_keys
-
-        self.c_shape = None
-        self.cs_shape = None
+    def __init__(self, epoch_callback_fn=None):
+        self.epoch_callback = epoch_callback_fn
 
     @property
-    def _cs(self):
-        return getattr(self, self._cs_shapes_key, None)
+    def train_ops(self):
+        raise NotImplementedError
 
-    def _build_cs_input_shape(self, shapes):
-        shape = shapes[self._cs_shapes_key]
-        c_shape = shape[1:]
-        cs_shape = [None] + list(c_shape)
+    def train(self, x, y, **kwargs):
+        # TODO
+        pass
 
-        return {
-            'c_shape':  c_shape,
-            'cs_shape': cs_shape
+
+class unsupervised_trainMethodMixIn:
+
+    def __init__(self, epoch_callback_fn=None):
+        self.epoch_callback = epoch_callback_fn
+
+    @property
+    def train_ops(self):
+        raise NotImplementedError
+
+    def train(self, x, **kwargs):
+        # TODO
+        pass
+
+
+class predictMethodMixIn:
+    @property
+    def predict_ops(self):
+        raise NotImplementedError
+        # return getattr(self, 'predict_index')
+
+    def predict(self, x):
+        run_func = getattr(self, 'sess').run
+        feed_dict = {
+            getattr(self, '_Xs'): x
         }
+        ops = self.predict_ops
+        return run_func(ops, feed_dict=feed_dict)
 
-    @staticmethod
-    def _flatten_shape(x):
-        return reduce(lambda a, b: a * b, x)
 
-    @staticmethod
-    def get_c_rand_uniform(shape):
-        return np.random.uniform(-1.0, 1.0, size=shape)
+class predict_probaMethodMixIn:
+    @property
+    def predict_proba_ops(self):
+        raise NotImplementedError
 
-    @staticmethod
-    def get_c_rand_normal(shape):
-        return np.random.normal(size=shape)
+    def predict_proba(self, x):
+        run_func = getattr(self, 'sess').run
+        feed_dict = {
+            getattr(self, '_Xs'): x
+        }
+        ops = self.predict_proba_ops
+        return run_func(ops, feed_dict=feed_dict)
+
+
+class scoreMethodMixIn:
+
+    @property
+    def score_ops(self):
+        raise NotImplementedError
+
+    def score(self, x, y):
+        run_func = getattr(self, 'sess').run
+        feed_dict = {
+            getattr(self, '_Xs'): x,
+            getattr(self, '_Ys'): y
+        }
+        ops = self.score_ops
+        return run_func(ops, feed_dict=feed_dict)
+
+
+class supervised_metricMethodMixIn:
+    @property
+    def metric_ops(self):
+        raise NotImplementedError
+
+    def metric(self, x, y):
+        run_func = getattr(self, 'sess').run
+        feed_dict = {
+            getattr(self, '_Xs'): x,
+            getattr(self, '_Ys'): y
+        }
+        ops = self.metric_ops
+        return run_func(ops, feed_dict=feed_dict)
+
+
+class unsupervised_metricMethodMixIn:
+    @property
+    def metric_ops(self):
+        raise NotImplementedError
+
+    def metric(self, x):
+        run_func = getattr(self, 'sess').run
+        feed_dict = {
+            getattr(self, '_Xs'): x
+        }
+        ops = self.metric_ops
+        return run_func(ops, feed_dict=feed_dict)
