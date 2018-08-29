@@ -283,3 +283,21 @@ def np_image_save(np_img, path):
     setup_file(path)
     with open(path, 'wb') as fp:
         pil_img.save(fp)
+
+
+def np_img_to_img_scatter(images, xy, panel_x=10000, panel_y=10000):
+    img_x = images.shape[1]
+    img_y = images.shape[2]
+
+    if images.ndim == 3:
+        panel = np.zeros([panel_x + img_x, panel_y + img_y], dtype=images.dtype)
+    else:
+        panel = np.zeros([panel_x, panel_y, 3], dtype=images.dtype)
+
+    xs, ys = xy[:, 0], xy[:, 1]
+    for image, x, y in zip(images, xs, ys):
+        a = int(x * panel_x)
+        b = int(y * panel_y)
+        panel[a:a + img_x, b: b + img_y] = image
+
+    return panel
