@@ -36,8 +36,13 @@ def test_make_data_pkl():
 
 
 def test_load_dataset():
-    datapack = TGS_salt()
-    datapack.load('./data/TGS_salt')
+    data_pack = TGS_salt()
+    data_pack.load('./data/TGS_salt')
+    train_set = data_pack['train']
+    test_set = data_pack['test']
+    print(train_set.keys)
+
+    print(test_set.keys)
 
 
 
@@ -51,4 +56,3 @@ def test_RL_encoding():
         return RLE_mask_encoding(images)
 
     encoded = encoding_timeit(images)
-

@@ -45,12 +45,38 @@ def collect_images(path, limit=None):
     return images, names, ids
 
 
+def add_feature_mask_pixel_rate(mask, mask_value=255):
+    return np.mean(mask) / mask_value
+
+
+def get_feature_mask_rate(masks):
+    return np.array([add_feature_mask_pixel_rate(mask) for mask in masks])
+
+
+def get_feature_empty_mask(masks):
+    return np.array([np.mean(mask) == 0 for mask in masks])
+
+
+def get_feature_weired_mask(masks):
+    def f(mask):
+        encoding = RLE_mask_encoding(mask.reshape([101, 101]).transpose())
+        encoding_len = len(encoding)
+        mask_rate = add_feature_mask_pixel_rate(mask)
+
+        if 0 < encoding_len / 2 < 8 and 0.1 < mask_rate < 1:
+            return 1
+        else:
+            return 0
+
+    return np.array([f(mask) for mask in masks])
+
+
 def make_data_pkl():
     print(f'collect train images')
     train_images, train_image_names, train_ids = collect_images(TRAIN_IMAGE_PATH)
 
     print(f'collect train mask images')
-    train_mask_images, train_mask_names, train_mask_ids = collect_images(TRAIN_MASK_PATH)
+    train_mask, train_mask_names, train_mask_ids = collect_images(TRAIN_MASK_PATH)
 
     print(f'collect test images')
     test_images, test_image_names, test_ids = collect_images(TEST_IMAGE_PATH)
@@ -58,37 +84,45 @@ def make_data_pkl():
     print(f'collect csv files')
     df_depths = pd.read_csv(DEPTHS_CSV_PATH)
     df_train = pd.read_csv(TRAIN_CSV_PATH)
-    # print(df_depths.info())
-    # print(df_depths.head())
-    # print(df_train.info())
-    # print(df_train.head())
     df_train.fillna('none', inplace=True)
 
     df_merge = pd.merge(left=df_depths, right=df_train, how='outer', left_on='id', right_on='id')
-    # print(df_merge.info())
-    # print(df_merge.head())
     df_merge.to_csv(MERGE_CSV_PATH, index=False)
 
+    print(f'collect train depth')
     train_depths = df_merge[df_merge['rle_mask'].notna()]
     train_depths = pd.DataFrame(train_depths).sort_values('id')
     train_depths = train_depths.reset_index(drop=True)
     # pprint(train_depths)
 
+    print(f'collect test depth')
     test_depths = df_merge[df_merge['rle_mask'].isna()]
     test_depths = pd.DataFrame(test_depths).sort_values('id')
     test_depths = test_depths.reset_index(drop=True)
-    # pprint(test_depths)
 
+    print(f'collect train mask rate')
+    train_mask_rate = get_feature_mask_rate(train_mask)
+
+    print(f'collect train empty mask')
+    train_empty_mask = get_feature_empty_mask(train_mask)
+
+    print(f'collect train weired mask')
+    train_weired_mask = get_feature_weired_mask(train_mask)
+
+    print('dump train pickle')
     train_pkl = {
         'image': train_images,
-        'mask': train_mask_images,
+        'mask': train_mask,
         'id': train_ids,
-        'depths': train_depths
+        'depths': train_depths,
+        'mask_rate': train_mask_rate,
+        'empty_mask': train_empty_mask,
+        'is_weired_mask': train_weired_mask,
     }
-    test_pkl = {'image': test_images, 'id': test_ids, 'depths': test_depths}
-    print('dump train pickle')
     dump_pickle(train_pkl, TRAIN_PKL_PATH)
+
     print('dump test pickle')
+    test_pkl = {'image': test_images, 'id': test_ids, 'depths': test_depths}
     dump_pickle(test_pkl, TEST_PKL_PATH)
 
 
@@ -172,7 +206,7 @@ class train_set(BaseDataset):
 
     def load(self, path):
         pkl_path = path_join(path, 'train.pkl')
-        if not os.path.exists(pkl_path):
+        if not os.path.exists(pkl_path) or not self.caching:
             make_data_pkl()
 
         pkl = load_pickle(pkl_path)
@@ -181,14 +215,19 @@ class train_set(BaseDataset):
         self.add_data('id', pkl['id'])
         self.add_data('mask', pkl['mask'])
         self.add_data('depth', pkl['depths'])
-        self.x_keys = ['image', 'depth']
+        self.add_data('mask_rate', pkl['mask_rate'])
+        self.add_data('empty_mask', pkl['empty_mask'])
+        self.add_data('is_weired_mask', pkl['is_weired_mask'])
+
+        # self.x_keys = ['image', 'depth']
+        self.x_keys = ['image']
         self.y_keys = ['mask']
 
 
 class test_set(BaseDataset):
     def load(self, path):
         pkl_path = path_join(path, 'test.pkl')
-        if not os.path.exists(pkl_path):
+        if not os.path.exists(pkl_path) or not self.caching:
             make_data_pkl()
 
         pkl = load_pickle(pkl_path)
@@ -196,12 +235,13 @@ class test_set(BaseDataset):
         self.add_data('image', pkl['image'])
         self.add_data('id', pkl['id'])
         self.add_data('depth', pkl['depths'])
-        self.x_keys = ['image', 'depth']
+        # self.x_keys = ['image', 'depth']
+        self.x_keys = ['image']
 
 
 class TGS_salt(BaseDatasetPack):
 
     def __init__(self, caching=True, verbose=0, **kwargs):
         super().__init__(caching, verbose, **kwargs)
-        self.pack['train'] = train_set(caching, verbose)
-        self.pack['test'] = test_set(caching, verbose)
+        self.pack['train'] = train_set(caching, verbose, caching=self.caching)
+        self.pack['test'] = test_set(caching, verbose, caching=self.caching)
