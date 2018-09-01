@@ -1,4 +1,5 @@
 import os
+import cv2
 import numpy as np
 from glob import glob
 import pandas as pd
@@ -145,6 +146,16 @@ def load_sample_image():
     y = train_mask_images
 
     return x, y
+
+
+def to_128(x):
+    x = np.array([cv2.resize(a, (128, 128)) for a in x]).reshape([-1, 128, 128, 1])
+    return x
+
+
+def to_101(x):
+    x = np.array([cv2.resize(a, (128, 128)) for a in x]).reshape([-1, 128, 128, 1])
+    return x
 
 
 class mask_label_encoder:
