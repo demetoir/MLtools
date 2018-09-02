@@ -399,8 +399,70 @@ def tf_minmax_scaling(x, epsilon=1e-7, name='minmax_scaling'):
 
 
 def tf_z_score_normalize(x: tf.Tensor, name='z_score_normalize'):
-    with tf.variable_scope(name, ):
+    with tf.variable_scope(name):
         if len(x.shape) is not 1:
             raise TypeError('x rank must be 1')
         mean, stddev = tf.nn.moments(x, 0)
         return (x - mean) / stddev
+
+
+def _residual_block(x, weight, activation, batch_norm):
+    x_in = x
+    x = weight(x)
+    if batch_norm:
+        x = bn(x)
+    x = activation(x)
+
+    x = weight(x)
+
+    x += x_in
+    if batch_norm:
+        x = bn(x)
+    x = activation(x)
+    return x
+
+
+def _residual_block_with_bottle_neck(x, weight, activation, bottle_neck, batch_norm):
+    x_in = x
+    x = bottle_neck(x)
+    if batch_norm:
+        x = bn(x)
+    x = activation(x)
+
+    x = weight(x)
+    if batch_norm:
+        x = bn(x)
+    x = activation(x)
+
+    x = bottle_neck(x)
+
+    x += x_in
+    if batch_norm:
+        x = bn(x)
+    x = activation(x)
+    return x
+
+
+def _residual_block_full_pre_activation(x, weight, activation):
+    x_in = x
+    x = bn(x)
+    x = activation(x)
+    x = weight(x)
+    x = bn(x)
+    x = activation(x)
+    x = weight(x)
+    x += x_in
+
+    return x
+
+
+def residual_block(x, weight, activation, bottle_neck=None, batch_norm=True, full_pre_activation=False,
+                   name='residual_block'):
+    with tf.variable_scope(name):
+        if full_pre_activation:
+            return _residual_block_full_pre_activation(x, weight, activation)
+
+        if bottle_neck:
+            return _residual_block_with_bottle_neck(x, weight, activation, bottle_neck, batch_norm)
+        else:
+            return _residual_block(x, weight, activation, batch_norm)
