@@ -186,11 +186,12 @@ class pipeline:
 
         return self._sample_ys
 
-    def UNet_train_pipeline(self, n_epoch=10):
+    def UNet_train_pipeline(self, n_epoch=10, augmentation=False):
+        # todo augmentation option
+        # todo early stop
         train_set = self.train_set
 
         x_full, y_full = train_set.full_batch()
-        print(x_full.shape, y_full.shape)
 
         x_full = to_128(x_full)
         y_full = to_128(y_full)
@@ -201,10 +202,13 @@ class pipeline:
         sample_y = to_128(self.sample_ys)
 
         for i in range(n_epoch):
-            # x = img_aug
-            # y = img_aug
-            x = x_full
-            y = y_encode
+            if augmentation:
+                x = None
+                y = None
+            else:
+                x = x_full
+                y = y_encode
+
             Unet.train(x, y, epoch=1)
 
             predict = Unet.predict(sample_x)
@@ -215,6 +219,8 @@ class pipeline:
 
             metric = Unet.metric(x, y_encode)
             print(metric)
+
+        Unet.save()
 
 
 def masking_images(image, mask, mask_rate=.8):
@@ -359,7 +365,6 @@ class experiment:
 
         print(len(masked))
         print(np.mean(mean), np.std(mean))
-
 
         pprint(mean)
         masked = np.array(masked)
