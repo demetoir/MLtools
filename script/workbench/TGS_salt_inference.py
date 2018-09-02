@@ -1,8 +1,15 @@
-
-import numpy as np
-
-from script.data_handler.TGS_salt import collect_images, TRAIN_MASK_PATH
+from pprint import pprint
+import imgaug as ia
+from imgaug import augmenters as iaa
+from sklearn.decomposition import PCA
+from sklearn.manifold import TSNE
+from script.data_handler.ImgMaskAug import ActivatorMask
+from script.data_handler.TGS_salt import collect_images, TRAIN_MASK_PATH, load_sample_image, TGS_salt, to_128, \
+    mask_label_encoder, TRAIN_IMAGE_PATH, TEST_IMAGE_PATH, RLE_mask_encoding
+from script.model.sklearn_like_model.UNet import UNet
 from script.util.PlotTools import PlotTools
+from script.util.numpy_utils import np_img_to_img_scatter, np_img_gray_to_rgb
+import numpy as np
 
 plot = PlotTools(save=True, show=False)
 
@@ -67,7 +74,343 @@ def test_metric():
     print(metric_score)
 
 
+def test_aug():
+    # image + mask
+    # from 101*101
+
+    x, y = load_sample_image()
+    x = x[:5]
+    y = y[:5]
+    # x = np.concatenate([x[:1] for i in range(5)])
+    # y = np.concatenate([y[:1] for i in range(5)])
+
+    import random
+    ia.seed(random.randint(1, 10000))
+
+    sometimes = lambda aug: iaa.Sometimes(0.5, aug)
+
+    # bright add
+    # contrast multiply
+    seq = iaa.Sequential([
+        iaa.OneOf([
+            iaa.PiecewiseAffine((0.002, 0.1), name='PiecewiseAffine'),
+            iaa.Affine(rotate=(-20, 20)),
+            iaa.Affine(shear=(-45, 45)),
+            iaa.Affine(translate_percent=(0, 0.3), mode='symmetric'),
+            iaa.Affine(translate_percent=(0, 0.3), mode='wrap'),
+            iaa.PerspectiveTransform((0.0, 0.3))
+        ], name='affine'),
+        iaa.Fliplr(0.5, name="horizontal flip"),
+        iaa.Crop(percent=(0, 0.3), name='crop'),
+
+        # image only
+        iaa.OneOf([
+            iaa.Add((-45, 45), name='bright'),
+            iaa.Multiply((0.5, 1.5), name='contrast')]
+        ),
+        iaa.OneOf([
+            iaa.AverageBlur((1, 5), name='AverageBlur'),
+            # iaa.BilateralBlur(),
+            iaa.GaussianBlur((0.1, 2), name='GaussianBlur'),
+            iaa.MedianBlur((1, 7), name='MedianBlur'),
+        ], name='blur'),
+
+        # scale to  128 * 128
+        iaa.Scale((128, 128), name='to 128 * 128'),
+    ])
+    activator = ActivatorMask(['bright', 'contrast', 'AverageBlur', 'GaussianBlur', 'MedianBlur'])
+    hook_func = ia.HooksImages(activator=activator)
+
+    n_iter = 5
+    tile = []
+    for idx in range(n_iter):
+        print(idx)
+        seq_det = seq.to_deterministic()
+        image_aug = seq_det.augment_images(x)
+        mask_aug = seq_det.augment_images(y, hooks=hook_func)
+        tile += [image_aug]
+        tile += [mask_aug]
+
+    tile = np.concatenate(tile)
+    plot.plot_image_tile(tile, title=f'test_image_aug', column=5, )
 
 
+class pipeline:
+    def __init__(self, data_pack_path='./data/TGS_salt', sample_offset=10, sample_size=10):
+        self.data_pack_path = data_pack_path
+        self.sample_offset = sample_offset
+        self.sample_size = sample_size
+
+        self._data_pack = None
+        self._train_set = None
+        self._test_set = None
+        self._sample_xs = None
+        self._sample_ys = None
+
+    @property
+    def data_pack(self):
+        if self._data_pack is None:
+            self._data_pack = TGS_salt()
+            self._data_pack.load(self.data_pack_path)
+
+        return self._data_pack
+
+    @property
+    def train_set(self):
+        if self._train_set is None:
+            self._train_set = self.data_pack['train']
+
+        return self._train_set
+
+    @property
+    def test_set(self):
+        if self._test_set is None:
+            self._test_set = self.data_pack['test']
+
+        return self._test_set
+
+    @property
+    def sample_xs(self):
+        if self._sample_xs is None:
+            x_full, _ = self.train_set.full_batch()
+            sample_x = x_full[self.sample_offset:self.sample_offset + self.sample_size]
+            self._sample_xs = sample_x
+
+        return self._sample_xs
+
+    @property
+    def sample_ys(self):
+        if self._sample_ys is None:
+            _, ys_full = self.train_set.full_batch()
+            self._sample_ys = ys_full[self.sample_offset:self.sample_offset + self.sample_size]
+
+        return self._sample_ys
+
+    def UNet_train_pipeline(self, n_epoch=10):
+        train_set = self.train_set
+
+        x_full, y_full = train_set.full_batch()
+        print(x_full.shape, y_full.shape)
+
+        x_full = to_128(x_full)
+        y_full = to_128(y_full)
+        y_encode = mask_label_encoder.to_label(y_full)
+
+        Unet = UNet(stage=4, batch_size=64, loss_type='iou', learning_rate=0.01)
+        sample_x = to_128(self.sample_xs)
+        sample_y = to_128(self.sample_ys)
+
+        for i in range(n_epoch):
+            # x = img_aug
+            # y = img_aug
+            x = x_full
+            y = y_encode
+            Unet.train(x, y, epoch=1)
+
+            predict = Unet.predict(sample_x)
+
+            predict = mask_label_encoder.from_label(predict)
+            tile = np.concatenate([sample_x, predict, sample_y], axis=0)
+            plot.plot_image_tile(tile, title=f'predict_{i}', column=10)
+
+            metric = Unet.metric(x, y_encode)
+            print(metric)
 
 
+def masking_images(image, mask, mask_rate=.8):
+    image = np.array(image)
+    if image.ndim != 3:
+        raise ValueError('image ndim must 3')
+
+    image[:, :, 0] = mask * mask_rate
+
+    return image
+
+
+class experiment:
+    def tsne_cluster_image(self):
+        # not good...
+        from sklearn.preprocessing import MinMaxScaler
+
+        print(f'collect train images')
+        limit = 500
+        images, _, ids = collect_images(TRAIN_IMAGE_PATH, limit=limit)
+
+        print('fit transform')
+        tsne = TSNE()
+        tsne.fit(images.reshape([-1, 101 * 101]))
+        vector = tsne.fit_transform(images.reshape([-1, 101 * 101]))
+
+        scaler = MinMaxScaler()
+        scaler.fit(vector)
+        vector = scaler.transform(vector)
+        print(vector, vector.shape)
+
+        plot.scatter_2d(vector, title='tsne_cluster')
+
+        cluster_image = np_img_to_img_scatter(images, vector, 5000, 5000)
+        cluster_image = np_img_gray_to_rgb(cluster_image)
+        plot.plot_image(cluster_image, title='tsne_cluster_images')
+
+    def pca_cluster_image(self):
+        # not good...
+        from sklearn.preprocessing import MinMaxScaler
+
+        limit = 500
+        print(f'collect train images')
+        images, _, ids = collect_images(TRAIN_IMAGE_PATH, limit=limit)
+
+        pca = PCA(n_components=2)
+        pca.fit(images.reshape([-1, 101 * 101]))
+        vector = pca.transform(images.reshape([-1, 101 * 101]))
+
+        scaler = MinMaxScaler()
+        scaler.fit(vector)
+        vector = scaler.transform(vector)
+        print(vector, vector.shape)
+
+        x = vector[:, 0]
+        y = vector[:, 1]
+        plot.scatter_2d(vector, title='pca_cluster')
+
+        # images = np_img_gray_to_rgb(x, y)
+
+        cluster_image = np_img_to_img_scatter(images, vector, 5000, 5000)
+        cluster_image = np_img_gray_to_rgb(cluster_image)
+        plot.plot_image(cluster_image, title='pca_cluster_images')
+
+        # TODO
+        pass
+
+    def plot_train_image_with_mask(self):
+        limit = None
+        print(f'collect train images')
+        train_images, _, _ = collect_images(TRAIN_IMAGE_PATH, limit=limit)
+        train_images = train_images.reshape([-1, 101, 101])
+
+        print(f'collect train mask images')
+        train_mask_images, _, _ = collect_images(TRAIN_MASK_PATH, limit=limit)
+        train_mask_images = train_mask_images.reshape([-1, 101, 101])
+
+        train_images = np_img_gray_to_rgb(train_images)
+
+        masked_images = []
+        for image, mask in zip(train_images, train_mask_images):
+            masked_images += [masking_images(image, mask)]
+        masked_images = np.array(masked_images)
+
+        plot.plot_image_tile(masked_images[:500], title='masked_0', column=20)
+        plot.plot_image_tile(masked_images[500:1000], title='masked_1', column=20)
+        plot.plot_image_tile(masked_images[1000:1500], title='masked_2', column=20)
+        plot.plot_image_tile(masked_images[1500:2000], title='masked_3', column=20)
+
+    def plot_test_image(self):
+        print(f'collect test images')
+        test_images, _, _ = collect_images(TEST_IMAGE_PATH)
+        test_images = np_img_gray_to_rgb(test_images)
+
+        for i in range(0, len(test_images), 500):
+            print(i)
+            plot.plot_image_tile(test_images[i: i + 500], title=f'test_{i}', column=20)
+
+    def sort_by_mask_area_size(self):
+        limit = None
+        print(f'collect train images')
+        images, _, ids = collect_images(TRAIN_IMAGE_PATH, limit=limit)
+        images = np_img_gray_to_rgb(images)
+
+        print(f'collect train masks images')
+        masks, _, _ = collect_images(TRAIN_MASK_PATH, limit=limit)
+        masks = masks.reshape([-1, 101, 101])
+
+        masked = []
+        mean = []
+        for image, mask, id in zip(images, masks, ids):
+            a = np.sum(mask) / (101 * 101 * 1 * 255)
+            print(id, a)
+            if a > 0.6:
+                masked += [masking_images(image, mask)]
+                mean += [a]
+
+        print(len(masked))
+        print(np.mean(mean), np.std(mean))
+        pprint(mean)
+        masked = np.array(masked)
+        plot.plot_image_tile(masked, title='mask_small_area')
+
+    def filter_white_image(self):
+        limit = None
+        print(f'collect train images')
+        images, _, ids = collect_images(TRAIN_IMAGE_PATH, limit=limit)
+        images = np_img_gray_to_rgb(images)
+
+        print(f'collect train masks images')
+        masks, _, _ = collect_images(TRAIN_MASK_PATH, limit=limit)
+        masks = masks.reshape([-1, 101, 101])
+
+        masked = []
+        mean = []
+        for image, mask, id in zip(images, masks, ids):
+            a = np.sum(image) / (101 * 101 * 3 * 255)
+            print(id, a)
+            if a > 0.85:
+                masked += [masking_images(image, mask)]
+                mean += [a]
+
+        print(len(masked))
+        print(np.mean(mean), np.std(mean))
+
+
+        pprint(mean)
+        masked = np.array(masked)
+        plot.plot_image_tile(masked, title='almost_white')
+
+    def filter_black_image(self):
+        limit = None
+        print(f'collect train images')
+        images, _, ids = collect_images(TRAIN_IMAGE_PATH, limit=limit)
+        images = np_img_gray_to_rgb(images)
+
+        print(f'collect train masks images')
+        masks, _, _ = collect_images(TRAIN_MASK_PATH, limit=limit)
+        masks = masks.reshape([-1, 101, 101])
+
+        masked = []
+        mean = []
+        for image, mask, id in zip(images, masks, ids):
+            a = np.sum(image) / (101 * 101 * 3 * 255)
+            print(id, a)
+            if a < 0.20:
+                masked += [masking_images(image, mask)]
+                mean += [a]
+
+        print(len(masked))
+        print(np.mean(mean), np.std(mean))
+        pprint(mean)
+        masked = np.array(masked)
+        plot.plot_image_tile(masked, title='almost_black')
+
+    def chopped_mask_image(self):
+        limit = None
+        print(f'collect train images')
+        images, _, ids = collect_images(TRAIN_IMAGE_PATH, limit=limit)
+        images = np_img_gray_to_rgb(images)
+
+        print(f'collect train masks images')
+        masks, _, _ = collect_images(TRAIN_MASK_PATH, limit=limit)
+        masks = masks.reshape([-1, 101, 101])
+
+        masked = []
+        for image, mask, id in zip(images, masks, ids):
+            rle_mask = RLE_mask_encoding(mask.reshape([101, 101]).transpose())
+            n_rle_mask = len(rle_mask)
+            a = n_rle_mask
+            mask_area = np.sum(mask) / (101 * 101 * 255)
+
+            if 0 < a / 2 < 8 and 0.1 < mask_area < 0.99:
+                print(id, a, rle_mask)
+                masked += [masking_images(image, mask)]
+
+        masked = np.array(masked)
+        print(len(masked))
+        plot.plot_image_tile(masked, title='chopped')
