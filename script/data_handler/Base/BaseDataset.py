@@ -392,7 +392,7 @@ class BaseDataset(LoggerMixIn, PickleMixIn, metaclass=MetaDataset):
                 batch_keys,
                 batch_size,
                 balanced_class,
-                out_type=out_type
+                out_type='np_dict'
             )
 
         if update_cursor:
