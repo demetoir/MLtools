@@ -1,4 +1,5 @@
 from functools import reduce
+from tqdm import tqdm
 from script.util.misc_util import load_json, dump_json
 import numpy as np
 import inspect
@@ -69,8 +70,8 @@ class Xs_MixIn:
         X_flatten_size = self._flatten_shape(X_shape)
 
         return {
-            'X_shape':        X_shape,
-            'Xs_shape':       Xs_shape,
+            'X_shape': X_shape,
+            'Xs_shape': Xs_shape,
             'X_flatten_size': X_flatten_size,
         }
 
@@ -105,7 +106,7 @@ class zs_MixIn:
         zs_shape = [None] + list(z_shape)
 
         return {
-            'z_shape':  z_shape,
+            'z_shape': z_shape,
             'zs_shape': zs_shape
         }
 
@@ -153,7 +154,7 @@ class noise_MixIn:
         noises_shape = [None] + list(noise_shape)
 
         return {
-            'noise_shape':  noise_shape,
+            'noise_shape': noise_shape,
             'noises_shape': noises_shape
         }
 
@@ -196,8 +197,8 @@ class Ys_MixIn:
         Y_flatten_size = self._flatten_shape(Y_shape)
 
         return {
-            'Y_shape':        Y_shape,
-            'Ys_shape':       Ys_shape,
+            'Y_shape': Y_shape,
+            'Ys_shape': Ys_shape,
             'Y_flatten_size': Y_flatten_size,
         }
 
@@ -232,7 +233,7 @@ class cs_MixIn:
         cs_shape = [None] + list(c_shape)
 
         return {
-            'c_shape':  c_shape,
+            'c_shape': c_shape,
             'cs_shape': cs_shape
         }
 
@@ -364,13 +365,17 @@ class unsupervised_trainMethodMixIn:
         pass
 
 
+def slice_np_arr(x, size):
+    return [x[i:i + size] for i in range(0, len(x), size)]
+
+
 class predictMethodMixIn:
     @property
     def predict_ops(self):
         raise NotImplementedError
         # return getattr(self, 'predict_index')
 
-    def predict(self, x):
+    def _predict_batch(self, x):
         run_func = getattr(self, 'sess').run
         feed_dict = {
             getattr(self, '_Xs'): x
@@ -378,19 +383,43 @@ class predictMethodMixIn:
         ops = self.predict_ops
         return run_func(ops, feed_dict=feed_dict)
 
+    def predict(self, x):
+        batch_size = getattr(self, 'batch_size')
+        size = len(x)
+        if size >= batch_size:
+            predicts = [
+                self._predict_batch(x_partial)
+                for x_partial in tqdm(slice_np_arr(x, batch_size))
+            ]
+            return np.concatenate(predicts)
+        else:
+            return self._predict_batch(x)
+
 
 class predict_probaMethodMixIn:
     @property
     def predict_proba_ops(self):
         raise NotImplementedError
 
-    def predict_proba(self, x):
+    def _predict_proba_batch(self, x):
         run_func = getattr(self, 'sess').run
         feed_dict = {
             getattr(self, '_Xs'): x
         }
         ops = self.predict_proba_ops
         return run_func(ops, feed_dict=feed_dict)
+
+    def predict_proba(self, x):
+        batch_size = getattr(self, 'batch_size')
+        size = len(x)
+        if size >= batch_size:
+            predicts = [
+                self._predict_proba_batch(x_partial)
+                for x_partial in tqdm(slice_np_arr(x, batch_size))
+            ]
+            return np.concatenate(predicts)
+        else:
+            return self._predict_proba_batch(x)
 
 
 class scoreMethodMixIn:
@@ -399,7 +428,7 @@ class scoreMethodMixIn:
     def score_ops(self):
         raise NotImplementedError
 
-    def score(self, x, y):
+    def _score_batch(self, x, y):
         run_func = getattr(self, 'sess').run
         feed_dict = {
             getattr(self, '_Xs'): x,
@@ -408,13 +437,24 @@ class scoreMethodMixIn:
         ops = self.score_ops
         return run_func(ops, feed_dict=feed_dict)
 
+    def score(self, x, y):
+        batch_size = getattr(self, 'batch_size')
+        size = len(x)
+        if size >= batch_size:
+            xs = slice_np_arr(x, batch_size)
+            ys = slice_np_arr(y, batch_size)
+            predicts = np.array([self._score_batch(x, y) for x, y in tqdm(zip(xs, ys))])
+            return np.mean(predicts)
+        else:
+            return self._score_batch(x, y)
+
 
 class supervised_metricMethodMixIn:
     @property
     def metric_ops(self):
         raise NotImplementedError
 
-    def metric(self, x, y):
+    def _metric_batch(self, x, y):
         run_func = getattr(self, 'sess').run
         feed_dict = {
             getattr(self, '_Xs'): x,
@@ -423,16 +463,36 @@ class supervised_metricMethodMixIn:
         ops = self.metric_ops
         return run_func(ops, feed_dict=feed_dict)
 
+    def metric(self, x, y):
+        batch_size = getattr(self, 'batch_size')
+        size = len(x)
+        if size >= batch_size:
+            xs = slice_np_arr(x, batch_size)
+            ys = slice_np_arr(y, batch_size)
+            predicts = np.array([self._metric_batch(x, y) for x, y in tqdm(zip(xs, ys))])
+            return np.mean(predicts)
+        else:
+            return self._metric_batch(x, y)
+
 
 class unsupervised_metricMethodMixIn:
     @property
     def metric_ops(self):
         raise NotImplementedError
 
-    def metric(self, x):
+    def _metric_batch(self, x):
         run_func = getattr(self, 'sess').run
         feed_dict = {
             getattr(self, '_Xs'): x
         }
         ops = self.metric_ops
         return run_func(ops, feed_dict=feed_dict)
+
+    def metric(self, x):
+        batch_size = getattr(self, 'batch_size')
+        size = len(x)
+        if size >= batch_size:
+            predicts = np.array([self._metric_batch(x) for x, y in tqdm(slice_np_arr(x, batch_size))])
+            return np.concatenate(predicts)
+        else:
+            return self._metric_batch(x)

@@ -4,18 +4,17 @@ import numpy as np
 import pandas as pd
 from sklearn.decomposition import PCA
 from sklearn.manifold import TSNE
-
+from imgaug import augmenters as iaa
+from script.data_handler.ImgMaskAug import ImgMaskAug, ActivatorMask
 from script.data_handler.TGS_salt import TRAIN_IMAGE_PATH, collect_images, TRAIN_MASK_PATH, RLE_mask_encoding, \
-    TEST_IMAGE_PATH, TGS_salt, HEAD_PATH
+    TEST_IMAGE_PATH, load_sample_image
 from script.model.sklearn_like_model.BaseModel import BaseModel
-from script.model.sklearn_like_model.UNet import UNet
 from script.util.Logger import pprint_logger, Logger
-from script.util.deco import deco_timeit
 from script.util.PlotTools import PlotTools
-
+from script.util.deco import deco_timeit
 # print(built-in function) is not good for logging
-from script.util.misc_util import path_join
-from script.util.numpy_utils import np_img_gray_to_rgb
+from script.util.misc_util import isPickleAble
+from script.util.numpy_utils import np_img_gray_to_rgb, np_img_to_img_scatter
 
 bprint = print
 logger = Logger('bench_code', level='INFO', )
@@ -24,7 +23,6 @@ pprint = pprint_logger(print)
 NpArr = np.array
 DF = pd.DataFrame
 Series = pd.Series
-
 plot = PlotTools(save=True, show=False)
 
 
@@ -56,24 +54,6 @@ def is_black_image(image):
         return True
     else:
         return False
-
-
-def np_img_to_img_scatter(images, xy, panel_x=10000, panel_y=10000):
-    img_x = images.shape[1]
-    img_y = images.shape[2]
-
-    if images.ndim == 3:
-        panel = np.zeros([panel_x + img_x, panel_y + img_y], dtype=images.dtype)
-    else:
-        panel = np.zeros([panel_x, panel_y, 3], dtype=images.dtype)
-
-    xs, ys = xy[:, 0], xy[:, 1]
-    for image, x, y in zip(images, xs, ys):
-        a = int(x * panel_x)
-        b = int(y * panel_y)
-        panel[a:a + img_x, b: b + img_y] = image
-
-    return panel
 
 
 def masking_images(image, mask, mask_rate=.8):
@@ -278,42 +258,6 @@ def empty_mask_clf():
     pass
 
 
-def image_augmentation():
-    # reflection on edge
-    # shift
-    # crop
-    # horizontal flip
-    # intensity variation
-    # horizon sheeing
-    # zooming
-    # bright
-    # contrast
-    # small rotation
-    # blur
-    # combine half half
-    # add noise
-    # tilt
-    # skew
-    # distortion
-    # sharpend
-
-    # image + mask
-    # from 101*101
-    # keras
-    # tensorflow
-    # pytorch
-    # tflearn
-    # cv2
-    # augmentor
-    # imgaug
-    #
-
-    pass
-
-
-
-
-
 def down_size():
     # TODO
     # from 128 * 128 to 101 * 101
@@ -341,108 +285,101 @@ class fully_connected_CRF():
     pass
 
 
-class mask_label_encoder:
-    @staticmethod
-    def to_label(x):
-        return np.array(x / 255, dtype=int)
-
-    @staticmethod
-    def from_label(x):
-        return np.array(x * 255, dtype=float)
-
-
-def test_Unet_toy_set():
-    x = np.zeros([100, 128, 128, 1])
-    y = np.ones([100, 128, 128, 1])
-    y_gt = y
-
-    y_encode = mask_label_encoder.to_label(y)
-    print(x.shape)
-    print(y_encode.shape)
-
-    Unet = UNet(stage=4, batch_size=10)
-    Unet.train(x, y_encode, epoch=100)
-
-    score = Unet.score(x, y_encode)
-    pprint(score)
-
-    predict = Unet.predict(x)
-    pprint(predict[0])
-    pprint(predict.shape)
-
-    proba = Unet.predict_proba(x)
-    pprint(proba[0])
-    pprint(proba.shape)
-
-    metric = Unet.metric(x, y_encode)
-    print(metric)
-
-    predict = mask_label_encoder.from_label(predict)
-    plot.plot_image_tile(np.concatenate([x, predict, y_gt], axis=0), title='predict', column=10)
-
-
-def test_UNet():
-    sample_IMAGE_PATH = path_join(HEAD_PATH, 'sample/images')
-    sample_MASK_PATH = path_join(HEAD_PATH, 'sample/masks')
-
-    sample_size = 7
-    limit = None
-    print(f'collect sample images')
-    train_images, _, _ = collect_images(sample_IMAGE_PATH, limit=limit)
-    train_images = train_images.reshape([-1, 101, 101])
-    print(f'collect sample images')
-    train_mask_images, _, _ = collect_images(sample_MASK_PATH, limit=limit)
-    train_mask_images = train_mask_images.reshape([-1, 101, 101])
-
-    x = train_images
-    y = train_mask_images
-
-    import cv2
-
-    x = np.array([cv2.resize(a, (128, 128)) for a in x]).reshape([-1, 128, 128, 1])
-
-    y = np.array([cv2.resize(a, (128, 128)) for a in y]).reshape([-1, 128, 128, 1])
-    y_gt = y
-
-    y_encode = mask_label_encoder.to_label(y)
-    print(x.shape)
-    print(y_encode.shape)
-
-    Unet = UNet(stage=4, batch_size=7)
-    Unet.train(x, y_encode, epoch=100)
-
-    score = Unet.score(x, y_encode)
-    pprint(score)
-
-    predict = Unet.predict(x)
-    pprint(predict[0])
-    pprint(predict.shape)
-
-    proba = Unet.predict_proba(x)
-    pprint(proba[0])
-    pprint(proba.shape)
-
-    metric = Unet.metric(x, y_encode)
-    print(metric)
-
-    predict = mask_label_encoder.from_label(predict)
-    plot.plot_image_tile(np.concatenate([x, predict, y_gt], axis=0), title='predict', column=sample_size)
-
-
 class DAGAN():
     pass
 
 
+import imgaug as ia
+
+
+def test_aug():
+    # crop = zooming
+    # horizontal flip
+    # bright add
+    # contrast multiply
+    # intensity variation
+    # blur
+
+
+    # affine
+    # reflection on edge affine mode reflect, symetric
+    # shift
+    # tilt
+    # skew
+    # horizon sheeirng
+    # distortion piecewise affine
+    # small rotation
+    # 경계선 중심 affine transform
+
+    # combine half half
+    # add noise
+
+    # sharpend
+    # ContrastNormalization
+
+    # image + mask
+    # from 101*101
+
+    x, y = load_sample_image()
+    x = x[:5]
+    y = y[:5]
+    # x = np.concatenate([x[:1] for i in range(5)])
+    # y = np.concatenate([y[:1] for i in range(5)])
+
+    import random
+    ia.seed(random.randint(1, 10000))
+
+    sometimes = lambda aug: iaa.Sometimes(0.5, aug)
+
+    # bright add
+    # contrast multiply
+    seq = iaa.Sequential([
+        iaa.OneOf([
+            iaa.PiecewiseAffine((0.002, 0.1), name='PiecewiseAffine'),
+            iaa.Affine(rotate=(-20, 20)),
+            iaa.Affine(shear=(-45, 45)),
+            iaa.Affine(translate_percent=(0, 0.3), mode='symmetric'),
+            iaa.Affine(translate_percent=(0, 0.3), mode='wrap'),
+            # iaa.Affine(translate_percent=(0, 0.3), mode='reflect'),
+            iaa.PerspectiveTransform((0.0, 0.3))
+        ], name='affine'),
+
+        iaa.Fliplr(0.5, name="horizontal flip"),
+        iaa.Crop(percent=(0, 0.3), name='crop'),
+
+        # image only
+        iaa.OneOf([
+            iaa.Add((-45, 45), name='bright'),
+            iaa.Multiply((0.5, 1.5), name='contrast')]
+        ),
+        iaa.OneOf([
+            iaa.AverageBlur((1, 5), name='AverageBlur'),
+            # iaa.BilateralBlur(),
+            iaa.GaussianBlur((0.1, 2), name='GaussianBlur'),
+            iaa.MedianBlur((1, 7), name='AverageBlur'),
+        ], name='blur'),
+
+        # scale to  128 * 128
+        iaa.Scale((128, 128), name='to 128 * 128'),
+    ])
+    activator = ActivatorMask([])
+    hook_func = ia.HooksImages(activator=activator)
+
+    n_iter = 5
+    tile = []
+    for idx in range(n_iter):
+        print(idx)
+        seq_det = seq.to_deterministic()
+        image_aug = seq_det.augment_images(x)
+        mask_aug = seq_det.augment_images(y, hooks=hook_func)
+        tile += [image_aug]
+        tile += [mask_aug]
+
+    tile = np.concatenate(tile)
+    plot.plot_image_tile(tile, title=f'test_image_aug', column=5, )
+
+
 @deco_timeit
 def main():
-    test_Unet_toy_set()
-    # exp = experiment()
-    # exp.plot_train_image_with_mask()
-    # exp.tsne_cluster_image()
-    # exp.pca_cluster_image()
-    # plot_test_image()
-    #  chopped_mask_image()
-
-    # test_UNet()
-
+    test_aug()
     pass
