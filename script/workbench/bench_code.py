@@ -57,18 +57,6 @@ class empty_mask_clf:
     pass
 
 
-def residual_block_mlp(x, activation=None, bn=False, name='residual_block_mlp'):
-    pass
-
-
-def residual_block_conv(x, activation=None, bn=False, name='residual_block_conv'):
-    pass
-
-
-def test_MLSlackBot():
-    MLSlackBot().post_message(None, True)
-
-
 @deco_timeit
 def main():
     pass
