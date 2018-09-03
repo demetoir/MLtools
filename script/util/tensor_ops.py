@@ -1,6 +1,7 @@
 """operation util for tensorflow"""
 
 import tensorflow as tf
+from tensorflow.python.ops.image_ops_impl import ResizeMethod
 
 """convolution filter option
 (kernel height, kernel width, stride height, stride width)
@@ -466,3 +467,10 @@ def residual_block(x, weight, activation, bottle_neck=None, batch_norm=True, ful
             return _residual_block_with_bottle_neck(x, weight, activation, bottle_neck, batch_norm)
         else:
             return _residual_block(x, weight, activation, batch_norm)
+
+
+def resize_image(x, shape, method=ResizeMethod.BILINEAR, align_corners=False, preserve_aspect_ratio=False,
+                 name='resize_image'):
+    with tf.variable_scope(name):
+        x_resize = tf.image.resize_images(x, shape, method, align_corners, preserve_aspect_ratio)
+    return x_resize
