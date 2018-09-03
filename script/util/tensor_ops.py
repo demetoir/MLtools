@@ -6,6 +6,7 @@ from tensorflow.python.ops.image_ops_impl import ResizeMethod
 (kernel height, kernel width, stride height, stride width)
 """
 CONV_FILTER_1111 = (1, 1, 1, 1)
+CONV_FILTER_1122 = (1, 1, 2, 2)
 CONV_FILTER_2211 = (2, 2, 1, 1)
 CONV_FILTER_2222 = (2, 2, 2, 2)
 CONV_FILTER_3311 = (3, 3, 1, 1)
@@ -19,6 +20,7 @@ CONV_FILTER_6611 = (6, 6, 1, 1)
 CONV_FILTER_6622 = (6, 6, 2, 2)
 CONV_FILTER_7711 = (7, 7, 1, 1)
 CONV_FILTER_7722 = (7, 7, 2, 2)
+CONV_FILTER_7777 = (7, 7, 7, 7)
 CONV_FILTER_9911 = (9, 9, 1, 1)
 CONV_FILTER_9922 = (9, 9, 2, 2)
 
