@@ -3,10 +3,13 @@ from script.util.tensor_ops import collect_vars, join_scope, get_scope
 
 
 class Base_net_structure(LoggerMixIn):
-    def __init__(self, reuse=False, name='Base_net_structure', verbose=0):
+    def __init__(self, reuse=False, name=None, verbose=0):
         super().__init__(verbose)
         self.reuse = reuse
-        self.name = name
+        if name:
+            self.name = name
+        else:
+            self.name = self.__class__.__name__
         self._vars = None
 
     @property
