@@ -6,15 +6,15 @@ from script.util.tensor_ops import CONV_FILTER_3311, relu, CONV_FILTER_2211, pix
 
 class UNetStructure(Base_net_structure):
 
-    def __init__(self, Xs, level=4, n_classes=2, reuse=False, name='Unet'):
-        super().__init__(reuse, name)
+    def __init__(self, x, level=4, n_classes=2, reuse=False, name='Base_net_structure', verbose=0):
+        super().__init__(reuse, name, verbose)
 
-        self.X = Xs
+        self.x = x
         self.level = level
         self.n_classes = n_classes
-        self.stacker = Stacker(Xs)
 
     def build(self):
+        self.stacker = Stacker(self.x, verbose=self.verbose)
         self.logit, self.proba = self.Unet_recursion_build(
             self.stacker, self.level, self.n_classes, self.reuse, self.name)
 

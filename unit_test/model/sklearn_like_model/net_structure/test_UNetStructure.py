@@ -15,7 +15,7 @@ def show_summary():
 @deco_timeit
 def test_UNetStructure():
     x = tf.placeholder(tf.float32, [None, 128, 128, 3])
-    net = UNetStructure(x, level=3)
+    net = UNetStructure(x)
     net.build()
 
     h = net.proba
@@ -27,3 +27,5 @@ def test_UNetStructure():
 
         forward = sess.run(h, feed_dict={x: x_np})
         print(forward.shape)
+
+        print(net.vars)
