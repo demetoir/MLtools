@@ -101,14 +101,14 @@ class UNet(
         self.Xs = tf.placeholder(tf.float32, self.Xs_shape, name='Xs')
         self.Ys = tf.placeholder(tf.float32, self.Ys_shape, name='Ys')
 
-        self.Unet_structure = UNetStructure(self.Xs, level=self.stage)
+        self.Unet_structure = UNetStructure(self.Xs)
         self.Unet_structure.build()
         self._logit = self.Unet_structure.logit
         self._proba = self.Unet_structure.proba
         self._predict = reshape(tf.argmax(self._proba, 3, name="predicted"), self.Ys_shape, name='predict')
 
         self._predict_ops = self._predict
-        self.Unet_vars = self.Unet_structure.get_vars()
+        self.Unet_vars = self.Unet_structure.vars()
 
     def _build_loss_function(self):
         self.loss = self._build_loss(
