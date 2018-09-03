@@ -14,3 +14,9 @@ class Base_net_structure:
 
     def build(self):
         raise NotImplementedError
+
+
+# TODO
+# TODO add logger MixIn
+def test_net_structure_build():
+    pass
