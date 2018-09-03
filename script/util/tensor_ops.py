@@ -1,11 +1,12 @@
 """operation util for tensorflow"""
-
 import tensorflow as tf
+from tensorflow.python.ops.image_ops_impl import ResizeMethod
 
 """convolution filter option
 (kernel height, kernel width, stride height, stride width)
 """
 CONV_FILTER_1111 = (1, 1, 1, 1)
+CONV_FILTER_1122 = (1, 1, 2, 2)
 CONV_FILTER_2211 = (2, 2, 1, 1)
 CONV_FILTER_2222 = (2, 2, 2, 2)
 CONV_FILTER_3311 = (3, 3, 1, 1)
@@ -19,6 +20,7 @@ CONV_FILTER_6611 = (6, 6, 1, 1)
 CONV_FILTER_6622 = (6, 6, 2, 2)
 CONV_FILTER_7711 = (7, 7, 1, 1)
 CONV_FILTER_7722 = (7, 7, 2, 2)
+CONV_FILTER_7777 = (7, 7, 7, 7)
 CONV_FILTER_9911 = (9, 9, 1, 1)
 CONV_FILTER_9922 = (9, 9, 2, 2)
 
@@ -132,7 +134,8 @@ def conv2d_transpose(input_, output_shape, filter_, name="conv2d_transpose", std
     k_h, k_w, d_h, d_w = filter_
     with tf.variable_scope(name):
         weight = tf.get_variable('weight', [k_h, k_w, output_shape[-1], input_.get_shape()[-1]],
-                                 initializer=tf.random_normal_initializer(stddev=stddev))
+                                 initializer=tf.contrib.layers.xavier_initializer_conv2d())
+        # initializer=tf.random_normal_initializer(stddev=stddev))
 
         conv_transpose = tf.nn.conv2d_transpose(input_, weight, output_shape=output_shape, strides=[1, d_h, d_w, 1])
 
@@ -165,7 +168,8 @@ def conv2d(input_, output_channel, filter_, stddev=0.02, name="conv2d"):
     k_h, k_w, d_h, d_w = filter_
     with tf.variable_scope(name):
         weight = tf.get_variable('weight', [k_h, k_w, input_.get_shape()[-1], output_channel],
-                                 initializer=tf.truncated_normal_initializer(stddev=stddev))
+                                 initializer=tf.contrib.layers.xavier_initializer_conv2d())
+        # initializer=tf.truncated_normal_initializer(stddev=stddev))
         conv = tf.nn.conv2d(input_, weight, strides=[1, d_h, d_w, 1], padding='SAME')
 
         bias = tf.get_variable('bias', [output_channel], initializer=tf.constant_initializer(0.0))
@@ -214,6 +218,8 @@ def upscale_2x(input_, output_channel, filter_, name='upscale_2x'):
     n, h, w, c = list(shape)
     if n.value is None:
         n = -1
+    else:
+        n = int(n)
     output_shape = [n, int(h) * 2, int(w) * 2, int(output_channel)]
     return conv2d_transpose(input_, output_shape, filter_, name=name)
 
@@ -399,8 +405,97 @@ def tf_minmax_scaling(x, epsilon=1e-7, name='minmax_scaling'):
 
 
 def tf_z_score_normalize(x: tf.Tensor, name='z_score_normalize'):
-    with tf.variable_scope(name, ):
+    with tf.variable_scope(name):
         if len(x.shape) is not 1:
             raise TypeError('x rank must be 1')
         mean, stddev = tf.nn.moments(x, 0)
         return (x - mean) / stddev
+
+
+def _residual_block(x, weight, activation, batch_norm):
+    x_in = x
+
+    x = weight(x)
+    if batch_norm:
+        x = bn(x)
+    x = activation(x)
+
+    x = weight(x)
+
+    x += x_in
+    if batch_norm:
+        x = bn(x)
+    x = activation(x)
+
+    return x
+
+
+def _residual_block_with_bottle_neck(x, weight, activation, bottle_neck, batch_norm):
+    x_in = x
+
+    x = bottle_neck(x)
+    if batch_norm:
+        x = bn(x)
+    x = activation(x)
+
+    x = weight(x)
+    if batch_norm:
+        x = bn(x)
+    x = activation(x)
+
+    x = bottle_neck(x)
+
+    x += x_in
+    if batch_norm:
+        x = bn(x)
+    x = activation(x)
+
+    return x
+
+
+def _residual_block_full_pre_activation(x, weight, activation):
+    x_in = x
+
+    x = bn(x)
+    x = activation(x)
+    x = weight(x)
+
+    x = bn(x)
+    x = activation(x)
+    x = weight(x)
+
+    x += x_in
+
+    return x
+
+
+def residual_block(x, weight, activation, bottle_neck=None, batch_norm=True, full_pre_activation=False,
+                   name='residual_block'):
+    with tf.variable_scope(name):
+        if full_pre_activation:
+            return _residual_block_full_pre_activation(x, weight, activation)
+
+        if bottle_neck:
+            return _residual_block_with_bottle_neck(x, weight, activation, bottle_neck, batch_norm)
+        else:
+            return _residual_block(x, weight, activation, batch_norm)
+
+
+def resize_image(x, shape, method=ResizeMethod.BILINEAR, align_corners=False, preserve_aspect_ratio=False,
+                 name='resize_image'):
+    with tf.variable_scope(name):
+        x_resize = tf.image.resize_images(x, shape, method, align_corners, preserve_aspect_ratio)
+    return x_resize
+
+
+def residual_add(x, x_add, name='residual_add'):
+    with tf.variable_scope(name):
+        return x + x_add
+
+
+def pixel_wise_softmax(output_map, name='pixel_wise_softmax', reuse=False):
+    with tf.variable_scope(name, reuse=reuse):
+        max_axis = tf.reduce_max(output_map, axis=3, keepdims=True)
+        exponential_map = tf.exp(output_map - max_axis)
+        normalize = tf.reduce_sum(exponential_map, axis=3, keepdims=True)
+        return exponential_map / normalize
