@@ -7,14 +7,14 @@ from script.util.tensor_ops import CONV_FILTER_3311, relu, CONV_FILTER_2222
 
 class VGG16Structure(Base_net_structure):
 
-    def __init__(self, x, n_classes, reuse=False, name='VGG16Structure'):
-        super().__init__(reuse, name)
+    def __init__(self, x, n_classes, reuse=False, name='VGG16Structure', verbose=0):
+        super().__init__(reuse, name, verbose)
         self.x = x
         self.n_classes = n_classes
 
     def build(self):
         with tf.variable_scope(self.name):
-            self.stacker = Stacker(self.x)
+            self.stacker = Stacker(self.x, verbose=self.verbose)
             #  resize to 224 * 224
             self.stacker.resize_image((224, 224))
 

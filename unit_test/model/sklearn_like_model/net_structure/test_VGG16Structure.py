@@ -26,3 +26,4 @@ def test_VGG16Structure():
         forward = sess.run(h, feed_dict={x: x_np})
         print(forward.shape)
         show_summary()
+        print(net.vars)
