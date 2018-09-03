@@ -1,5 +1,4 @@
 import time
-from pprint import pprint
 
 from tensorflow.contrib import slim
 from script.model.sklearn_like_model.net_structure.ResNetStructure import ResNetStructure
@@ -8,11 +7,13 @@ import numpy as np
 from script.util.deco import deco_timeit
 
 
+# TODO refactoring move
 def show_summary():
     model_vars = tf.trainable_variables()
     slim.model_analyzer.analyze_vars(model_vars, print_info=True)
 
 
+# TODO refactoring move
 class elapse_time:
     def __init__(self, title=None):
         self.start_time = time.time()
