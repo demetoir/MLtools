@@ -1,8 +1,7 @@
 import tensorflow as tf
-from script.model.sklearn_like_model.UNet import pixel_wise_softmax
 from script.model.sklearn_like_model.net_structure.Base_net_structure import Base_net_structure
 from script.util.Stacker import Stacker
-from script.util.tensor_ops import CONV_FILTER_3311, relu, CONV_FILTER_2211
+from script.util.tensor_ops import CONV_FILTER_3311, relu, CONV_FILTER_2211, pixel_wise_softmax, CONV_FILTER_2222
 
 
 class UNetStructure(Base_net_structure):
@@ -30,12 +29,13 @@ class UNetStructure(Base_net_structure):
                 stacker.conv_block(n_channel, CONV_FILTER_3311, relu)
                 stacker.conv_block(n_channel, CONV_FILTER_3311, relu)
                 concat = stacker.last_layer
-                stacker.max_pooling(CONV_FILTER_2211)
+                stacker.max_pooling(CONV_FILTER_2222)
 
                 stacker = _Unet_recursion(stacker, n_channel * 2, level - 1)
 
                 # decode
                 stacker.upscale_2x_block(n_channel, CONV_FILTER_2211, relu)
+
                 stacker.concat(concat, axis=3)
                 stacker.conv_block(n_channel, CONV_FILTER_3311, relu)
                 stacker.conv_block(n_channel, CONV_FILTER_3311, relu)
