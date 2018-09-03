@@ -57,14 +57,6 @@ class segmentation_loss_mixIn:
         return tf.nn.sparse_softmax_cross_entropy_with_logits(labels=labels, logits=logits)
 
 
-def pixel_wise_softmax(output_map, name='pixel_wise_softmax', reuse=False):
-    with tf.variable_scope(name, reuse=reuse):
-        max_axis = tf.reduce_max(output_map, axis=3, keepdims=True)
-        exponential_map = tf.exp(output_map - max_axis)
-        normalize = tf.reduce_sum(exponential_map, axis=3, keepdims=True)
-        return exponential_map / normalize
-
-
 class UNet(
     BaseModel,
     Xs_MixIn,
