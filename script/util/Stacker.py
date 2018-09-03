@@ -34,6 +34,8 @@ class Stacker(LoggerMixIn):
         self.last_layer = start_layer
         self.layer_seq = [start_layer]
         self.name = name
+        
+        self.log.info(start_layer)
 
     def add_layer(self, func, *args, **kwargs):
         """add new layer right after last added layer
@@ -137,3 +139,6 @@ class Stacker(LoggerMixIn):
 
     def activation(self, name):
         return self.add_layer(name_to_activation[name])
+
+    def resize_image(self, shape, **kwargs):
+        return self.add_layer(resize_image, shape, **kwargs)
