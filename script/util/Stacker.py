@@ -34,7 +34,7 @@ class Stacker(LoggerMixIn):
         self.last_layer = start_layer
         self.layer_seq = [start_layer]
         self.name = name
-        
+
         self.log.info(start_layer)
 
     def add_layer(self, func, *args, **kwargs):
@@ -142,3 +142,9 @@ class Stacker(LoggerMixIn):
 
     def resize_image(self, shape, **kwargs):
         return self.add_layer(resize_image, shape, **kwargs)
+
+    def residual_add(self, x_add):
+        return self.add_layer(residual_add, x_add)
+
+    def pixel_wise_softmax(self):
+        return self.add_layer(pixel_wise_softmax)
