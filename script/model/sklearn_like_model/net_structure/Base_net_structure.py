@@ -1,5 +1,7 @@
+from tensorflow.contrib import slim
 from script.util.MixIn import LoggerMixIn
 from script.util.tensor_ops import collect_vars, join_scope, get_scope
+import tensorflow as tf
 
 
 class Base_net_structure(LoggerMixIn):
@@ -23,3 +25,7 @@ class Base_net_structure(LoggerMixIn):
 
     def build(self):
         raise NotImplementedError
+
+    def show_vars_summary(self):
+        model_vars = tf.trainable_variables()
+        slim.model_analyzer.analyze_vars(model_vars, print_info=True)
