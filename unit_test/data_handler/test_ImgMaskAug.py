@@ -1,8 +1,7 @@
+import numpy as np
 from script.data_handler.ImgMaskAug import ActivatorMask, ImgMaskAug
 from script.data_handler.TGS_salt import load_sample_image
-import numpy as np
 from script.util.PlotTools import PlotTools
-
 from imgaug import augmenters as iaa
 
 plot = PlotTools(save=True, show=False)
