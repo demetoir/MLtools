@@ -1,16 +1,16 @@
-from imgaug import augmenters as iaa
 from pprint import pprint
 import imgaug as ia
+import numpy as np
+from imgaug import augmenters as iaa
 from sklearn.decomposition import PCA
 from sklearn.manifold import TSNE
 from script.data_handler.ImgMaskAug import ActivatorMask, ImgMaskAug
-from script.data_handler.TGS_salt import collect_images, TRAIN_MASK_PATH, load_sample_image, TGS_salt, to_128, \
+from script.data_handler.TGS_salt import collect_images, TRAIN_MASK_PATH, load_sample_image, TGS_salt, \
     mask_label_encoder, TRAIN_IMAGE_PATH, TEST_IMAGE_PATH, RLE_mask_encoding
 from script.model.sklearn_like_model.BaseModel import BaseDatasetCallback, BaseEpochCallback
 from script.model.sklearn_like_model.UNet import UNet
 from script.util.PlotTools import PlotTools
 from script.util.numpy_utils import np_img_to_img_scatter, np_img_gray_to_rgb
-import numpy as np
 
 plot = PlotTools(save=True, show=False)
 
@@ -219,6 +219,11 @@ class data_helper:
 
         return self._sample_ys
 
+    @property
+    def valid_set(self):
+        # TODO
+        return None
+
 
 class Unet_pipeline:
     def __init__(self):
@@ -236,14 +241,14 @@ class Unet_pipeline:
         train_set = self.data_helper.train_set
 
         x_full, y_full = train_set.full_batch()
-        x_full = to_128(x_full)
-        y_full = to_128(y_full)
+        x_full = x_full.reshape([-1, 101, 101, 1])
+        y_full = y_full.reshape([-1, 101, 101, 1])
         y_encode = mask_label_encoder.to_label(y_full)
 
         self.model = UNet(stage=4, batch_size=64, loss_type='iou', learning_rate=0.01)
 
-        sample_x = to_128(self.data_helper.sample_xs)
-        sample_y = to_128(self.data_helper.sample_ys)
+        sample_x = self.data_helper.sample_xs.reshape([-1, 101, 101, 1])
+        sample_y = self.data_helper.sample_ys.reshape([-1, 101, 101, 1])
 
         class callback(BaseEpochCallback):
             def __init__(self, model, plot, sample_x, sample_y):
@@ -256,6 +261,7 @@ class Unet_pipeline:
             def __call__(self, epoch):
                 predict = self.model.predict(sample_x)
                 predict = mask_label_encoder.from_label(predict)
+                print(predict.shape, sample_x.shape)
                 tile = np.concatenate([sample_x, predict, sample_y], axis=0)
                 self.plot.plot_image_tile(tile, title=f'predict_epoch({epoch})', column=10)
 
