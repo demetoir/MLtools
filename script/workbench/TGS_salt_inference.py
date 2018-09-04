@@ -261,7 +261,6 @@ class Unet_pipeline:
             def __call__(self, epoch):
                 predict = self.model.predict(sample_x)
                 predict = mask_label_encoder.from_label(predict)
-                print(predict.shape, sample_x.shape)
                 tile = np.concatenate([sample_x, predict, sample_y], axis=0)
                 self.plot.plot_image_tile(tile, title=f'predict_epoch({epoch})', column=10)
 
