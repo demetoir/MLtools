@@ -87,6 +87,7 @@ class UNet(
         self.stage = stage
         self.loss_type = loss_type
         self.n_classes = n_classes
+        self.Unet_image_size = (128, 128)
 
     def _build_input_shapes(self, shapes):
         ret = {}
@@ -97,14 +98,18 @@ class UNet(
     def _build_main_graph(self):
         self.Xs = tf.placeholder(tf.float32, self.Xs_shape, name='Xs')
         self.Ys = tf.placeholder(tf.float32, self.Ys_shape, name='Ys')
+        self.Xs_Unet_size = resize_image(self.Xs, self.Unet_image_size)
+        self.Ys_Unet_size = resize_image(self.Ys, self.Unet_image_size)
 
         self.Unet_structure = UNetStructure(self.Xs)
         self.Unet_structure.build()
         self._logit = self.Unet_structure.logit
         self._proba = self.Unet_structure.proba
-        self._predict = reshape(tf.argmax(self._proba, 3, name="predicted"), self.Ys_shape, name='predict')
+        self._predict = reshape(tf.argmax(self._proba, 3, name="predicted"), self.Ys_shape,
+                                name='predict')
 
-        self._predict_ops = self._predict
+        self._predict_proba_ops = resize_image(self._proba, self.Xs.shape[1:3])
+        self._predict_ops = resize_image(self._predict, self.Xs.shape[1:3])
         self.Unet_vars = self.Unet_structure.vars
 
     def _build_loss_function(self):
@@ -126,7 +131,7 @@ class UNet(
 
     @property
     def predict_proba_ops(self):
-        return self._proba
+        return self._predict_proba_ops
 
     @property
     def score_ops(self):
