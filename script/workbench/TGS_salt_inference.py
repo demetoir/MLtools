@@ -1,11 +1,12 @@
+from imgaug import augmenters as iaa
 from pprint import pprint
 import imgaug as ia
-from imgaug import augmenters as iaa
 from sklearn.decomposition import PCA
 from sklearn.manifold import TSNE
-from script.data_handler.ImgMaskAug import ActivatorMask
+from script.data_handler.ImgMaskAug import ActivatorMask, ImgMaskAug
 from script.data_handler.TGS_salt import collect_images, TRAIN_MASK_PATH, load_sample_image, TGS_salt, to_128, \
     mask_label_encoder, TRAIN_IMAGE_PATH, TEST_IMAGE_PATH, RLE_mask_encoding
+from script.model.sklearn_like_model.BaseModel import BaseDatasetCallback, BaseEpochCallback
 from script.model.sklearn_like_model.UNet import UNet
 from script.util.PlotTools import PlotTools
 from script.util.numpy_utils import np_img_to_img_scatter, np_img_gray_to_rgb
@@ -135,7 +136,39 @@ def test_aug():
     plot.plot_image_tile(tile, title=f'test_image_aug', column=5, )
 
 
-class pipeline:
+class TGS_salt_aug_callback(BaseDatasetCallback):
+    def __init__(self, x, y, batch_size):
+        super().__init__(x, y, batch_size)
+
+        self.seq = iaa.Sequential([
+            iaa.Fliplr(0.5, name="Flipper"),
+            # iaa.GaussianBlur((0, 3.0), name="GaussianBlur"),
+            # iaa.Dropout(0.02, name="Dropout"),
+            # iaa.AdditiveGaussianNoise(scale=0.01 * 255, name="MyLittleNoise"),
+            # iaa.AdditiveGaussianNoise(loc=32, scale=0.0001 * 255, name="SomeOtherNoise"),
+            # iaa.Affine(translate_px={"x": (-40, 40)}, name="Affine")
+        ])
+        # activator = ActivatorMask(["GaussianBlur", "Dropout", "MyLittleNoise"])
+        self.activator = ActivatorMask([])
+        self.aug = ImgMaskAug(self.x, self.y, self.seq, self.activator, self.batch_size, n_jobs=1)
+
+    @property
+    def size(self):
+        return len(self.x)
+
+    def shuffle(self):
+        pass
+
+    def next_batch(self, batch_size, batch_keys=None, update_cursor=True, balanced_class=False, out_type='concat'):
+        x, y = self.aug.get_batch()
+        # try:
+        #     plot.plot_image_tile(np.concatenate([x, y]), title='aug')
+        # except BaseException:
+        #     pass
+        return x, y
+
+
+class data_helper:
     def __init__(self, data_pack_path='./data/TGS_salt', sample_offset=10, sample_size=10):
         self.data_pack_path = data_pack_path
         self.sample_offset = sample_offset
@@ -186,41 +219,53 @@ class pipeline:
 
         return self._sample_ys
 
-    def UNet_train_pipeline(self, n_epoch=10, augmentation=False):
-        # todo augmentation option
-        # todo early stop
-        train_set = self.train_set
+
+class Unet_pipeline:
+    def __init__(self):
+        self.data_helper = data_helper()
+        self.plot = plot
+        # self.aug_callback = TGS_salt_aug_callback
+        # self.epoch_callback = epoch_callback
+
+        self.aug_callback = None
+
+        self.epoch_callback = None
+        self.model = None
+
+    def train(self, n_epoch=10, augmentation=False, early_stop=True, patience=20):
+        train_set = self.data_helper.train_set
 
         x_full, y_full = train_set.full_batch()
-
         x_full = to_128(x_full)
         y_full = to_128(y_full)
         y_encode = mask_label_encoder.to_label(y_full)
 
-        Unet = UNet(stage=4, batch_size=64, loss_type='iou', learning_rate=0.01)
-        sample_x = to_128(self.sample_xs)
-        sample_y = to_128(self.sample_ys)
+        self.model = UNet(stage=4, batch_size=64, loss_type='iou', learning_rate=0.01)
 
-        for i in range(n_epoch):
-            if augmentation:
-                x = None
-                y = None
-            else:
-                x = x_full
-                y = y_encode
+        sample_x = to_128(self.data_helper.sample_xs)
+        sample_y = to_128(self.data_helper.sample_ys)
 
-            Unet.train(x, y, epoch=1)
+        class callback(BaseEpochCallback):
+            def __init__(self, model, plot, sample_x, sample_y):
+                super().__init__()
+                self.model = model
+                self.plot = plot
+                self.sample_x = sample_x
+                self.sample_y = sample_y
 
-            predict = Unet.predict(sample_x)
+            def __call__(self, epoch):
+                predict = self.model.predict(sample_x)
+                predict = mask_label_encoder.from_label(predict)
+                tile = np.concatenate([sample_x, predict, sample_y], axis=0)
+                self.plot.plot_image_tile(tile, title=f'predict_epoch({epoch})', column=10)
 
-            predict = mask_label_encoder.from_label(predict)
-            tile = np.concatenate([sample_x, predict, sample_y], axis=0)
-            plot.plot_image_tile(tile, title=f'predict_{i}', column=10)
+        epoch_callback = callback(self.model, self.plot, sample_x, sample_y)
+        dataset_callback = self.aug_callback if augmentation else None
+        self.model.train(x_full, y_encode, epoch=n_epoch, aug_callback=dataset_callback,
+                         epoch_callback=epoch_callback, early_stop=early_stop, patience=patience,
+                         iter_pbar=True)
 
-            metric = Unet.metric(x, y_encode)
-            print(metric)
-
-        Unet.save()
+        self.model.save()
 
 
 def masking_images(image, mask, mask_rate=.8):
