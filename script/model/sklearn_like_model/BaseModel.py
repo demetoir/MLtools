@@ -37,6 +37,14 @@ class BaseDatasetCallback:
         raise NotImplementedError
 
 
+class BaseEpochCallback:
+    def __init__(self):
+        pass
+
+    def __call__(self, epoch):
+        raise NotImplementedError
+
+
 META_DATA_FILE_NAME = 'instance.meta'
 meta_json = 'meta.json'
 params_json = 'params.json'
@@ -282,13 +290,13 @@ class BaseModel(LoggerMixIn, input_shapesMixIN, metadataMixIN, paramsMixIn, loss
     def _train_iter(self, dataset, batch_size):
         pass
 
-    def train(self, x, y=None, *args, epoch=1, batch_size=None, dataset_callback=None,
-              early_stop=False, patience=20, epoch_pbar=True, iter_pbar=False,
+    def train(self, x, y=None, *args, epoch=1, batch_size=None, aug_callback=None,
+              early_stop=False, patience=20, epoch_pbar=True, iter_pbar=False, epoch_callback=None,
               **kwargs):
         self._prepare_train(Xs=x, Ys=y)
         batch_size = getattr(self, 'batch_size') if batch_size is None else batch_size
-        dataset = dataset_callback(x, y, batch_size) if dataset_callback else BaseDataset(x=x, y=y)
-        last_metric = np.Inf
+        dataset = aug_callback(x, y, batch_size) if aug_callback else BaseDataset(x=x, y=y)
+        recent_best = np.Inf
         patience_count = 0
         iter_num = 0
         epoch_pbar = trange if epoch_pbar else range
@@ -299,15 +307,18 @@ class BaseModel(LoggerMixIn, input_shapesMixIN, metadataMixIN, paramsMixIn, loss
                 iter_num += 1
                 self._train_iter(dataset, batch_size)
 
+            if epoch_callback:
+                epoch_callback(e)
+
             metric = getattr(self, 'metric')(x, y)
             if early_stop:
-                tqdm.write(f'e = {e}, metric = {metric}, best = {last_metric}')
+                tqdm.write(f'e = {e}, metric = {metric}, recent best = {recent_best}')
                 # self.log.info(f'e = {e}, metric = {metric}, best = {last_metric}')
 
-                if last_metric > metric:
-                    tqdm.write(f'improve {last_metric - metric}')
+                if recent_best > metric:
+                    tqdm.write(f'improve {recent_best - metric}')
                     # self.log.info(f'improve {last_metric - metric}')
-                    last_metric = metric
+                    recent_best = metric
                     patience_count = 0
                 else:
                     patience_count += 1
@@ -320,5 +331,5 @@ class BaseModel(LoggerMixIn, input_shapesMixIN, metadataMixIN, paramsMixIn, loss
                 tqdm.write(f"e:{e}, i:{iter_num}, metric : {np.mean(metric)}")
                 # self.log.info(f"e:{e}, i:{iter_num}, metric : {np.mean(metric)}")
 
-        if dataset_callback:
+        if aug_callback:
             del dataset
