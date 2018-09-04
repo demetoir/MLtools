@@ -186,8 +186,8 @@ def test_train_dataset_callback():
 
     Unet = UNet(stage=4, batch_size=7)
     # Unet.train(x, y_encode, epoch=100)
-    Unet.train(x, y_encode, epoch=1000, dataset_callback=dataset_callback)
-    Unet.train(x, y_encode, epoch=1000, dataset_callback=dataset_callback)
+    Unet.train(x, y_encode, epoch=1000, aug_callback=dataset_callback)
+    Unet.train(x, y_encode, epoch=1000, aug_callback=dataset_callback)
 
     score = Unet.score(x, y_encode)
     pprint(score)
