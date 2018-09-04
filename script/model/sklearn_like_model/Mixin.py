@@ -387,9 +387,11 @@ class predictMethodMixIn:
         batch_size = getattr(self, 'batch_size')
         size = len(x)
         if size >= batch_size:
+            xs = slice_np_arr(x, batch_size)
+            tqdm.write('batch predict')
             predicts = [
                 self._predict_batch(x_partial)
-                for x_partial in tqdm(slice_np_arr(x, batch_size))
+                for x_partial in tqdm(xs, total=len(xs))
             ]
             return np.concatenate(predicts)
         else:
@@ -413,9 +415,11 @@ class predict_probaMethodMixIn:
         batch_size = getattr(self, 'batch_size')
         size = len(x)
         if size >= batch_size:
+            xs = slice_np_arr(x, batch_size)
+            tqdm.write('batch predict_proba')
             predicts = [
                 self._predict_proba_batch(x_partial)
-                for x_partial in tqdm(slice_np_arr(x, batch_size))
+                for x_partial in tqdm(xs, total=len(xs))
             ]
             return np.concatenate(predicts)
         else:
@@ -443,7 +447,8 @@ class scoreMethodMixIn:
         if size >= batch_size:
             xs = slice_np_arr(x, batch_size)
             ys = slice_np_arr(y, batch_size)
-            predicts = np.array([self._score_batch(x, y) for x, y in tqdm(zip(xs, ys))])
+            tqdm.write('batch score')
+            predicts = np.array([self._score_batch(x, y) for x, y in tqdm(zip(xs, ys), total=len(xs))])
             return np.mean(predicts)
         else:
             return self._score_batch(x, y)
@@ -469,7 +474,8 @@ class supervised_metricMethodMixIn:
         if size >= batch_size:
             xs = slice_np_arr(x, batch_size)
             ys = slice_np_arr(y, batch_size)
-            predicts = np.array([self._metric_batch(x, y) for x, y in tqdm(zip(xs, ys))])
+            tqdm.write('batch metric')
+            predicts = np.array([self._metric_batch(x, y) for x, y in tqdm(zip(xs, ys), total=len(xs))])
             return np.mean(predicts)
         else:
             return self._metric_batch(x, y)
@@ -492,7 +498,9 @@ class unsupervised_metricMethodMixIn:
         batch_size = getattr(self, 'batch_size')
         size = len(x)
         if size >= batch_size:
-            predicts = np.array([self._metric_batch(x) for x, y in tqdm(slice_np_arr(x, batch_size))])
+            xs = slice_np_arr(x, batch_size)
+            tqdm.write('batch metric')
+            predicts = np.array([self._metric_batch(x) for x in tqdm(xs)])
             return np.concatenate(predicts)
         else:
             return self._metric_batch(x)
