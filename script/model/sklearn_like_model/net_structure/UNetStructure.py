@@ -6,20 +6,15 @@ from script.util.tensor_ops import CONV_FILTER_3311, relu, CONV_FILTER_2211, pix
 
 class UNetStructure(Base_net_structure):
 
-    def __init__(self, x, level=4, n_classes=2, reuse=False, name='Base_net_structure', verbose=0):
+    def __init__(self, x, level=4, n_classes=2, reuse=False, name=None, verbose=0):
         super().__init__(reuse, name, verbose)
 
         self.x = x
         self.level = level
         self.n_classes = n_classes
+        self.n_channel = 64
 
     def build(self):
-        self.stacker = Stacker(self.x, verbose=self.verbose)
-        self.logit, self.proba = self.Unet_recursion_build(
-            self.stacker, self.level, self.n_classes, self.reuse, self.name)
-
-    @staticmethod
-    def Unet_recursion_build(stacker, level=4, n_classes=2, reuse=False, name='Unet'):
         def _Unet_recursion(stacker, n_channel, level):
             if level == 0:
                 stacker.conv_block(n_channel, CONV_FILTER_3311, relu)
@@ -42,10 +37,13 @@ class UNetStructure(Base_net_structure):
 
             return stacker
 
-        with tf.variable_scope(name, reuse=reuse):
-            stacker = _Unet_recursion(stacker, n_channel=64, level=level)
-            stacker.conv_block(n_classes, CONV_FILTER_3311, relu)
-            logit = stacker.last_layer
-            proba = pixel_wise_softmax(logit)
+        with tf.variable_scope(self.name, reuse=self.reuse):
+            self.stacker = Stacker(self.x, verbose=self.verbose)
 
-        return logit, proba
+            self.stacker = _Unet_recursion(self.stacker, n_channel=self.n_channel, level=self.level)
+
+            self.stacker.conv_block(self.n_classes, CONV_FILTER_3311, relu)
+            self.logit = self.stacker.last_layer
+
+            self.stacker.pixel_wise_softmax()
+            self.proba = self.stacker.last_layer
