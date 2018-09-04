@@ -1,6 +1,3 @@
-from tqdm import trange
-import numpy as np
-from script.data_handler.Base.BaseDataset import BaseDataset
 from script.model.sklearn_like_model.BaseModel import BaseModel
 from script.model.sklearn_like_model.Mixin import Xs_MixIn, Ys_MixIn, supervised_trainMethodMixIn, predictMethodMixIn, \
     predict_probaMethodMixIn, scoreMethodMixIn, supervised_metricMethodMixIn
@@ -108,7 +105,7 @@ class UNet(
         self._predict = reshape(tf.argmax(self._proba, 3, name="predicted"), self.Ys_shape, name='predict')
 
         self._predict_ops = self._predict
-        self.Unet_vars = self.Unet_structure.vars()
+        self.Unet_vars = self.Unet_structure.vars
 
     def _build_loss_function(self):
         self.loss = self._build_loss(
@@ -139,61 +136,6 @@ class UNet(
     def metric_ops(self):
         return self.loss
 
-    def train(self, Xs, Ys, epoch=1, save_interval=None, batch_size=None):
-        self._prepare_train(Xs=Xs, Ys=Ys)
-        dataset = BaseDataset(x=Xs, y=Ys)
-
-        if batch_size is None:
-            batch_size = self.batch_size
-
-        iter_num = 0
-        iter_per_epoch = int(dataset.size / batch_size)
-        if epoch == 1:
-            for _ in trange(iter_per_epoch):
-                iter_num += 1
-
-                Xs, Ys = dataset.next_batch(batch_size, balanced_class=False)
-                self.sess.run(self.train_ops, feed_dict={self._Xs: Xs, self._Ys: Ys})
-
-            Xs, Ys = dataset.next_batch(batch_size, update_cursor=False, balanced_class=False)
-            loss = self.sess.run(self.metric_ops, feed_dict={self._Xs: Xs, self._Ys: Ys})
-            self.log.info(f"i:{iter_num} loss : {np.mean(loss)}")
-
-            if save_interval is not None:
-                self.save()
-        else:
-            for e in trange(epoch):
-                for i in range(iter_per_epoch):
-                    iter_num += 1
-
-                    Xs, Ys = dataset.next_batch(batch_size, balanced_class=False)
-                    self.sess.run(self.train_ops, feed_dict={self._Xs: Xs, self._Ys: Ys})
-
-                Xs, Ys = dataset.next_batch(batch_size, update_cursor=False, balanced_class=False)
-                loss = self.sess.run(self.metric_ops, feed_dict={self._Xs: Xs, self._Ys: Ys})
-                self.log.info(f"e:{e}, i:{iter_num} loss : {np.mean(loss)}")
-
-                if save_interval is not None and e % save_interval == 0:
-                    self.save()
-
-    def train_early_stop(self, x, y, n_epoch=200, patience=20, min_best=True):
-        if min_best is False:
-            raise NotImplementedError
-
-        last_metric = np.Inf
-        patience_count = 0
-        for e in range(1, n_epoch + 1):
-            self.train(x, y, epoch=1)
-            metric = self.metric(x, y)
-            self.log.info(f'e = {e}, metric = {metric}, best = {last_metric}')
-
-            if last_metric > metric:
-                self.log.info(f'improve {last_metric - metric}')
-                last_metric = metric
-                patience_count = 0
-            else:
-                patience_count += 1
-
-            if patience_count == patience:
-                self.log.info(f'early stop')
-                break
+    def _train_iter(self, dataset, batch_size):
+        Xs, Ys = dataset.next_batch(batch_size, balanced_class=False)
+        self.sess.run(self.train_ops, feed_dict={self._Xs: Xs, self._Ys: Ys})
