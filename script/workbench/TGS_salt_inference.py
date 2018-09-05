@@ -245,26 +245,39 @@ class Unet_pipeline:
         y_full = y_full.reshape([-1, 101, 101, 1])
         y_encode = mask_label_encoder.to_label(y_full)
 
-        self.model = UNet(stage=4, batch_size=64, loss_type='iou', learning_rate=0.01)
-
-        sample_x = self.data_helper.sample_xs.reshape([-1, 101, 101, 1])
-        sample_y = self.data_helper.sample_ys.reshape([-1, 101, 101, 1])
+        # loss_type = 'pixel_wise_softmax'
+        loss_type = 'iou'
+        # loss_type = 'dice_soft'
+        channel = 16
+        level = 4
+        learning_rate = 0.01
+        batch_size = 128
+        self.model = UNet(stage=4, batch_size=batch_size,
+                          Unet_level=level, Unet_n_channel=channel, loss_type=loss_type,
+                          learning_rate=learning_rate)
 
         class callback(BaseEpochCallback):
-            def __init__(self, model, plot, sample_x, sample_y):
+            def __init__(self, model, plot, train_set):
                 super().__init__()
                 self.model = model
                 self.plot = plot
-                self.sample_x = sample_x
-                self.sample_y = sample_y
+                self.train_set = train_set
+                # self.sample_x = sample_x
+                # self.sample_y = sample_y
 
             def __call__(self, epoch):
-                predict = self.model.predict(sample_x)
+                x, y = train_set.next_batch(20)
+                x = x.reshape([-1, 101, 101, 1])
+                y = y.reshape([-1, 101, 101, 1])
+                predict = self.model.predict(x)
                 predict = mask_label_encoder.from_label(predict)
-                tile = np.concatenate([sample_x, predict, sample_y], axis=0)
-                self.plot.plot_image_tile(tile, title=f'predict_epoch({epoch})', column=10)
+                tile = np.concatenate([x, predict, y], axis=0)
+                self.plot.plot_image_tile(tile, title=f'predict_epoch({epoch})', column=10,
+                                          path=f'./matplot/{self.model.id}/predict_epoch({epoch}).png')
 
-        epoch_callback = callback(self.model, self.plot, sample_x, sample_y)
+                # TODO add custom metric
+
+        epoch_callback = callback(self.model, self.plot, self.data_helper.train_set)
         dataset_callback = self.aug_callback if augmentation else None
         self.model.train(x_full, y_encode, epoch=n_epoch, aug_callback=dataset_callback,
                          epoch_callback=epoch_callback, early_stop=early_stop, patience=patience,
