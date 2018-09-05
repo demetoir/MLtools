@@ -68,7 +68,7 @@ class UNet(
 
     def __init__(self, verbose=10, learning_rate=0.001, learning_rate_decay_rate=0.99,
                  learning_rate_decay_method=None, beta1=0.01, batch_size=100, stage=4,
-                 loss_type='pixel_wise_softmax', n_classes=1, **kwargs):
+                 loss_type='pixel_wise_softmax', n_classes=1, Unet_level=4, Unet_n_channel=64, **kwargs):
         BaseModel.__init__(self, verbose, **kwargs)
         Xs_MixIn.__init__(self)
         Ys_MixIn.__init__(self)
@@ -88,6 +88,8 @@ class UNet(
         self.loss_type = loss_type
         self.n_classes = n_classes
         self.Unet_image_size = (128, 128)
+        self.Unet_level = Unet_level
+        self.Unet_n_channel = Unet_n_channel
 
     def _build_input_shapes(self, shapes):
         ret = {}
@@ -98,18 +100,20 @@ class UNet(
     def _build_main_graph(self):
         self.Xs = tf.placeholder(tf.float32, self.Xs_shape, name='Xs')
         self.Ys = tf.placeholder(tf.float32, self.Ys_shape, name='Ys')
-        self.Xs_Unet_size = resize_image(self.Xs, self.Unet_image_size)
-        self.Ys_Unet_size = resize_image(self.Ys, self.Unet_image_size)
+        # self.Xs_Unet_size = resize_image(self.Xs, self.Unet_image_size)
+        # self.Ys_Unet_size = resize_image(self.Ys, self.Unet_image_size)
 
-        self.Unet_structure = UNetStructure(self.Xs)
+        self.Unet_structure = UNetStructure(self.Xs, level=self.Unet_level, n_channel=self.Unet_n_channel)
         self.Unet_structure.build()
         self._logit = self.Unet_structure.logit
         self._proba = self.Unet_structure.proba
         self._predict = reshape(tf.argmax(self._proba, 3, name="predicted"), self.Ys_shape,
                                 name='predict')
 
-        self._predict_proba_ops = resize_image(self._proba, self.Xs.shape[1:3])
-        self._predict_ops = resize_image(self._predict, self.Xs.shape[1:3])
+        # self._predict_proba_ops = resize_image(self._proba, self.Xs.shape[1:3])
+        # self._predict_ops = resize_image(self._predict, self.Xs.shape[1:3])
+        self._predict_proba_ops = self._proba
+        self._predict_ops = self._predict
         self.Unet_vars = self.Unet_structure.vars
 
     def _build_loss_function(self):
