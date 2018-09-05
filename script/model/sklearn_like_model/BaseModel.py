@@ -288,7 +288,7 @@ class BaseModel(LoggerMixIn, input_shapesMixIN, metadataMixIN, paramsMixIn, loss
                 raise TrainFailError(f'{key} is inf')
 
     def _train_iter(self, dataset, batch_size):
-        pass
+        raise NotImplementedError
 
     def train(self, x, y=None, *args, epoch=1, batch_size=None, aug_callback=None,
               early_stop=False, patience=20, epoch_pbar=True, iter_pbar=False, epoch_callback=None,
