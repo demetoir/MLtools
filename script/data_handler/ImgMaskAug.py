@@ -38,7 +38,6 @@ class ImgMaskAug(LoggerMixIn):
         self.finished_signals = []
 
         for _ in range(n_jobs):
-            print(_)
             finished_signal = mp.Event()
             self.finished_signals += [finished_signal]
 
@@ -58,6 +57,8 @@ class ImgMaskAug(LoggerMixIn):
             )
             worker.daemon = True
             worker.start()
+            self.log.info(f'start augmentation worker {_ + 1}/{n_jobs}')
+
             self.workers += [worker]
 
     def terminate(self):
@@ -114,3 +115,6 @@ class ImgMaskAug(LoggerMixIn):
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.terminate()
         return True
+
+    def __del__(self):
+        self.terminate()

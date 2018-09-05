@@ -1,15 +1,16 @@
 from pprint import pprint
 import imgaug as ia
+import numpy as np
 from imgaug import augmenters as iaa
 from sklearn.decomposition import PCA
 from sklearn.manifold import TSNE
-from script.data_handler.ImgMaskAug import ActivatorMask
-from script.data_handler.TGS_salt import collect_images, TRAIN_MASK_PATH, load_sample_image, TGS_salt, to_128, \
+from script.data_handler.ImgMaskAug import ActivatorMask, ImgMaskAug
+from script.data_handler.TGS_salt import collect_images, TRAIN_MASK_PATH, load_sample_image, TGS_salt, \
     mask_label_encoder, TRAIN_IMAGE_PATH, TEST_IMAGE_PATH, RLE_mask_encoding
+from script.model.sklearn_like_model.BaseModel import BaseDatasetCallback, BaseEpochCallback
 from script.model.sklearn_like_model.UNet import UNet
 from script.util.PlotTools import PlotTools
 from script.util.numpy_utils import np_img_to_img_scatter, np_img_gray_to_rgb
-import numpy as np
 
 plot = PlotTools(save=True, show=False)
 
@@ -135,7 +136,39 @@ def test_aug():
     plot.plot_image_tile(tile, title=f'test_image_aug', column=5, )
 
 
-class pipeline:
+class TGS_salt_aug_callback(BaseDatasetCallback):
+    def __init__(self, x, y, batch_size):
+        super().__init__(x, y, batch_size)
+
+        self.seq = iaa.Sequential([
+            iaa.Fliplr(0.5, name="Flipper"),
+            # iaa.GaussianBlur((0, 3.0), name="GaussianBlur"),
+            # iaa.Dropout(0.02, name="Dropout"),
+            # iaa.AdditiveGaussianNoise(scale=0.01 * 255, name="MyLittleNoise"),
+            # iaa.AdditiveGaussianNoise(loc=32, scale=0.0001 * 255, name="SomeOtherNoise"),
+            # iaa.Affine(translate_px={"x": (-40, 40)}, name="Affine")
+        ])
+        # activator = ActivatorMask(["GaussianBlur", "Dropout", "MyLittleNoise"])
+        self.activator = ActivatorMask([])
+        self.aug = ImgMaskAug(self.x, self.y, self.seq, self.activator, self.batch_size, n_jobs=1)
+
+    @property
+    def size(self):
+        return len(self.x)
+
+    def shuffle(self):
+        pass
+
+    def next_batch(self, batch_size, batch_keys=None, update_cursor=True, balanced_class=False, out_type='concat'):
+        x, y = self.aug.get_batch()
+        # try:
+        #     plot.plot_image_tile(np.concatenate([x, y]), title='aug')
+        # except BaseException:
+        #     pass
+        return x, y
+
+
+class data_helper:
     def __init__(self, data_pack_path='./data/TGS_salt', sample_offset=10, sample_size=10):
         self.data_pack_path = data_pack_path
         self.sample_offset = sample_offset
@@ -186,41 +219,71 @@ class pipeline:
 
         return self._sample_ys
 
-    def UNet_train_pipeline(self, n_epoch=10, augmentation=False):
-        # todo augmentation option
-        # todo early stop
-        train_set = self.train_set
+    @property
+    def valid_set(self):
+        # TODO
+        return None
+
+
+class Unet_pipeline:
+    def __init__(self):
+        self.data_helper = data_helper()
+        self.plot = plot
+        # self.aug_callback = TGS_salt_aug_callback
+        # self.epoch_callback = epoch_callback
+
+        self.aug_callback = None
+
+        self.epoch_callback = None
+        self.model = None
+
+    def train(self, n_epoch=10, augmentation=False, early_stop=True, patience=20):
+        train_set = self.data_helper.train_set
 
         x_full, y_full = train_set.full_batch()
-
-        x_full = to_128(x_full)
-        y_full = to_128(y_full)
+        x_full = x_full.reshape([-1, 101, 101, 1])
+        y_full = y_full.reshape([-1, 101, 101, 1])
         y_encode = mask_label_encoder.to_label(y_full)
 
-        Unet = UNet(stage=4, batch_size=64, loss_type='iou', learning_rate=0.01)
-        sample_x = to_128(self.sample_xs)
-        sample_y = to_128(self.sample_ys)
+        # loss_type = 'pixel_wise_softmax'
+        loss_type = 'iou'
+        # loss_type = 'dice_soft'
+        channel = 16
+        level = 4
+        learning_rate = 0.01
+        batch_size = 128
+        self.model = UNet(stage=4, batch_size=batch_size,
+                          Unet_level=level, Unet_n_channel=channel, loss_type=loss_type,
+                          learning_rate=learning_rate)
 
-        for i in range(n_epoch):
-            if augmentation:
-                x = None
-                y = None
-            else:
-                x = x_full
-                y = y_encode
+        class callback(BaseEpochCallback):
+            def __init__(self, model, plot, train_set):
+                super().__init__()
+                self.model = model
+                self.plot = plot
+                self.train_set = train_set
+                # self.sample_x = sample_x
+                # self.sample_y = sample_y
 
-            Unet.train(x, y, epoch=1)
+            def __call__(self, epoch):
+                x, y = train_set.next_batch(20)
+                x = x.reshape([-1, 101, 101, 1])
+                y = y.reshape([-1, 101, 101, 1])
+                predict = self.model.predict(x)
+                predict = mask_label_encoder.from_label(predict)
+                tile = np.concatenate([x, predict, y], axis=0)
+                self.plot.plot_image_tile(tile, title=f'predict_epoch({epoch})', column=10,
+                                          path=f'./matplot/{self.model.id}/predict_epoch({epoch}).png')
 
-            predict = Unet.predict(sample_x)
+                # TODO add custom metric
 
-            predict = mask_label_encoder.from_label(predict)
-            tile = np.concatenate([sample_x, predict, sample_y], axis=0)
-            plot.plot_image_tile(tile, title=f'predict_{i}', column=10)
+        epoch_callback = callback(self.model, self.plot, self.data_helper.train_set)
+        dataset_callback = self.aug_callback if augmentation else None
+        self.model.train(x_full, y_encode, epoch=n_epoch, aug_callback=dataset_callback,
+                         epoch_callback=epoch_callback, early_stop=early_stop, patience=patience,
+                         iter_pbar=True)
 
-            metric = Unet.metric(x, y_encode)
-            print(metric)
-
-        Unet.save()
+        self.model.save()
 
 
 def masking_images(image, mask, mask_rate=.8):

@@ -1,6 +1,3 @@
-from tqdm import trange
-import numpy as np
-from script.data_handler.Base.BaseDataset import BaseDataset
 from script.model.sklearn_like_model.BaseModel import BaseModel
 from script.model.sklearn_like_model.Mixin import Xs_MixIn, Ys_MixIn, supervised_trainMethodMixIn, predictMethodMixIn, \
     predict_probaMethodMixIn, scoreMethodMixIn, supervised_metricMethodMixIn
@@ -71,7 +68,7 @@ class UNet(
 
     def __init__(self, verbose=10, learning_rate=0.001, learning_rate_decay_rate=0.99,
                  learning_rate_decay_method=None, beta1=0.01, batch_size=100, stage=4,
-                 loss_type='pixel_wise_softmax', n_classes=1, **kwargs):
+                 loss_type='pixel_wise_softmax', n_classes=1, Unet_level=4, Unet_n_channel=64, **kwargs):
         BaseModel.__init__(self, verbose, **kwargs)
         Xs_MixIn.__init__(self)
         Ys_MixIn.__init__(self)
@@ -90,6 +87,9 @@ class UNet(
         self.stage = stage
         self.loss_type = loss_type
         self.n_classes = n_classes
+        self.Unet_image_size = (128, 128)
+        self.Unet_level = Unet_level
+        self.Unet_n_channel = Unet_n_channel
 
     def _build_input_shapes(self, shapes):
         ret = {}
@@ -100,15 +100,21 @@ class UNet(
     def _build_main_graph(self):
         self.Xs = tf.placeholder(tf.float32, self.Xs_shape, name='Xs')
         self.Ys = tf.placeholder(tf.float32, self.Ys_shape, name='Ys')
+        # self.Xs_Unet_size = resize_image(self.Xs, self.Unet_image_size)
+        # self.Ys_Unet_size = resize_image(self.Ys, self.Unet_image_size)
 
-        self.Unet_structure = UNetStructure(self.Xs)
+        self.Unet_structure = UNetStructure(self.Xs, level=self.Unet_level, n_channel=self.Unet_n_channel)
         self.Unet_structure.build()
         self._logit = self.Unet_structure.logit
         self._proba = self.Unet_structure.proba
-        self._predict = reshape(tf.argmax(self._proba, 3, name="predicted"), self.Ys_shape, name='predict')
+        self._predict = reshape(tf.argmax(self._proba, 3, name="predicted"), self.Ys_shape,
+                                name='predict')
 
+        # self._predict_proba_ops = resize_image(self._proba, self.Xs.shape[1:3])
+        # self._predict_ops = resize_image(self._predict, self.Xs.shape[1:3])
+        self._predict_proba_ops = self._proba
         self._predict_ops = self._predict
-        self.Unet_vars = self.Unet_structure.vars()
+        self.Unet_vars = self.Unet_structure.vars
 
     def _build_loss_function(self):
         self.loss = self._build_loss(
@@ -129,7 +135,7 @@ class UNet(
 
     @property
     def predict_proba_ops(self):
-        return self._proba
+        return self._predict_proba_ops
 
     @property
     def score_ops(self):
@@ -139,61 +145,6 @@ class UNet(
     def metric_ops(self):
         return self.loss
 
-    def train(self, Xs, Ys, epoch=1, save_interval=None, batch_size=None):
-        self._prepare_train(Xs=Xs, Ys=Ys)
-        dataset = BaseDataset(x=Xs, y=Ys)
-
-        if batch_size is None:
-            batch_size = self.batch_size
-
-        iter_num = 0
-        iter_per_epoch = int(dataset.size / batch_size)
-        if epoch == 1:
-            for _ in trange(iter_per_epoch):
-                iter_num += 1
-
-                Xs, Ys = dataset.next_batch(batch_size, balanced_class=False)
-                self.sess.run(self.train_ops, feed_dict={self._Xs: Xs, self._Ys: Ys})
-
-            Xs, Ys = dataset.next_batch(batch_size, update_cursor=False, balanced_class=False)
-            loss = self.sess.run(self.metric_ops, feed_dict={self._Xs: Xs, self._Ys: Ys})
-            self.log.info(f"i:{iter_num} loss : {np.mean(loss)}")
-
-            if save_interval is not None:
-                self.save()
-        else:
-            for e in trange(epoch):
-                for i in range(iter_per_epoch):
-                    iter_num += 1
-
-                    Xs, Ys = dataset.next_batch(batch_size, balanced_class=False)
-                    self.sess.run(self.train_ops, feed_dict={self._Xs: Xs, self._Ys: Ys})
-
-                Xs, Ys = dataset.next_batch(batch_size, update_cursor=False, balanced_class=False)
-                loss = self.sess.run(self.metric_ops, feed_dict={self._Xs: Xs, self._Ys: Ys})
-                self.log.info(f"e:{e}, i:{iter_num} loss : {np.mean(loss)}")
-
-                if save_interval is not None and e % save_interval == 0:
-                    self.save()
-
-    def train_early_stop(self, x, y, n_epoch=200, patience=20, min_best=True):
-        if min_best is False:
-            raise NotImplementedError
-
-        last_metric = np.Inf
-        patience_count = 0
-        for e in range(1, n_epoch + 1):
-            self.train(x, y, epoch=1)
-            metric = self.metric(x, y)
-            self.log.info(f'e = {e}, metric = {metric}, best = {last_metric}')
-
-            if last_metric > metric:
-                self.log.info(f'improve {last_metric - metric}')
-                last_metric = metric
-                patience_count = 0
-            else:
-                patience_count += 1
-
-            if patience_count == patience:
-                self.log.info(f'early stop')
-                break
+    def _train_iter(self, dataset, batch_size):
+        Xs, Ys = dataset.next_batch(batch_size, balanced_class=False)
+        self.sess.run(self.train_ops, feed_dict={self._Xs: Xs, self._Ys: Ys})

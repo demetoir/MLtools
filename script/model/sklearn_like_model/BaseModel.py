@@ -1,3 +1,5 @@
+from tqdm import trange, tqdm
+from script.data_handler.Base.BaseDataset import BaseDataset
 from script.model.sklearn_like_model.Mixin import input_shapesMixIN, metadataMixIN, paramsMixIn, loss_packMixIn
 from script.data_handler.DummyDataset import DummyDataset
 from script.util.MixIn import LoggerMixIn
@@ -16,6 +18,31 @@ class ModelBuildFailError(BaseException):
 
 class TrainFailError(BaseException):
     pass
+
+
+class BaseDatasetCallback:
+    def __init__(self, x, y, batch_size):
+        self.x = x
+        self.y = y
+        self.batch_size = batch_size
+
+    def shuffle(self):
+        raise NotImplementedError
+
+    def next_batch(self, batch_size, batch_keys=None, update_cursor=True, balanced_class=False, out_type='concat'):
+        raise NotImplementedError
+
+    @property
+    def size(self):
+        raise NotImplementedError
+
+
+class BaseEpochCallback:
+    def __init__(self):
+        pass
+
+    def __call__(self, epoch):
+        raise NotImplementedError
 
 
 META_DATA_FILE_NAME = 'instance.meta'
@@ -259,3 +286,50 @@ class BaseModel(LoggerMixIn, input_shapesMixIN, metadataMixIN, paramsMixIn, loss
             if any(np.isinf(item)):
                 self.log.error(f'{key} is inf')
                 raise TrainFailError(f'{key} is inf')
+
+    def _train_iter(self, dataset, batch_size):
+        pass
+
+    def train(self, x, y=None, *args, epoch=1, batch_size=None, aug_callback=None,
+              early_stop=False, patience=20, epoch_pbar=True, iter_pbar=False, epoch_callback=None,
+              **kwargs):
+        self._prepare_train(Xs=x, Ys=y)
+        batch_size = getattr(self, 'batch_size') if batch_size is None else batch_size
+        dataset = aug_callback(x, y, batch_size) if aug_callback else BaseDataset(x=x, y=y)
+        recent_best = np.Inf
+        patience_count = 0
+        iter_num = 0
+        epoch_pbar = trange if epoch_pbar else range
+        iter_pbar = trange if iter_pbar else range
+        for e in epoch_pbar(epoch):
+            dataset.shuffle()
+            for _ in iter_pbar(int(dataset.size / batch_size)):
+                iter_num += 1
+                self._train_iter(dataset, batch_size)
+
+            if epoch_callback:
+                epoch_callback(e)
+
+            metric = getattr(self, 'metric')(x, y)
+            if early_stop:
+                tqdm.write(f'e = {e}, metric = {metric}, recent best = {recent_best}')
+                # self.log.info(f'e = {e}, metric = {metric}, best = {last_metric}')
+
+                if recent_best > metric:
+                    tqdm.write(f'improve {recent_best - metric}')
+                    # self.log.info(f'improve {last_metric - metric}')
+                    recent_best = metric
+                    patience_count = 0
+                else:
+                    patience_count += 1
+
+                if patience_count == patience:
+                    tqdm.write(f'early stop')
+                    # self.log.info(f'early stop')
+                    break
+            else:
+                tqdm.write(f"e:{e}, i:{iter_num}, metric : {np.mean(metric)}")
+                # self.log.info(f"e:{e}, i:{iter_num}, metric : {np.mean(metric)}")
+
+        if aug_callback:
+            del dataset
