@@ -100,21 +100,17 @@ class UNet(
     def _build_main_graph(self):
         self.Xs = tf.placeholder(tf.float32, self.Xs_shape, name='Xs')
         self.Ys = tf.placeholder(tf.float32, self.Ys_shape, name='Ys')
-        # self.Xs_Unet_size = resize_image(self.Xs, self.Unet_image_size)
-        # self.Ys_Unet_size = resize_image(self.Ys, self.Unet_image_size)
 
         self.Unet_structure = UNetStructure(self.Xs, level=self.Unet_level, n_channel=self.Unet_n_channel)
         self.Unet_structure.build()
+        self.Unet_vars = self.Unet_structure.vars
         self._logit = self.Unet_structure.logit
         self._proba = self.Unet_structure.proba
         self._predict = reshape(tf.argmax(self._proba, 3, name="predicted"), self.Ys_shape,
                                 name='predict')
 
-        # self._predict_proba_ops = resize_image(self._proba, self.Xs.shape[1:3])
-        # self._predict_ops = resize_image(self._predict, self.Xs.shape[1:3])
         self._predict_proba_ops = self._proba
         self._predict_ops = self._predict
-        self.Unet_vars = self.Unet_structure.vars
 
     def _build_loss_function(self):
         self.loss = self._build_loss(
