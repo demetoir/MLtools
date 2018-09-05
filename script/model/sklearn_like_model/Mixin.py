@@ -476,6 +476,7 @@ class supervised_metricMethodMixIn:
             ys = slice_np_arr(y, batch_size)
             tqdm.write('batch metric')
             predicts = np.array([self._metric_batch(x, y) for x, y in tqdm(zip(xs, ys), total=len(xs))])
+            predicts = np.concatenate([predicts])
             return np.mean(predicts)
         else:
             return self._metric_batch(x, y)
