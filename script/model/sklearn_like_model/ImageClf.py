@@ -1,6 +1,7 @@
 from script.model.sklearn_like_model.BaseModel import BaseModel
 from script.model.sklearn_like_model.Mixin import Xs_MixIn, Ys_MixIn, supervised_trainMethodMixIn, predictMethodMixIn, \
     predict_probaMethodMixIn, scoreMethodMixIn, supervised_metricMethodMixIn
+from script.model.sklearn_like_model.net_structure import InceptionStructure
 from script.model.sklearn_like_model.net_structure.ResNetStructure import ResNetStructure
 from script.model.sklearn_like_model.net_structure.VGG16Structure import VGG16Structure
 from script.util.Stacker import Stacker
@@ -20,6 +21,7 @@ class ImageClf(
     net_structure_class_dict = {
         'VGG': VGG16Structure,
         'ResNet': ResNetStructure,
+        'Inception': InceptionStructure,
     }
 
     def __init__(self, verbose=10, learning_rate=0.01, learning_rate_decay_rate=0.99,
