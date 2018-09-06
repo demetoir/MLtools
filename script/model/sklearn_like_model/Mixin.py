@@ -338,17 +338,12 @@ class loss_packMixIn:
 
 
 class supervised_trainMethodMixIn:
-
     def __init__(self, epoch_callback_fn=None):
-        self.epoch_callback = epoch_callback_fn
+        pass
 
     @property
     def train_ops(self):
         raise NotImplementedError
-
-    def train(self, x, y, **kwargs):
-        # TODO
-        pass
 
 
 class unsupervised_trainMethodMixIn:
@@ -359,10 +354,6 @@ class unsupervised_trainMethodMixIn:
     @property
     def train_ops(self):
         raise NotImplementedError
-
-    def train(self, x, **kwargs):
-        # TODO
-        pass
 
 
 def slice_np_arr(x, size):

@@ -53,4 +53,4 @@ class VGG16Structure(Base_net_structure):
             self.stacker.linear(self.n_classes)
             self.logit = self.stacker.last_layer
             self.stacker.softmax()
-            self.h = self.stacker.last_layer
+            self.proba = self.stacker.last_layer
