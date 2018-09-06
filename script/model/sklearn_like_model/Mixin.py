@@ -439,8 +439,8 @@ class scoreMethodMixIn:
             xs = slice_np_arr(x, batch_size)
             ys = slice_np_arr(y, batch_size)
             tqdm.write('batch score')
-            predicts = np.array([self._score_batch(x, y) for x, y in tqdm(zip(xs, ys), total=len(xs))])
-            return np.mean(predicts)
+            scores = np.array([self._score_batch(x, y) for x, y in tqdm(zip(xs, ys), total=len(xs))])
+            return np.mean(scores)
         else:
             return self._score_batch(x, y)
 
@@ -466,11 +466,10 @@ class supervised_metricMethodMixIn:
             xs = slice_np_arr(x, batch_size)
             ys = slice_np_arr(y, batch_size)
             tqdm.write('batch metric')
-            predicts = np.array([self._metric_batch(x, y) for x, y in tqdm(zip(xs, ys), total=len(xs))])
-            predicts = np.concatenate([predicts])
-            return np.mean(predicts)
+            metrics = np.concatenate([self._metric_batch(x, y) for x, y in tqdm(zip(xs, ys), total=len(xs))])
+            return np.mean(metrics)
         else:
-            return self._metric_batch(x, y)
+            return np.mean(self._metric_batch(x, y))
 
 
 class unsupervised_metricMethodMixIn:
