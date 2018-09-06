@@ -4,6 +4,7 @@ import numpy as np
 from imgaug import augmenters as iaa
 from sklearn.decomposition import PCA
 from sklearn.manifold import TSNE
+from tqdm import tqdm
 from script.data_handler.ImgMaskAug import ActivatorMask, ImgMaskAug
 from script.data_handler.TGS_salt import collect_images, TRAIN_MASK_PATH, load_sample_image, TGS_salt, \
     mask_label_encoder, TRAIN_IMAGE_PATH, TEST_IMAGE_PATH, RLE_mask_encoding
@@ -15,11 +16,12 @@ from script.util.numpy_utils import np_img_to_img_scatter, np_img_gray_to_rgb
 plot = PlotTools(save=True, show=False)
 
 
-def metric(mask_true, mask_predict):
+def TGS_salt_metric(mask_true, mask_predict):
     # TODO
     def _metric(mask_true, mask_predict):
         if np.sum(mask_true) == 0 and np.sum(mask_predict) > 0:
-            return 0
+            # return 0
+            return 1
         elif np.sum(mask_true) == 0 and np.sum(mask_predict) == 0:
             return 1
         else:
@@ -31,16 +33,16 @@ def metric(mask_true, mask_predict):
             upper = np.logical_and(mask_true, mask_predict)
             lower = np.logical_or(mask_true, mask_predict)
             iou_score = np.sum(upper) / np.sum(lower)
-            print(iou_score)
+            # print(iou_score)
 
-            print(threshold <= iou_score)
+            # print(threshold <= iou_score)
             score = np.sum(threshold <= iou_score) / 10.0
             return score
 
     if mask_true.shape != mask_predict.shape:
         raise ValueError(f'mask shape does not match, true={mask_true.shape}, predict={mask_predict}')
 
-    if mask_true.ndim == 3:
+    if mask_true.ndim in (3, 4):
         ret = np.mean([_metric(m_true, m_predict) for m_true, m_predict in zip(mask_true, mask_predict)])
     else:
         ret = _metric(mask_true, mask_predict)
@@ -70,7 +72,7 @@ def test_metric():
     metric_score = []
     for a in images:
         for b in images:
-            metric_score += [metric(a, b)]
+            metric_score += [TGS_salt_metric(a, b)]
     metric_score = np.array(metric_score).reshape([size, size])
     print(metric_score)
 
@@ -248,7 +250,7 @@ class Unet_pipeline:
         # loss_type = 'pixel_wise_softmax'
         loss_type = 'iou'
         # loss_type = 'dice_soft'
-        channel = 16
+        channel = 32
         level = 4
         learning_rate = 0.01
         batch_size = 128
@@ -262,20 +264,36 @@ class Unet_pipeline:
                 self.model = model
                 self.plot = plot
                 self.train_set = train_set
-                # self.sample_x = sample_x
-                # self.sample_y = sample_y
 
-            def __call__(self, epoch):
-                x, y = train_set.next_batch(20)
+            def print_TGS_salt_metric(self):
+                x, y = train_set.next_batch(100)
                 x = x.reshape([-1, 101, 101, 1])
                 y = y.reshape([-1, 101, 101, 1])
                 predict = self.model.predict(x)
                 predict = mask_label_encoder.from_label(predict)
+
+                tqdm.write(f'TGS_salt_metric {TGS_salt_metric(y, predict)}')
+
+            def plot_mask(self, epoch):
+                x, y = train_set.next_batch(20)
+                x = x.reshape([-1, 101, 101, 1])
+                y = y.reshape([-1, 101, 101, 1])
+                predict = self.model.predict(x)
+                proba = self.model.predict_proba(x)
+                proba = proba[:, :, :, 1].reshape([-1, 101, 101, 1]) * 255
+                predict = mask_label_encoder.from_label(predict)
+
                 tile = np.concatenate([x, predict, y], axis=0)
                 self.plot.plot_image_tile(tile, title=f'predict_epoch({epoch})', column=10,
-                                          path=f'./matplot/{self.model.id}/predict_epoch({epoch}).png')
+                                          path=f'./matplot/{self.model.id}/predict/predict_epoch({epoch}).png')
 
-                # TODO add custom metric
+                tile = np.concatenate([x, proba, y], axis=0)
+                self.plot.plot_image_tile(tile, title=f'predict_epoch({epoch})', column=10,
+                                          path=f'./matplot/{self.model.id}/proba/proba_epoch({epoch}).png')
+
+            def __call__(self, epoch):
+                self.plot_mask(epoch)
+                self.print_TGS_salt_metric()
 
         epoch_callback = callback(self.model, self.plot, self.data_helper.train_set)
         dataset_callback = self.aug_callback if augmentation else None
@@ -284,6 +302,16 @@ class Unet_pipeline:
                          iter_pbar=True)
 
         self.model.save()
+
+
+class cnn_pipeline:
+    def __init__(self):
+        self.data_helper = data_helper()
+        self.plot = plot
+
+    def train(self, n_epoch, augmentation=False, early_stop=True, patience=20):
+        # TODO
+        pass
 
 
 def masking_images(image, mask, mask_rate=.8):
