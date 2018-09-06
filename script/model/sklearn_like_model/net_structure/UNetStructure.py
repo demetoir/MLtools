@@ -43,7 +43,7 @@ class UNetStructure(Base_net_structure):
 
             self.stacker = _Unet_recursion(self.stacker, n_channel=self.n_channel, level=self.level)
 
-            self.stacker.conv_block(self.n_classes, CONV_FILTER_3311, relu)
+            self.stacker.conv2d(self.n_classes, CONV_FILTER_3311)
             self.logit = self.stacker.last_layer
 
             self.stacker.pixel_wise_softmax()
