@@ -41,7 +41,7 @@ class BaseEpochCallback:
     def __init__(self):
         pass
 
-    def __call__(self, epoch):
+    def __call__(self, epoch, log=None):
         raise NotImplementedError
 
 
@@ -301,14 +301,18 @@ class BaseModel(LoggerMixIn, input_shapesMixIN, metadataMixIN, paramsMixIn, loss
         iter_num = 0
         epoch_pbar = trange if epoch_pbar else range
         iter_pbar = trange if iter_pbar else range
-        for e in epoch_pbar(epoch):
+        for e in epoch_pbar(1, epoch + 1):
             dataset.shuffle()
             for _ in iter_pbar(int(dataset.size / batch_size)):
                 iter_num += 1
                 self._train_iter(dataset, batch_size)
 
             if epoch_callback:
-                epoch_callback(e)
+                try:
+                    epoch_callback(e, tqdm.write)
+                except BaseException as e:
+                    msg = f'while epoch_callback raise {e}'
+                    print(msg)
 
             metric = getattr(self, 'metric')(x, y)
             if early_stop:
