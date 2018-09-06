@@ -148,3 +148,26 @@ class Stacker(LoggerMixIn):
 
     def pixel_wise_softmax(self):
         return self.add_layer(pixel_wise_softmax)
+
+
+def test_add_stack():
+    # TODO
+    inner_stack = Stacker()
+    inner_stack.linear_block(10, relu)
+    inner_stack.linear_block(10, relu)
+    inner_stack.linear_block(10, relu)
+
+    x = placeholder(tf.float32, [-1, 100], 'x')
+    stack = Stacker(x)
+    stack.linear_block(10, relu)
+    stack.linear_block(10, relu)
+    stack.add_stack(inner_stack)
+
+    import numpy as np
+    x_np = np.zeros([10, 10])
+
+    with tf.Session() as sess:
+        sess.run(tf.initialize_all_variables())
+
+        a = sess.run(stack.last_layer, {stack.last_layer: x_np})
+        print(a)
