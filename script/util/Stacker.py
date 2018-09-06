@@ -29,13 +29,22 @@ class Stacker(LoggerMixIn):
         :param name:prefix name for layer
         """
         LoggerMixIn.__init__(self, verbose)
+        self.start_layer = start_layer
         self.reuse = reuse
-        self.layer_count = 1
-        self.last_layer = start_layer
-        self.layer_seq = [start_layer]
         self.name = name
+        self.last_layer = start_layer
+        if self.start_layer is None:
+            self.layer_seq = []
+        else:
+            self.layer_seq = [start_layer]
+        self.layer_count = len(self.layer_seq)
 
         self.log.info(start_layer)
+
+        if self.start_layer is None:
+            self.build_seq = []
+        else:
+            self.build_seq = None
 
     def add_layer(self, func, *args, **kwargs):
         """add new layer right after last added layer
@@ -54,6 +63,20 @@ class Stacker(LoggerMixIn):
 
             self.layer_seq += [self.last_layer]
             self.layer_count += 1
+
+        self.log.info(self.last_layer)
+        return self.last_layer
+
+    def add_stack(self, stack):
+        scope_name = self.name + '_layer' + str(self.layer_count)
+        with tf.variable_scope(scope_name, reuse=self.reuse):
+            new_stack = Stacker(self.last_layer)
+            for op_name, args, kwarg in stack.build_seq:
+                build_func = getattr(new_stack, op_name)
+                build_func(args, kwarg)
+
+            self.last_layer += [new_stack]
+            self.last_layer += 1
 
         self.log.info(self.last_layer)
         return self.last_layer
