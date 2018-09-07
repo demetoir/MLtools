@@ -3,7 +3,7 @@ from script.data_handler.Base.BaseDataset import BaseDataset
 from script.model.sklearn_like_model.Mixin import input_shapesMixIN, metadataMixIN, paramsMixIn, loss_packMixIn
 from script.data_handler.DummyDataset import DummyDataset
 from script.util.MixIn import LoggerMixIn
-from script.util.misc_util import time_stamp, path_join, log_error_trace
+from script.util.misc_util import time_stamp, path_join, log_error_trace, error_trace
 from script.util.misc_util import setup_directory
 from env_settting import *
 from functools import reduce
@@ -301,6 +301,7 @@ class BaseModel(LoggerMixIn, input_shapesMixIN, metadataMixIN, paramsMixIn, loss
         iter_num = 0
         epoch_pbar = trange if epoch_pbar else range
         iter_pbar = trange if iter_pbar else range
+        metric = None
         for e in epoch_pbar(1, epoch + 1):
             dataset.shuffle()
             for _ in iter_pbar(int(dataset.size / batch_size)):
@@ -310,9 +311,8 @@ class BaseModel(LoggerMixIn, input_shapesMixIN, metadataMixIN, paramsMixIn, loss
             if epoch_callback:
                 try:
                     epoch_callback(e, tqdm.write)
-                except BaseException as e:
-                    msg = f'while epoch_callback raise {e}'
-                    print(msg)
+                except BaseException as error:
+                    tqdm.write(error_trace(error))
 
             metric = getattr(self, 'metric')(x, y)
             if early_stop:
