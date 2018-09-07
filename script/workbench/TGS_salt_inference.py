@@ -9,6 +9,7 @@ from script.data_handler.ImgMaskAug import ActivatorMask, ImgMaskAug
 from script.data_handler.TGS_salt import collect_images, TRAIN_MASK_PATH, load_sample_image, TGS_salt, \
     mask_label_encoder, TRAIN_IMAGE_PATH, TEST_IMAGE_PATH, RLE_mask_encoding
 from script.model.sklearn_like_model.BaseModel import BaseDatasetCallback, BaseEpochCallback
+from script.model.sklearn_like_model.ImageClf import ImageClf
 from script.model.sklearn_like_model.UNet import UNet
 from script.util.PlotTools import PlotTools
 from script.util.numpy_utils import np_img_to_img_scatter, np_img_gray_to_rgb
@@ -291,7 +292,7 @@ class Unet_pipeline:
                 self.plot.plot_image_tile(tile, title=f'predict_epoch({epoch})', column=10,
                                           path=f'./matplot/{self.model.id}/proba/proba_epoch({epoch}).png')
 
-            def __call__(self, epoch):
+            def __call__(self, epoch, log=None):
                 self.plot_mask(epoch)
                 self.print_TGS_salt_metric()
 
@@ -308,10 +309,43 @@ class cnn_pipeline:
     def __init__(self):
         self.data_helper = data_helper()
         self.plot = plot
+        self.data_helper.train_set.y_keys = ['empty_mask']
 
     def train(self, n_epoch, augmentation=False, early_stop=True, patience=20):
-        # TODO
-        pass
+        train_set = self.data_helper.train_set
+        train_x, train_y = train_set.full_batch()
+        train_x = train_x.reshape([-1, 101, 101, 1])
+        train_y = train_y.reshape([-1, 1])
+        from sklearn.preprocessing import OneHotEncoder
+        enc = OneHotEncoder()
+        enc.fit(train_y)
+        train_y_onehot = enc.transform(train_y).toarray()
+
+        from sklearn.model_selection import train_test_split
+        train_x, test_x, train_y_onehot, test_y_onehot = train_test_split(
+            train_x, train_y_onehot, test_size=0.33)
+
+        print(np.mean(train_y))
+
+        sample_size = 100
+        sample_x = train_x[:sample_size]
+        sample_y = train_y[:sample_size]
+        sample_y_onehot = train_y_onehot[:sample_size]
+
+        clf = ImageClf(net_type='ResNet')
+
+        class callback(BaseEpochCallback):
+            def __call__(self, epoch, log=None):
+                score = clf.score(sample_x, sample_y_onehot)
+                test_score = clf.score(test_x, test_y_onehot)
+                log(f'e={epoch}, score = {score}, test= {test_score}')
+
+        clf.train(train_x, train_y_onehot, epoch=n_epoch, epoch_callback=callback(), batch_size=32, iter_pbar=True,
+                  early_stop=early_stop, patience=patience)
+
+        score = clf.score(sample_x, sample_y_onehot)
+        test_score = clf.score(test_x, test_y_onehot)
+        print(f'score = {score}, test= {test_score}')
 
 
 def masking_images(image, mask, mask_rate=.8):
