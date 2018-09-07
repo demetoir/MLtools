@@ -1,5 +1,7 @@
+import time
 from slacker import Slacker
 from script.util.BaseFSM import BaseFSM
+from script.util.misc_util import log_error_trace
 
 
 class SlackBotFsm(BaseFSM):
@@ -73,3 +75,35 @@ class SlackBot:
 def test_SlackBot():
     bot = SlackBot()
     bot.post_message('hello world')
+
+
+def deco_slackbot(token_path, channel):
+    def _deco_slack_bot(func):
+        def wrapper(*args, **kwargs):
+            bot = None
+            ret = None
+            try:
+                bot = SlackBot(token_path, channel)
+            except BaseException:
+                print('slackbot init fail')
+
+            start = time.time()
+            try:
+                ret = func(*args, **kwargs)
+            except BaseException as e:
+                log_error_trace(print, e)
+                ret = None
+            finally:
+                if bot:
+                    try:
+                        msg = f"in {func.__name__}(), time {time.time() - start:.4f}'s elapsed"
+                        bot.post_message(msg)
+                    except BaseException as e:
+                        print('slackbot fail to post message')
+
+            return ret
+
+        wrapper.__name__ = func.__name__
+        return wrapper
+
+    return _deco_slack_bot
