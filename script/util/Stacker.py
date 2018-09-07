@@ -39,12 +39,14 @@ class Stacker(LoggerMixIn):
             self.layer_seq = [start_layer]
         self.layer_count = len(self.layer_seq)
 
-        self.log.info(start_layer)
-
         if self.start_layer is None:
             self.build_seq = []
         else:
             self.build_seq = None
+
+    @staticmethod
+    def layer_info(layer):
+        return f'({layer.op.name}, {layer.shape}, {layer.dtype}'
 
     def add_layer(self, func, *args, **kwargs):
         """add new layer right after last added layer
@@ -54,31 +56,37 @@ class Stacker(LoggerMixIn):
         :param kwargs: kwargs for layer
         :return: added new layer
         """
+        if self.start_layer is None:
+            self.build_seq += [(func, args, kwargs)]
+
+            return self.build_seq[-1]
+
+        else:
+            scope_name = self.name + '_layer' + str(self.layer_count)
+            with tf.variable_scope(scope_name, reuse=self.reuse):
+                if func == concat:
+                    self.last_layer = func(*args, **kwargs)
+                else:
+                    self.last_layer = func(self.last_layer, *args, **kwargs)
+
+                self.layer_seq += [self.last_layer]
+                self.layer_count += 1
+
+                self.log.info(self.layer_info(self.last_layer))
+            return self.last_layer
+
+    def add_stacker(self, stacker):
         scope_name = self.name + '_layer' + str(self.layer_count)
         with tf.variable_scope(scope_name, reuse=self.reuse):
-            if func == concat:
-                self.last_layer = func(*args, **kwargs)
-            else:
-                self.last_layer = func(self.last_layer, *args, **kwargs)
+            inner = Stacker(self.last_layer, stacker.reuse, stacker.name, stacker.verbose)
+            for func, args, kwarg in stacker.build_seq:
+                inner.add_layer(func, *args, **kwarg)
 
-            self.layer_seq += [self.last_layer]
+            self.last_layer = inner.last_layer
+            self.layer_seq += [inner.last_layer]
             self.layer_count += 1
 
-        self.log.info(self.last_layer)
-        return self.last_layer
-
-    def add_stack(self, stack):
-        scope_name = self.name + '_layer' + str(self.layer_count)
-        with tf.variable_scope(scope_name, reuse=self.reuse):
-            new_stack = Stacker(self.last_layer)
-            for op_name, args, kwarg in stack.build_seq:
-                build_func = getattr(new_stack, op_name)
-                build_func(args, kwarg)
-
-            self.last_layer += [new_stack]
-            self.last_layer += 1
-
-        self.log.info(self.last_layer)
+        self.log.info(self.layer_info(self.last_layer))
         return self.last_layer
 
     def bn(self):
@@ -171,26 +179,3 @@ class Stacker(LoggerMixIn):
 
     def pixel_wise_softmax(self):
         return self.add_layer(pixel_wise_softmax)
-
-
-def test_add_stack():
-    # TODO
-    inner_stack = Stacker()
-    inner_stack.linear_block(10, relu)
-    inner_stack.linear_block(10, relu)
-    inner_stack.linear_block(10, relu)
-
-    x = placeholder(tf.float32, [-1, 100], 'x')
-    stack = Stacker(x)
-    stack.linear_block(10, relu)
-    stack.linear_block(10, relu)
-    stack.add_stack(inner_stack)
-
-    import numpy as np
-    x_np = np.zeros([10, 10])
-
-    with tf.Session() as sess:
-        sess.run(tf.initialize_all_variables())
-
-        a = sess.run(stack.last_layer, {stack.last_layer: x_np})
-        print(a)
