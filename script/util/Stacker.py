@@ -29,13 +29,24 @@ class Stacker(LoggerMixIn):
         :param name:prefix name for layer
         """
         LoggerMixIn.__init__(self, verbose)
+        self.start_layer = start_layer
         self.reuse = reuse
-        self.layer_count = 1
-        self.last_layer = start_layer
-        self.layer_seq = [start_layer]
         self.name = name
+        self.last_layer = start_layer
+        if self.start_layer is None:
+            self.layer_seq = []
+        else:
+            self.layer_seq = [start_layer]
+        self.layer_count = len(self.layer_seq)
 
-        self.log.info(start_layer)
+        if self.start_layer is None:
+            self.build_seq = []
+        else:
+            self.build_seq = None
+
+    @staticmethod
+    def layer_info(layer):
+        return f'({layer.op.name}, {layer.shape}, {layer.dtype}'
 
     def add_layer(self, func, *args, **kwargs):
         """add new layer right after last added layer
@@ -45,17 +56,37 @@ class Stacker(LoggerMixIn):
         :param kwargs: kwargs for layer
         :return: added new layer
         """
+        if self.start_layer is None:
+            self.build_seq += [(func, args, kwargs)]
+
+            return self.build_seq[-1]
+
+        else:
+            scope_name = self.name + '_layer' + str(self.layer_count)
+            with tf.variable_scope(scope_name, reuse=self.reuse):
+                if func == concat:
+                    self.last_layer = func(*args, **kwargs)
+                else:
+                    self.last_layer = func(self.last_layer, *args, **kwargs)
+
+                self.layer_seq += [self.last_layer]
+                self.layer_count += 1
+
+                self.log.info(self.layer_info(self.last_layer))
+            return self.last_layer
+
+    def add_stacker(self, stacker):
         scope_name = self.name + '_layer' + str(self.layer_count)
         with tf.variable_scope(scope_name, reuse=self.reuse):
-            if func == concat:
-                self.last_layer = func(*args, **kwargs)
-            else:
-                self.last_layer = func(self.last_layer, *args, **kwargs)
+            inner = Stacker(self.last_layer, stacker.reuse, stacker.name, stacker.verbose)
+            for func, args, kwarg in stacker.build_seq:
+                inner.add_layer(func, *args, **kwarg)
 
-            self.layer_seq += [self.last_layer]
+            self.last_layer = inner.last_layer
+            self.layer_seq += [inner.last_layer]
             self.layer_count += 1
 
-        self.log.info(self.last_layer)
+        self.log.info(self.layer_info(self.last_layer))
         return self.last_layer
 
     def bn(self):
