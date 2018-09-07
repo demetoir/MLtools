@@ -25,7 +25,7 @@ class ImageClf(
     supervised_metricMethodMixIn,
 ):
     net_structure_class_dict = {
-        'VGG': VGG16Structure,
+        'VGG16': VGG16Structure,
         'ResNet18': ResNet18Structure,
         'ResNet34': ResNet34Structure,
         'ResNet50': ResNet50Structure,
