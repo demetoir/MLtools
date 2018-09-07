@@ -1,7 +1,14 @@
 from script.model.sklearn_like_model.BaseModel import BaseModel
 from script.model.sklearn_like_model.Mixin import Xs_MixIn, Ys_MixIn, supervised_trainMethodMixIn, predictMethodMixIn, \
     predict_probaMethodMixIn, scoreMethodMixIn, supervised_metricMethodMixIn
-from script.model.sklearn_like_model.net_structure.ResNetStructure import ResNetStructure
+from script.model.sklearn_like_model.net_structure.InceptionSructure.InceptionV1Structure import InceptionV1Structure
+from script.model.sklearn_like_model.net_structure.InceptionSructure.InceptionV2Structure import InceptionV2Structure
+from script.model.sklearn_like_model.net_structure.InceptionSructure.InceptionV4Structure import InceptionV4Structure
+from script.model.sklearn_like_model.net_structure.ResNetStructure.ResNet101Structure import ResNet101Structure
+from script.model.sklearn_like_model.net_structure.ResNetStructure.ResNet152Structure import ResNet152Structure
+from script.model.sklearn_like_model.net_structure.ResNetStructure.ResNet18Structure import ResNet18Structure
+from script.model.sklearn_like_model.net_structure.ResNetStructure.ResNet34Structure import ResNet34Structure
+from script.model.sklearn_like_model.net_structure.ResNetStructure.ResNet50Structure import ResNet50Structure
 from script.model.sklearn_like_model.net_structure.VGG16Structure import VGG16Structure
 from script.util.Stacker import Stacker
 from script.util.tensor_ops import *
@@ -19,7 +26,14 @@ class ImageClf(
 ):
     net_structure_class_dict = {
         'VGG': VGG16Structure,
-        'ResNet': ResNetStructure,
+        'ResNet18': ResNet18Structure,
+        'ResNet34': ResNet34Structure,
+        'ResNet50': ResNet50Structure,
+        'ResNet101': ResNet101Structure,
+        'ResNet152': ResNet152Structure,
+        'InceptionV1': InceptionV1Structure,
+        'InceptionV2': InceptionV2Structure,
+        'InceptionV4': InceptionV4Structure,
     }
 
     def __init__(self, verbose=10, learning_rate=0.01, learning_rate_decay_rate=0.99,
