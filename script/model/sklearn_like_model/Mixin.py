@@ -1,6 +1,6 @@
 from functools import reduce
 from tqdm import tqdm
-from script.util.misc_util import load_json, dump_json
+from script.util.misc_util import load_json, dump_json, load_pickle, dump_pickle
 import numpy as np
 import inspect
 
@@ -30,10 +30,10 @@ class input_shapesMixIN:
         return True if dict(a) == dict(b) else False
 
     def _load_input_shapes(self, path):
-        self._apply_input_shapes(load_json(path))
+        self._apply_input_shapes(load_pickle(path))
 
     def _save_input_shapes(self, path):
-        dump_json(self.input_shapes, path)
+        dump_pickle(self.input_shapes, path)
 
 
 class BaseInputMixIn:
@@ -308,10 +308,10 @@ class paramsMixIn:
             setattr(self, key, params[key])
 
     def _load_params(self, path):
-        self._apply_params(load_json(path))
+        self._apply_params(load_pickle(path))
 
     def _save_params(self, path):
-        dump_json(self.params, path)
+        dump_pickle(self.params, path)
 
 
 class loss_packMixIn:

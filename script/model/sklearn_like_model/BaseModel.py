@@ -207,9 +207,9 @@ class BaseModel(LoggerMixIn, input_shapesMixIN, metadataMixIN, paramsMixIn, loss
         setup_directory(self.save_folder_path)
         self._save_metadata(self.metadata_path)
 
-        self.input_shapes_path = path_join(self.instance_path, 'input_shapes.json')
+        self.input_shapes_path = path_join(self.instance_path, 'input_shapes.pkl')
         self._save_input_shapes(self.input_shapes_path)
-        self.params_path = path_join(self.instance_path, 'params.json')
+        self.params_path = path_join(self.instance_path, 'params.pkl')
         self._save_params(self.params_path)
 
         self._open_session()
@@ -226,8 +226,8 @@ class BaseModel(LoggerMixIn, input_shapesMixIN, metadataMixIN, paramsMixIn, loss
         self._close_saver()
 
         self._load_metadata(os.path.join(path, 'meta.json'))
-        self._load_params(os.path.join(path, 'params.json'))
-        self._load_input_shapes(os.path.join(path, 'input_shapes.json'))
+        self._load_params(os.path.join(path, 'params.pkl'))
+        self._load_input_shapes(os.path.join(path, 'input_shapes.pkl'))
 
         self._build()
         self._open_session()
@@ -292,6 +292,7 @@ class BaseModel(LoggerMixIn, input_shapesMixIN, metadataMixIN, paramsMixIn, loss
 
     def train(self, x, y=None, *args, epoch=1, batch_size=None, aug_callback=None,
               early_stop=False, patience=20, epoch_pbar=True, iter_pbar=False, epoch_callback=None,
+              save_top_k=5,
               **kwargs):
         self._prepare_train(Xs=x, Ys=y)
         batch_size = getattr(self, 'batch_size') if batch_size is None else batch_size
@@ -337,3 +338,5 @@ class BaseModel(LoggerMixIn, input_shapesMixIN, metadataMixIN, paramsMixIn, loss
 
         if aug_callback:
             del dataset
+
+        return metric
