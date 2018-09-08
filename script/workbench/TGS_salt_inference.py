@@ -54,20 +54,44 @@ def TGS_salt_metric(mask_true, mask_predict):
 
 
 class TGS_salt_aug_callback(BaseDatasetCallback):
+    def __str__(self):
+        return self.__class__.__name__
+
+    def __repr__(self):
+        return self.__class__.__name__
+
     def __init__(self, x, y, batch_size):
         super().__init__(x, y, batch_size)
 
         self.seq = iaa.Sequential([
-            iaa.Fliplr(0.5, name="Flipper"),
-            # iaa.GaussianBlur((0, 3.0), name="GaussianBlur"),
-            # iaa.Dropout(0.02, name="Dropout"),
-            # iaa.AdditiveGaussianNoise(scale=0.01 * 255, name="MyLittleNoise"),
-            # iaa.AdditiveGaussianNoise(loc=32, scale=0.0001 * 255, name="SomeOtherNoise"),
-            # iaa.Affine(translate_px={"x": (-40, 40)}, name="Affine")
+            iaa.OneOf([
+                iaa.PiecewiseAffine((0.002, 0.1), name='PiecewiseAffine'),
+                iaa.Affine(rotate=(-20, 20)),
+                iaa.Affine(shear=(-45, 45)),
+                iaa.Affine(translate_percent=(0, 0.3), mode='symmetric'),
+                iaa.Affine(translate_percent=(0, 0.3), mode='wrap'),
+                # iaa.PerspectiveTransform((0.0, 0.3))
+            ], name='affine'),
+            iaa.Fliplr(0.5, name="horizontal flip"),
+            # iaa.Crop(percent=(0, 0.3), name='crop'),
+
+            # image only
+            iaa.OneOf([
+                iaa.Add((-45, 45), name='bright'),
+                iaa.Multiply((0.5, 1.5), name='contrast')]
+            ),
+            iaa.OneOf([
+                iaa.AverageBlur((1, 5), name='AverageBlur'),
+                # iaa.BilateralBlur(),
+                iaa.GaussianBlur((0.1, 2), name='GaussianBlur'),
+                # iaa.MedianBlur((1, 7), name='MedianBlur'),
+            ], name='blur'),
+
+            # scale to  128 * 128
+            # iaa.Scale((128, 128), name='to 128 * 128'),
         ])
-        # activator = ActivatorMask(["GaussianBlur", "Dropout", "MyLittleNoise"])
-        self.activator = ActivatorMask([])
-        self.aug = ImgMaskAug(self.x, self.y, self.seq, self.activator, self.batch_size, n_jobs=1)
+        self.activator = ActivatorMask(['bright', 'contrast', 'AverageBlur', 'GaussianBlur', 'MedianBlur'])
+        self.aug = ImgMaskAug(self.x, self.y, self.seq, self.activator, self.batch_size, n_jobs=4, q_size=4000)
 
     @property
     def size(self):
@@ -78,11 +102,12 @@ class TGS_salt_aug_callback(BaseDatasetCallback):
 
     def next_batch(self, batch_size, batch_keys=None, update_cursor=True, balanced_class=False, out_type='concat'):
         x, y = self.aug.get_batch()
+
         # try:
         #     plot.plot_image_tile(np.concatenate([x, y]), title='aug')
         # except BaseException:
         #     pass
-        return x, y
+        return x[:batch_size], y[:batch_size]
 
 
 class data_helper:
