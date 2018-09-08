@@ -290,13 +290,14 @@ class BaseModel(LoggerMixIn, input_shapesMixIN, metadataMixIN, paramsMixIn, loss
     def _train_iter(self, dataset, batch_size):
         raise NotImplementedError
 
-    def train(self, x, y=None, *args, epoch=1, batch_size=None, aug_callback=None,
+    def train(self, x, y=None, *args, epoch=1, batch_size=None, dataset_callback=None,
               early_stop=False, patience=20, epoch_pbar=True, iter_pbar=False, epoch_callback=None,
               save_top_k=5,
               **kwargs):
         self._prepare_train(Xs=x, Ys=y)
         batch_size = getattr(self, 'batch_size') if batch_size is None else batch_size
-        dataset = aug_callback(x, y, batch_size) if aug_callback else BaseDataset(x=x, y=y)
+        dataset = dataset_callback(x, y, batch_size) if dataset_callback else BaseDataset(x=x, y=y)
+        epoch_callback = epoch_callback(self, dataset) if epoch_callback else None
         recent_best = np.Inf
         patience_count = 0
         iter_num = 0
@@ -336,7 +337,7 @@ class BaseModel(LoggerMixIn, input_shapesMixIN, metadataMixIN, paramsMixIn, loss
                 tqdm.write(f"e:{e}, i:{iter_num}, metric : {np.mean(metric)}")
                 # self.log.info(f"e:{e}, i:{iter_num}, metric : {np.mean(metric)}")
 
-        if aug_callback:
+        if dataset_callback:
             del dataset
 
         return metric
