@@ -440,6 +440,8 @@ class scoreMethodMixIn:
             ys = slice_np_arr(y, batch_size)
             tqdm.write('batch score')
             scores = np.array([self._score_batch(x, y) for x, y in tqdm(zip(xs, ys), total=len(xs))])
+            if scores.ndim > 1:
+                scores = np.concatenate(scores)
             return np.mean(scores)
         else:
             return self._score_batch(x, y)
@@ -466,7 +468,9 @@ class supervised_metricMethodMixIn:
             xs = slice_np_arr(x, batch_size)
             ys = slice_np_arr(y, batch_size)
             tqdm.write('batch metric')
-            metrics = np.concatenate([self._metric_batch(x, y) for x, y in tqdm(zip(xs, ys), total=len(xs))])
+            metrics = np.array([self._metric_batch(x, y) for x, y in tqdm(zip(xs, ys), total=len(xs))])
+            if metrics.ndim > 1:
+                metrics = np.concatenate(metrics)
             return np.mean(metrics)
         else:
             return np.mean(self._metric_batch(x, y))
