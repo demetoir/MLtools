@@ -205,37 +205,46 @@ class Unet_pipeline:
                           learning_rate=learning_rate)
 
         class callback(BaseEpochCallback):
-            def __init__(self, model, plot, train_set):
+            def __init__(self, model, train_set):
                 super().__init__()
                 self.model = model
                 self.plot = plot
                 self.train_set = train_set
 
             def print_TGS_salt_metric(self):
-                x, y = train_set.next_batch(100)
+                x, y = self.train_set.next_batch(100)
                 x = x.reshape([-1, 101, 101, 1])
                 y = y.reshape([-1, 101, 101, 1])
-                predict = self.model.predict(x)
-                predict = mask_label_encoder.from_label(predict)
+                predict_train = self.model.predict(x)
+                predict_train = mask_label_encoder.from_label(predict_train)
+                predict_test = self.model.predict(test_x)
+                predict_test = mask_label_encoder.from_label(predict_test)
 
-                tqdm.write(f'TGS_salt_metric {TGS_salt_metric(y, predict)}')
+                train_score = TGS_salt_metric(y, predict_train)
+                test_score = TGS_salt_metric(test_y, predict_test)
+                tqdm.write(f'TGS_salt_metric train = {train_score}\n'
+                           f'test = {test_score}\n')
 
             def plot_mask(self, epoch):
-                x, y = train_set.next_batch(20)
+                x, y = self.train_set.next_batch(20)
                 x = x.reshape([-1, 101, 101, 1])
-                y = y.reshape([-1, 101, 101, 1])
+                y = y.reshape([-1, 101, 101, 1]) * 254
                 predict = self.model.predict(x)
                 proba = self.model.predict_proba(x)
                 proba = proba[:, :, :, 1].reshape([-1, 101, 101, 1]) * 255
                 predict = mask_label_encoder.from_label(predict)
 
-                tile = np.concatenate([x, predict, y], axis=0)
-                self.plot.plot_image_tile(tile, title=f'predict_epoch({epoch})', column=10,
-                                          path=f'./matplot/{self.model.id}/predict/predict_epoch({epoch}).png')
+                def f(*args, size=10):
+                    ret = []
+                    for i in range(0, len(args[0]), size):
+                        for j in range(len(args)):
+                            ret += [args[j][i:i + size]]
 
-                tile = np.concatenate([x, proba, y], axis=0)
+                    return np.concatenate(ret, axis=0)
+
+                tile = f(x, y, predict, proba)
                 self.plot.plot_image_tile(tile, title=f'predict_epoch({epoch})', column=10,
-                                          path=f'./matplot/{self.model.id}/proba/proba_epoch({epoch}).png')
+                                          path=f'./matplot/{self.model.id}/predict_epoch({epoch}).png')
 
             def __call__(self, epoch, log=None):
                 self.plot_mask(epoch)
