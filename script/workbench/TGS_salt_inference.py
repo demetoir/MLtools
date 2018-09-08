@@ -185,7 +185,13 @@ class Unet_pipeline:
         x_full, y_full = train_set.full_batch()
         x_full = x_full.reshape([-1, 101, 101, 1])
         y_full = y_full.reshape([-1, 101, 101, 1])
-        y_encode = mask_label_encoder.to_label(y_full)
+
+        from sklearn.model_selection import train_test_split
+        train_x, test_x, train_y, test_y = train_test_split(
+            x_full, y_full, test_size=0.33)
+
+        train_y_encode = mask_label_encoder.to_label(train_y)
+        test_y_encode = mask_label_encoder.to_label(test_y)
 
         # loss_type = 'pixel_wise_softmax'
         loss_type = 'iou'
@@ -235,9 +241,9 @@ class Unet_pipeline:
                 self.plot_mask(epoch)
                 self.print_TGS_salt_metric()
 
-        epoch_callback = callback(self.model, self.plot, self.data_helper.train_set)
-        dataset_callback = self.aug_callback if augmentation else None
-        self.model.train(x_full, y_encode, epoch=n_epoch, aug_callback=dataset_callback,
+        epoch_callback = callback
+        dataset_callback = TGS_salt_aug_callback if augmentation else None
+        self.model.train(train_x, train_y_encode, epoch=n_epoch, aug_callback=dataset_callback,
                          epoch_callback=epoch_callback, early_stop=early_stop, patience=patience,
                          iter_pbar=True)
 
