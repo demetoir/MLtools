@@ -7,7 +7,7 @@ from script.util.tensor_ops import conv_block, CONV_FILTER_3311, relu, \
 
 class FusionNetStructure(Base_net_structure):
 
-    def __init__(self, x, level=4, n_classes=2, n_channel=64, reuse=False, name='Base_net_structure', verbose=0):
+    def __init__(self, x, level=4, n_classes=2, n_channel=64, reuse=False, name=None, verbose=0):
         super().__init__(reuse, name, verbose)
 
         self.x = x
