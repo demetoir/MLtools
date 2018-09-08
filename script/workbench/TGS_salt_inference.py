@@ -288,15 +288,17 @@ class cnn_pipeline:
         sample_y = train_y[:sample_size]
         sample_y_onehot = train_y_onehot[:sample_size]
 
-        clf = ImageClf(net_type='InceptionV2')
+        clf = ImageClf(net_type='InceptionV1')
 
         class EpochCallback(BaseEpochCallback):
-            def __init__(self, top_k_path):
+            def __init__(self, model, train_set):
                 super().__init__()
 
+                self.model = model
+                self.train_set = train_set
                 self.k = 5
                 self.top_k = [np.Inf for _ in range(self.k)]
-                self.top_k_save = Top_k_save(top_k_path)
+                self.top_k_save = Top_k_save('./instance/TGS_salt_cnn_top_k')
 
             def __call__(self, epoch, log=None):
                 from sklearn.metrics import confusion_matrix
@@ -319,11 +321,10 @@ class cnn_pipeline:
 
                 # self.top_k_save(test_score, clf)
 
-        Epoch_callback = EpochCallback('./instance/TGS_salt_cnn_top_k')
-        train_callback = None
+        Epoch_callback = EpochCallback
         clf.train(train_x, train_y_onehot, epoch=n_epoch, epoch_callback=Epoch_callback,
-                  train_callback=train_callback, batch_size=64, iter_pbar=True,
-                  aug_callback=TGS_salt_aug_callback, early_stop=early_stop, patience=patience)
+                  batch_size=64, iter_pbar=True,
+                  dataset_callback=None, early_stop=early_stop, patience=patience)
 
         clf.save('./instance/test')
 
