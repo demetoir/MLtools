@@ -288,9 +288,9 @@ class cnn_pipeline:
         sample_y = train_y[:sample_size]
         sample_y_onehot = train_y_onehot[:sample_size]
 
-        clf = ImageClf(net_type='InceptionV1')
+        clf = ImageClf(net_type='InceptionV2')
 
-        class Callback(BaseEpochCallback):
+        class EpochCallback(BaseEpochCallback):
             def __init__(self, top_k_path):
                 super().__init__()
 
@@ -317,11 +317,13 @@ class cnn_pipeline:
                     f'test_score = {test_score}, \n'
                     f'test_confusion ={test_confusion}\n')
 
-                self.top_k_save(test_score, clf)
+                # self.top_k_save(test_score, clf)
 
-        callback = Callback('./instance/TGS_salt_cnn_top_k')
-        clf.train(train_x, train_y_onehot, epoch=n_epoch, epoch_callback=callback,
-                  batch_size=64, iter_pbar=True, early_stop=early_stop, patience=patience)
+        Epoch_callback = EpochCallback('./instance/TGS_salt_cnn_top_k')
+        train_callback = None
+        clf.train(train_x, train_y_onehot, epoch=n_epoch, epoch_callback=Epoch_callback,
+                  train_callback=train_callback, batch_size=64, iter_pbar=True,
+                  aug_callback=TGS_salt_aug_callback, early_stop=early_stop, patience=patience)
 
         clf.save('./instance/test')
 
