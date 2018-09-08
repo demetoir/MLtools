@@ -18,7 +18,7 @@ MLP_param_keys = [
 class MLPClassifier(BaseClassifierModel):
     _params_keys = MLP_param_keys
 
-    def __init__(self, verbose=10, batch_size=100, learning_rate=0.01, beta1=0.5, k_average_top_loss=20,
+    def __init__(self, verbose=10, batch_size=100, learning_rate=0.01, beta1=0.9, k_average_top_loss=20,
                  net_shapes=(256, 256,), activation='relu', l1_norm_lambda=0.001, l2_norm_lambda=0.001, **kwargs):
         super().__init__(verbose, **kwargs)
         self.batch_size = batch_size

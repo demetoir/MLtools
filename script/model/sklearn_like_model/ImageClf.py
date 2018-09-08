@@ -37,7 +37,7 @@ class ImageClf(
     }
 
     def __init__(self, verbose=10, learning_rate=0.01, learning_rate_decay_rate=0.99,
-                 learning_rate_decay_method=None, beta1=0.01, batch_size=100, net_type='VGG',
+                 learning_rate_decay_method=None, beta1=0.9, batch_size=100, net_type='VGG',
                  net_structure_args=None, net_structure_kwargs=None, net_structure_class=None, n_classes=None,
                  **kwargs):
         BaseModel.__init__(self, verbose, **kwargs)

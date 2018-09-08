@@ -149,7 +149,7 @@ class VAE_loss_builder_MixIn:
 
 
 class VAE(AE, VAE_loss_builder_MixIn):
-    def __init__(self, batch_size=100, learning_rate=0.01, beta1=0.5, L1_norm_lambda=0.001, latent_code_size=32,
+    def __init__(self, batch_size=100, learning_rate=0.01, beta1=0.9, L1_norm_lambda=0.001, latent_code_size=32,
                  encoder_net_shapes=(512,), decoder_net_shapes=(512,), with_noise=False, noise_intensity=1.,
                  loss_type='VAE', encoder_kwargs=None, decoder_kwargs=None,
                  KL_D_rate=0.01, verbose=10):
