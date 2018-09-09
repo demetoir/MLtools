@@ -185,7 +185,13 @@ class Unet_pipeline:
         x_full, y_full = train_set.full_batch()
         x_full = x_full.reshape([-1, 101, 101, 1])
         y_full = y_full.reshape([-1, 101, 101, 1])
-        y_encode = mask_label_encoder.to_label(y_full)
+
+        from sklearn.model_selection import train_test_split
+        train_x, test_x, train_y, test_y = train_test_split(
+            x_full, y_full, test_size=0.33)
+
+        train_y_encode = mask_label_encoder.to_label(train_y)
+        test_y_encode = mask_label_encoder.to_label(test_y)
 
         # loss_type = 'pixel_wise_softmax'
         loss_type = 'iou'
@@ -199,45 +205,54 @@ class Unet_pipeline:
                           learning_rate=learning_rate)
 
         class callback(BaseEpochCallback):
-            def __init__(self, model, plot, train_set):
+            def __init__(self, model, train_set):
                 super().__init__()
                 self.model = model
                 self.plot = plot
                 self.train_set = train_set
 
             def print_TGS_salt_metric(self):
-                x, y = train_set.next_batch(100)
+                x, y = self.train_set.next_batch(100)
                 x = x.reshape([-1, 101, 101, 1])
                 y = y.reshape([-1, 101, 101, 1])
-                predict = self.model.predict(x)
-                predict = mask_label_encoder.from_label(predict)
+                predict_train = self.model.predict(x)
+                predict_train = mask_label_encoder.from_label(predict_train)
+                predict_test = self.model.predict(test_x)
+                predict_test = mask_label_encoder.from_label(predict_test)
 
-                tqdm.write(f'TGS_salt_metric {TGS_salt_metric(y, predict)}')
+                train_score = TGS_salt_metric(y, predict_train)
+                test_score = TGS_salt_metric(test_y, predict_test)
+                tqdm.write(f'TGS_salt_metric train = {train_score}\n'
+                           f'test = {test_score}\n')
 
             def plot_mask(self, epoch):
-                x, y = train_set.next_batch(20)
+                x, y = self.train_set.next_batch(20)
                 x = x.reshape([-1, 101, 101, 1])
-                y = y.reshape([-1, 101, 101, 1])
+                y = y.reshape([-1, 101, 101, 1]) * 254
                 predict = self.model.predict(x)
                 proba = self.model.predict_proba(x)
                 proba = proba[:, :, :, 1].reshape([-1, 101, 101, 1]) * 255
                 predict = mask_label_encoder.from_label(predict)
 
-                tile = np.concatenate([x, predict, y], axis=0)
-                self.plot.plot_image_tile(tile, title=f'predict_epoch({epoch})', column=10,
-                                          path=f'./matplot/{self.model.id}/predict/predict_epoch({epoch}).png')
+                def f(*args, size=10):
+                    ret = []
+                    for i in range(0, len(args[0]), size):
+                        for j in range(len(args)):
+                            ret += [args[j][i:i + size]]
 
-                tile = np.concatenate([x, proba, y], axis=0)
+                    return np.concatenate(ret, axis=0)
+
+                tile = f(x, y, predict, proba)
                 self.plot.plot_image_tile(tile, title=f'predict_epoch({epoch})', column=10,
-                                          path=f'./matplot/{self.model.id}/proba/proba_epoch({epoch}).png')
+                                          path=f'./matplot/{self.model.id}/predict_epoch({epoch}).png')
 
             def __call__(self, epoch, log=None):
                 self.plot_mask(epoch)
                 self.print_TGS_salt_metric()
 
-        epoch_callback = callback(self.model, self.plot, self.data_helper.train_set)
-        dataset_callback = self.aug_callback if augmentation else None
-        self.model.train(x_full, y_encode, epoch=n_epoch, aug_callback=dataset_callback,
+        epoch_callback = callback
+        dataset_callback = TGS_salt_aug_callback if augmentation else None
+        self.model.train(train_x, train_y_encode, epoch=n_epoch, aug_callback=dataset_callback,
                          epoch_callback=epoch_callback, early_stop=early_stop, patience=patience,
                          iter_pbar=True)
 
@@ -275,13 +290,15 @@ class cnn_pipeline:
 
         clf = ImageClf(net_type='InceptionV1')
 
-        class Callback(BaseEpochCallback):
-            def __init__(self, top_k_path):
+        class EpochCallback(BaseEpochCallback):
+            def __init__(self, model, train_set):
                 super().__init__()
 
+                self.model = model
+                self.train_set = train_set
                 self.k = 5
                 self.top_k = [np.Inf for _ in range(self.k)]
-                self.top_k_save = Top_k_save(top_k_path)
+                self.top_k_save = Top_k_save('./instance/TGS_salt_cnn_top_k')
 
             def __call__(self, epoch, log=None):
                 from sklearn.metrics import confusion_matrix
@@ -302,11 +319,12 @@ class cnn_pipeline:
                     f'test_score = {test_score}, \n'
                     f'test_confusion ={test_confusion}\n')
 
-                self.top_k_save(test_score, clf)
+                # self.top_k_save(test_score, clf)
 
-        callback = Callback('./instance/TGS_salt_cnn_top_k')
-        clf.train(train_x, train_y_onehot, epoch=n_epoch, epoch_callback=callback,
-                  batch_size=64, iter_pbar=True, early_stop=early_stop, patience=patience)
+        Epoch_callback = EpochCallback
+        clf.train(train_x, train_y_onehot, epoch=n_epoch, epoch_callback=Epoch_callback,
+                  batch_size=64, iter_pbar=True,
+                  dataset_callback=None, early_stop=early_stop, patience=patience)
 
         clf.save('./instance/test')
 
