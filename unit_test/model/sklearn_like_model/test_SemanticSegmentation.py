@@ -3,7 +3,7 @@ from pprint import pprint
 from script.data_handler.ImgMaskAug import ActivatorMask, ImgMaskAug
 from script.data_handler.TGS_salt import HEAD_PATH, collect_images
 from script.model.sklearn_like_model.BaseModel import BaseDatasetCallback
-from script.model.sklearn_like_model.UNet import UNet
+from script.model.sklearn_like_model.SemanticSegmentation import SemanticSegmentation
 from script.util.PlotTools import PlotTools
 from script.util.misc_util import path_join
 from imgaug import augmenters as iaa
@@ -21,7 +21,7 @@ class mask_label_encoder:
         return np.array(x * 255, dtype=float)
 
 
-def test_Unet_toy_set():
+def test_SemanticSegmentation_toy_set():
     x = np.zeros([100, 128, 128, 1])
     y = np.ones([100, 128, 128, 1])
     y_gt = y
@@ -30,7 +30,7 @@ def test_Unet_toy_set():
     print(x.shape)
     print(y_encode.shape)
 
-    Unet = UNet(stage=4, batch_size=10)
+    Unet = SemanticSegmentation(stage=4, batch_size=10)
     Unet.train(x, y_encode, epoch=100)
 
     score = Unet.score(x, y_encode)
@@ -51,7 +51,7 @@ def test_Unet_toy_set():
     plot.plot_image_tile(np.concatenate([x, predict, y_gt], axis=0), title='predict', column=10)
 
 
-def test_UNet():
+def test_SemanticSegmentation():
     sample_IMAGE_PATH = path_join(HEAD_PATH, 'sample/images')
     sample_MASK_PATH = path_join(HEAD_PATH, 'sample/masks')
 
@@ -77,7 +77,7 @@ def test_UNet():
     print(x.shape)
     print(y_encode.shape)
 
-    Unet = UNet(stage=4, batch_size=7)
+    Unet = SemanticSegmentation(stage=4, batch_size=7)
     Unet.train(x, y_encode, epoch=100, early_stop=True, patience=10)
 
     score = Unet.score(x, y_encode)
@@ -184,7 +184,7 @@ def test_train_dataset_callback():
     print(x.shape)
     print(y_encode.shape)
 
-    Unet = UNet(stage=4, batch_size=7)
+    Unet = SemanticSegmentation(stage=4, batch_size=7)
     # Unet.train(x, y_encode, epoch=100)
     Unet.train(x, y_encode, epoch=1000, dataset_callback=dataset_callback)
     Unet.train(x, y_encode, epoch=1000, dataset_callback=dataset_callback)

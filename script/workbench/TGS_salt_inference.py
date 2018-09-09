@@ -1,18 +1,16 @@
-from pprint import pprint
-
 import numpy as np
+from pprint import pprint
 from imgaug import augmenters as iaa
 from sklearn.decomposition import PCA
 from sklearn.manifold import TSNE
 from tqdm import tqdm
-
 from script.data_handler.ImgMaskAug import ActivatorMask, ImgMaskAug
 from script.data_handler.TGS_salt import collect_images, TRAIN_MASK_PATH, TGS_salt, \
     mask_label_encoder, TRAIN_IMAGE_PATH, TEST_IMAGE_PATH, RLE_mask_encoding
 from script.model.sklearn_like_model.BaseModel import BaseDatasetCallback, BaseEpochCallback
 from script.model.sklearn_like_model.ImageClf import ImageClf
 from script.model.sklearn_like_model.Top_k_save import Top_k_save
-from script.model.sklearn_like_model.UNet import UNet
+from script.model.sklearn_like_model.SemanticSegmentation import SemanticSegmentation
 from script.util.PlotTools import PlotTools
 from script.util.numpy_utils import np_img_to_img_scatter, np_img_gray_to_rgb
 
@@ -215,7 +213,7 @@ class Unet_epoch_callback(BaseEpochCallback):
         self.print_TGS_salt_metric(dataset, epoch)
 
 
-class Unet_pipeline:
+class SemanticSegmentation_pipeline:
     def __init__(self):
         self.data_helper = data_helper()
         self.plot = plot
@@ -241,16 +239,17 @@ class Unet_pipeline:
         train_y_encode = mask_label_encoder.to_label(train_y)
         test_y_encode = mask_label_encoder.to_label(test_y)
 
-        # loss_type = 'pixel_wise_softmax'
-        loss_type = 'iou'
+        loss_type = 'pixel_wise_softmax'
+        # loss_type = 'iou'
         # loss_type = 'dice_soft'
         channel = 16
         level = 4
-        learning_rate = 0.01
-        batch_size = 128
-        self.model = UNet(stage=4, batch_size=batch_size,
-                          Unet_level=level, net_capacity=channel, loss_type=loss_type,
-                          learning_rate=learning_rate)
+        learning_rate = 0.02
+        batch_size = 256
+        net_type = 'UNet'
+        self.model = SemanticSegmentation(stage=4, batch_size=batch_size, net_type=net_type,
+                                          Unet_level=level, net_capacity=channel, loss_type=loss_type,
+                                          learning_rate=learning_rate)
 
         epoch_callback = Unet_epoch_callback(self.model, test_x, test_y)
         dataset_callback = TGS_salt_aug_callback if augmentation else None
@@ -322,11 +321,12 @@ class cnn_pipeline:
         sample_y = train_y[:sample_size]
         sample_y_onehot = train_y_onehot[:sample_size]
 
-        clf = ImageClf(net_type='InceptionV1')
-
+        net_capacity = 8
+        net_type = 'InceptionV1'
+        clf = ImageClf(net_type=net_type, net_capacity=net_capacity)
         Epoch_callback = cnn_EpochCallback(clf, test_x, test_y, sample_x, sample_y)
         clf.train(train_x, train_y_onehot, epoch=n_epoch, epoch_callback=Epoch_callback,
-                  batch_size=64, iter_pbar=True,
+                  batch_size=16, iter_pbar=True,
                   dataset_callback=None, early_stop=early_stop, patience=patience)
 
         clf.save('./instance/test')
