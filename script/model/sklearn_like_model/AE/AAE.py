@@ -156,7 +156,7 @@ class AAE(BaseModel, basicAAEPropertyMixIn, GAN_loss_builder_MixIn):
 
         return ret
 
-    def __init__(self, batch_size=100, learning_rate=0.01, beta1=0.5, L1_norm_lambda=0.001, latent_code_size=32,
+    def __init__(self, batch_size=100, learning_rate=0.01, beta1=0.9, L1_norm_lambda=0.001, latent_code_size=32,
                  encoder_net_shapes=(512,), decoder_net_shapes=(512,), D_gauss_net_shapes=(512, 512),
                  D_cate_net_shapes=(512, 512), with_noise=False, noise_intensity=1.,
                  encoder_kwargs=None, decoder_kwargs=None,

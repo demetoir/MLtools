@@ -157,7 +157,7 @@ def basicCVAE_Decoder(latents, Ys, net_shapes, flatten_size, output_shape,
 
 class CVAE(BaseModel, CVAE_MixIn, VAE_loss_builder_MixIn):
 
-    def __init__(self, batch_size=100, learning_rate=0.01, beta1=0.5, L1_norm_lambda=0.001, latent_code_size=32,
+    def __init__(self, batch_size=100, learning_rate=0.01, beta1=0.9, L1_norm_lambda=0.001, latent_code_size=32,
                  encoder_net_shapes=(512,), decoder_net_shapes=(512,), with_noise=False, noise_intensity=1.,
                  loss_type='VAE', KL_D_rate=0.1, encoder_kwargs=None, decoder_kwargs=None, verbose=10):
         BaseModel.__init__(self, verbose)

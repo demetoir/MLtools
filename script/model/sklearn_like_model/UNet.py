@@ -67,7 +67,7 @@ class UNet(
 ):
 
     def __init__(self, verbose=10, learning_rate=0.001, learning_rate_decay_rate=0.99,
-                 learning_rate_decay_method=None, beta1=0.01, batch_size=100, stage=4,
+                 learning_rate_decay_method=None, beta1=0.9, batch_size=100, stage=4,
                  loss_type='pixel_wise_softmax', n_classes=1, Unet_level=4, Unet_n_channel=64, **kwargs):
         BaseModel.__init__(self, verbose, **kwargs)
         Xs_MixIn.__init__(self)

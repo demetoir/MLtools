@@ -1,5 +1,6 @@
 import codecs
 import time
+from datetime import datetime
 from script.util.Logger import Logger, pprint_logger
 from script.util.misc_util import log_error_trace
 
@@ -106,6 +107,7 @@ def deco_log_func_name(func):
 
 def deco_timeit(func):
     def wrapper(*args, **kwargs):
+        date = datetime.now()
         start = time.time()
         try:
             ret = func(*args, **kwargs)
@@ -113,7 +115,15 @@ def deco_timeit(func):
             log_error_trace(print, e)
             ret = None
         finally:
-            print(f"in {func.__name__}(), time {time.time() - start:.4f}'s elapsed")
+
+            elapse_time = time.time() - start
+            msg = f"in {func.__name__}(), time {time.time() - start:.4f}'s elapsed"
+
+            if elapse_time > 60:
+                now = datetime.now() - date
+                msg += f", {now}"
+
+            print(msg)
         return ret
 
     wrapper.__name__ = func.__name__

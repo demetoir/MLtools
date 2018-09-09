@@ -277,15 +277,18 @@ def path_join(*args):
 
 
 def log_error_trace(log_func, e, head=""):
+    log_func(f'{head}\n{error_trace(e)}')
+
+
+def error_trace(e):
     exc_type, exc_value, exc_traceback = sys.exc_info()
 
-    msg = '%s\n %s %s : %s \n' % (
-        head,
+    msg = '%s %s : %s' % (
         "".join(traceback.format_tb(exc_traceback)),
         e.__class__.__name__,
         e,
     )
-    log_func(msg)
+    return msg
 
 
 def params_to_dict(**param):

@@ -4,6 +4,7 @@ import imgaug as ia
 from queue import Empty as QueueEmpty, Full as QueueFull
 from script.data_handler.Base.BaseDataset import BaseDataset
 from script.util.MixIn import LoggerMixIn
+from script.util.misc_util import error_trace
 
 
 class ActivatorMask:
@@ -90,12 +91,13 @@ class ImgMaskAug(LoggerMixIn):
                         queue.put((image_aug, mask_aug))
                         break
                     except QueueFull:
+                        print(f'queue is full, need to reduce n_jobs')
                         pass
 
                 if join_signal.is_set():
                     break
         except BaseException as e:
-            self.log.error(e)
+            print(error_trace(e))
         finally:
             finish_signal.set()
 
@@ -105,6 +107,7 @@ class ImgMaskAug(LoggerMixIn):
                 image, mask = self.q.get(timeout=0.01)
                 break
             except QueueEmpty:
+                print(f'queue is empt, bottle neck occur, need to raise n_jobs')
                 pass
 
         return image, mask

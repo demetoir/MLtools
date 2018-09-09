@@ -35,3 +35,6 @@ log
 
 # pycharm setting
 .idea/
+
+#
+.slackbot/tokens
