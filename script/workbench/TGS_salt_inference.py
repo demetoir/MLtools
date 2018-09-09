@@ -9,6 +9,7 @@ from script.data_handler.TGS_salt import collect_images, TRAIN_MASK_PATH, TGS_sa
     mask_label_encoder, TRAIN_IMAGE_PATH, TEST_IMAGE_PATH, RLE_mask_encoding
 from script.model.sklearn_like_model.BaseModel import BaseDatasetCallback, BaseEpochCallback
 from script.model.sklearn_like_model.ImageClf import ImageClf
+from script.model.sklearn_like_model.TFSummary import TFSummary
 from script.model.sklearn_like_model.Top_k_save import Top_k_save
 from script.model.sklearn_like_model.SemanticSegmentation import SemanticSegmentation
 from script.util.PlotTools import PlotTools
@@ -166,26 +167,31 @@ class data_helper:
 
 
 class Unet_epoch_callback(BaseEpochCallback):
-    def __init__(self, model, test_x, test_y):
+    def __init__(self, model, test_x, test_y, params):
         super().__init__()
         self.model = model
         self.plot = plot
         self.test_x = test_x
         self.test_y = test_y
+        self.params = params
+        params_str = "_".join([f"{key}={val}" for key, val in self.params.items()])
+        self.summary_train_loss = TFSummary(f'./tf_summary/TGS_salt/SS/{params_str}/train', 'loss')
+        self.summary_train_acc = TFSummary(f'./tf_summary/TGS_salt/SS/{params_str}/train', 'acc')
+        self.summary_test_acc = TFSummary(f'./tf_summary/TGS_salt/SS/{params_str}/test', 'acc')
 
     def print_TGS_salt_metric(self, dataset, epoch):
-        x, y = dataset.next_batch(100)
+        x, y = dataset.next_batch(1000)
         x = x.reshape([-1, 101, 101, 1])
         y = y.reshape([-1, 101, 101, 1])
         predict_train = self.model.predict(x)
         predict_train = mask_label_encoder.from_label(predict_train)
         predict_test = self.model.predict(self.test_x)
         predict_test = mask_label_encoder.from_label(predict_test)
-
-        train_score = TGS_salt_metric(y, predict_train)
-        test_score = TGS_salt_metric(self.test_y, predict_test)
-        tqdm.write(f'TGS_salt_metric train = {train_score}\n'
-                   f'test = {test_score}\n')
+        self.train_loss = self.model.metric(x, y)
+        self.train_score = TGS_salt_metric(y, predict_train)
+        self.test_score = TGS_salt_metric(self.test_y, predict_test)
+        tqdm.write(f'TGS_salt_metric train = {self.train_score}\n'
+                   f'test = {self.test_score}\n')
 
     def plot_mask(self, dataset, epoch):
         x, y = dataset.next_batch(20)
@@ -208,9 +214,19 @@ class Unet_epoch_callback(BaseEpochCallback):
         self.plot.plot_image_tile(tile, title=f'predict_epoch({epoch})', column=10,
                                   path=f'./matplot/{self.model.id}/predict_epoch({epoch}).png')
 
-    def __call__(self, dataset, epoch, log=None):
+    def update_summary(self, sess, epoch):
+        self.summary_train_loss.update(sess, self.train_loss, epoch)
+        self.summary_train_acc.update(sess, self.train_score, epoch)
+        self.summary_test_acc.update(sess, self.test_score, epoch)
+
+    def __call__(self, sess, dataset, epoch, log=None):
         self.plot_mask(dataset, epoch)
         self.print_TGS_salt_metric(dataset, epoch)
+        self.update_summary(sess, epoch)
+
+
+def to_dict(**kwargs):
+    return kwargs
 
 
 class SemanticSegmentation_pipeline:
@@ -239,19 +255,26 @@ class SemanticSegmentation_pipeline:
         train_y_encode = mask_label_encoder.to_label(train_y)
         test_y_encode = mask_label_encoder.to_label(test_y)
 
-        loss_type = 'pixel_wise_softmax'
-        # loss_type = 'iou'
+        # loss_type = 'pixel_wise_softmax'
+        loss_type = 'iou'
         # loss_type = 'dice_soft'
-        channel = 16
+        channel = 6
         level = 4
-        learning_rate = 0.02
+        learning_rate = 0.01
         batch_size = 256
         net_type = 'UNet'
+        params = to_dict(
+            loss_type=loss_type,
+            channel=channel,
+            level=level,
+            learning_rate=learning_rate,
+            batch_size=batch_size,
+            net_type=net_type)
         self.model = SemanticSegmentation(stage=4, batch_size=batch_size, net_type=net_type,
                                           Unet_level=level, net_capacity=channel, loss_type=loss_type,
                                           learning_rate=learning_rate)
 
-        epoch_callback = Unet_epoch_callback(self.model, test_x, test_y)
+        epoch_callback = Unet_epoch_callback(self.model, test_x, test_y, params)
         dataset_callback = TGS_salt_aug_callback if augmentation else None
         self.model.train(train_x, train_y_encode, epoch=n_epoch, aug_callback=dataset_callback,
                          epoch_callback=epoch_callback, early_stop=early_stop, patience=patience,
@@ -272,7 +295,7 @@ class cnn_EpochCallback(BaseEpochCallback):
         self.top_k = [np.Inf for _ in range(self.k)]
         self.top_k_save = Top_k_save('./instance/TGS_salt_cnn_top_k')
 
-    def __call__(self, dataset, epoch, log=None):
+    def __call__(self, sess, dataset, epoch, log=None):
         from sklearn.metrics import confusion_matrix
         from sklearn.metrics import accuracy_score
 
