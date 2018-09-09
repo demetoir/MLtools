@@ -38,8 +38,8 @@ class ImageClf(
 
     def __init__(self, verbose=10, learning_rate=0.01, learning_rate_decay_rate=0.99,
                  learning_rate_decay_method=None, beta1=0.9, batch_size=100, net_type='VGG',
-                 net_structure_args=None, net_structure_kwargs=None, net_structure_class=None, n_classes=None,
-                 **kwargs):
+                 net_structure_args=None, net_structure_kwargs=None, net_structure_class=None,
+                 n_classes=None, net_capacity=64, **kwargs):
         BaseModel.__init__(self, verbose, **kwargs)
         Xs_MixIn.__init__(self)
         Ys_MixIn.__init__(self)
@@ -58,6 +58,7 @@ class ImageClf(
         self.learning_rate_decay_method = learning_rate_decay_method
         self.learning_rate_decay_rate = learning_rate_decay_rate
         self.learning_rate = learning_rate
+        self.net_capacity = net_capacity
 
         self.net_structure = None
         if net_structure_class is None:
@@ -91,7 +92,7 @@ class ImageClf(
         self.Ys_label = onehot_to_index(self.Ys)
 
         self.net_structure = self.net_structure_class(
-            self.Xs, self.n_classes,
+            self.Xs, self.n_classes, capacity=self.net_capacity
             # todo add structure args kwargs
             # *self.net_structure_args, **self.net_structure_kwargs
         )
