@@ -41,7 +41,7 @@ class BaseEpochCallback:
     def __init__(self):
         pass
 
-    def __call__(self, epoch, log=None):
+    def __call__(self, dataset, epoch, log=None):
         raise NotImplementedError
 
 
@@ -297,7 +297,7 @@ class BaseModel(LoggerMixIn, input_shapesMixIN, metadataMixIN, paramsMixIn, loss
         self._prepare_train(Xs=x, Ys=y)
         batch_size = getattr(self, 'batch_size') if batch_size is None else batch_size
         dataset = dataset_callback(x, y, batch_size) if dataset_callback else BaseDataset(x=x, y=y)
-        epoch_callback = epoch_callback(self, dataset) if epoch_callback else None
+        epoch_callback = epoch_callback if epoch_callback else None
         recent_best = np.Inf
         patience_count = 0
         iter_num = 0
@@ -312,7 +312,7 @@ class BaseModel(LoggerMixIn, input_shapesMixIN, metadataMixIN, paramsMixIn, loss
 
             if epoch_callback:
                 try:
-                    epoch_callback(e, tqdm.write)
+                    epoch_callback(dataset, e, tqdm.write)
                 except BaseException as error:
                     tqdm.write(error_trace(error))
 

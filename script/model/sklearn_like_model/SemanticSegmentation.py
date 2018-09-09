@@ -1,6 +1,7 @@
 from script.model.sklearn_like_model.BaseModel import BaseModel
 from script.model.sklearn_like_model.Mixin import Xs_MixIn, Ys_MixIn, supervised_trainMethodMixIn, predictMethodMixIn, \
     predict_probaMethodMixIn, scoreMethodMixIn, supervised_metricMethodMixIn
+from script.model.sklearn_like_model.net_structure.FusionNetStructure import FusionNetStructure
 from script.model.sklearn_like_model.net_structure.UNetStructure import UNetStructure
 from script.util.tensor_ops import *
 
@@ -54,7 +55,7 @@ class segmentation_loss_mixIn:
         return tf.nn.sparse_softmax_cross_entropy_with_logits(labels=labels, logits=logits)
 
 
-class UNet(
+class SemanticSegmentation(
     BaseModel,
     Xs_MixIn,
     Ys_MixIn,
@@ -65,10 +66,15 @@ class UNet(
     supervised_metricMethodMixIn,
     segmentation_loss_mixIn
 ):
+    net_structure_class_dict = {
+        'UNet': UNetStructure,
+        'FusionNet': FusionNetStructure,
+    }
 
     def __init__(self, verbose=10, learning_rate=0.001, learning_rate_decay_rate=0.99,
                  learning_rate_decay_method=None, beta1=0.9, batch_size=100, stage=4,
-                 loss_type='pixel_wise_softmax', n_classes=1, Unet_level=4, Unet_n_channel=64, **kwargs):
+                 net_type='UNet', loss_type='pixel_wise_softmax', n_classes=1, Unet_level=4,
+                 net_capacity=64, **kwargs):
         BaseModel.__init__(self, verbose, **kwargs)
         Xs_MixIn.__init__(self)
         Ys_MixIn.__init__(self)
@@ -89,7 +95,9 @@ class UNet(
         self.n_classes = n_classes
         self.Unet_image_size = (128, 128)
         self.Unet_level = Unet_level
-        self.Unet_n_channel = Unet_n_channel
+        self.net_capacity = net_capacity
+        self.net_type = net_type
+        self.net_structure_class = self.net_structure_class_dict[net_type]
 
     def _build_input_shapes(self, shapes):
         ret = {}
@@ -101,11 +109,11 @@ class UNet(
         self.Xs = tf.placeholder(tf.float32, self.Xs_shape, name='Xs')
         self.Ys = tf.placeholder(tf.float32, self.Ys_shape, name='Ys')
 
-        self.Unet_structure = UNetStructure(self.Xs, level=self.Unet_level, n_channel=self.Unet_n_channel)
-        self.Unet_structure.build()
-        self.Unet_vars = self.Unet_structure.vars
-        self._logit = self.Unet_structure.logit
-        self._proba = self.Unet_structure.proba
+        self.net_structure = self.net_structure_class(self.Xs, level=self.Unet_level, capacity=self.net_capacity)
+        self.net_structure.build()
+        self.vars = self.net_structure.vars
+        self._logit = self.net_structure.logit
+        self._proba = self.net_structure.proba
         self._predict = reshape(tf.argmax(self._proba, 3, name="predicted"), self.Ys_shape,
                                 name='predict')
 
@@ -119,7 +127,7 @@ class UNet(
 
     def _build_train_ops(self):
         self._train_ops = tf.train.AdamOptimizer(self.learning_rate, beta1=self.beta1) \
-            .minimize(self.loss, var_list=self.Unet_vars)
+            .minimize(self.loss, var_list=self.vars)
 
     @property
     def train_ops(self):

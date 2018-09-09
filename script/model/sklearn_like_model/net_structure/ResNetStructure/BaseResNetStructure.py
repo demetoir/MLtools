@@ -4,6 +4,15 @@ from script.util.tensor_ops import *
 
 
 class BaseResNetStructure(Base_net_structure):
+    def __init__(self, x, n_classes, capacity=None, reuse=False, name=None, verbose=0):
+        super().__init__(capacity, reuse, name, verbose)
+        self.x = x
+        self.n_classes = n_classes
+        if self.capacity:
+            self.n_channel = self.capacity
+        else:
+            self.n_channel = 64
+
     @staticmethod
     def residual_block_type2(x, n_channel, batch_norm=True, down_sample=False, name='residual_block_type2'):
         with tf.variable_scope(name):
@@ -74,15 +83,9 @@ class BaseResNetStructure(Base_net_structure):
 
         return x
 
-    def __init__(self, x, n_classes, reuse=False, name=None, verbose=0):
-        super().__init__(reuse, name, verbose)
-        self.x = x
-        self.n_classes = n_classes
-
-    @staticmethod
-    def head(stacker):
+    def head(self, stacker):
         # conv1 to 112
-        stacker.conv_block(64, CONV_FILTER_7722, relu)
+        stacker.conv_block(self.n_channel, CONV_FILTER_7722, relu)
 
         # conv2_x to 56
         stacker.max_pooling(CONV_FILTER_3322)

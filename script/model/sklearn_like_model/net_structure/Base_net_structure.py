@@ -5,8 +5,9 @@ import tensorflow as tf
 
 
 class Base_net_structure(LoggerMixIn):
-    def __init__(self, reuse=False, name=None, verbose=0):
+    def __init__(self, capacity=None, reuse=False, name=None, verbose=0):
         super().__init__(verbose)
+        self.capacity = capacity
         self.reuse = reuse
         if name:
             self.name = name
@@ -22,7 +23,7 @@ class Base_net_structure(LoggerMixIn):
             else:
                 self._vars = collect_vars(join_scope(get_scope(), self.name))
         return self._vars
-
+ 
     def build(self):
         raise NotImplementedError
 

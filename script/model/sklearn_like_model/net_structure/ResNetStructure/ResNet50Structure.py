@@ -3,6 +3,7 @@ from script.model.sklearn_like_model.net_structure.ResNetStructure.BaseResNetStr
 
 class ResNet50Structure(BaseResNetStructure):
     def body(self, stacker):
+
         for i in range(3):
             stacker.add_layer(self.residual_block_type3, 64)
 

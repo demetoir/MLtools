@@ -7,13 +7,16 @@ from script.util.tensor_ops import conv_block, CONV_FILTER_3311, relu, \
 
 class FusionNetStructure(Base_net_structure):
 
-    def __init__(self, x, level=4, n_classes=2, n_channel=64, reuse=False, name=None, verbose=0):
-        super().__init__(reuse, name, verbose)
+    def __init__(self, x, level=4, n_classes=2, capacity=None, reuse=False, name=None, verbose=0):
+        super().__init__(capacity, reuse, name, verbose)
 
         self.x = x
         self.level = level
         self.n_classes = n_classes
-        self.n_channel = n_channel
+        if self.capacity:
+            self.n_channel = capacity
+        else:
+            self.n_channel = 64
 
     def build(self):
         self.logit, self.proba = self._recursion_build()

@@ -92,33 +92,31 @@ class InceptionV2Structure(BaseInceptionStructure):
 
             return concat([a, b0, b1, c0, c1, d], axis=3)
 
-    @staticmethod
-    def aux(x, n_classes, name='aux'):
+    def aux(self, x, n_classes, name='aux'):
         with tf.variable_scope(name):
             stack = Stacker(x)
             stack.avg_pooling(CONV_FILTER_5533)
-            stack.conv_block(128, CONV_FILTER_1111, relu)
+            stack.conv_block(self.n_channel * 8, CONV_FILTER_1111, relu)
 
             filter_ = list(stack.last_layer.shape[1:3]) + [1, 1]
-            stack.conv_block(768, filter_, relu)
+            stack.conv_block(self.n_channel * 48, filter_, relu)
             stack.flatten()
             logit = stack.linear(n_classes)
             proba = stack.softmax()
             return logit, proba
 
-    @staticmethod
-    def stem(stacker, name='stem'):
+    def stem(self, stacker, name='stem'):
         Stacker()
         # stacker = Stacker(x)
         with tf.variable_scope(name):
-            stacker.conv_block(32, CONV_FILTER_3322, relu)
-            stacker.conv_block(32, CONV_FILTER_3311, relu)
+            stacker.conv_block(self.n_channel * 2, CONV_FILTER_3322, relu)
+            stacker.conv_block(self.n_channel * 2, CONV_FILTER_3311, relu)
 
-            stacker.conv_block(64, CONV_FILTER_3311, relu)
+            stacker.conv_block(self.n_channel * 4, CONV_FILTER_3311, relu)
             stacker.max_pooling(CONV_FILTER_3322)
 
-            stacker.conv_block(80, CONV_FILTER_1111, relu)
-            stacker.conv_block(192, CONV_FILTER_3311, relu)
+            stacker.conv_block(self.n_channel * 5, CONV_FILTER_1111, relu)
+            stacker.conv_block(self.n_channel * 12, CONV_FILTER_3311, relu)
             stacker.max_pooling(CONV_FILTER_3322)
 
             return stacker
@@ -129,106 +127,106 @@ class InceptionV2Structure(BaseInceptionStructure):
         stacker = self.stem(stacker)
 
         a_channels0 = {
-            'a0': 64,
-            'b0': 48,
-            'b1': 64,
-            'c0': 64,
-            'c1': 96,
-            'c2': 96,
-            'd1': 32
+            'a0': self.n_channel * 4,
+            'b0': self.n_channel * 3,
+            'b1': self.n_channel * 4,
+            'c0': self.n_channel * 4,
+            'c1': self.n_channel * 6,
+            'c2': self.n_channel * 6,
+            'd1': self.n_channel * 2
         }
         a_channels1 = {
-            'a0': 64,
-            'b0': 48,
-            'b1': 64,
-            'c0': 64,
-            'c1': 96,
-            'c2': 96,
-            'd1': 64
+            'a0': self.n_channel * 4,
+            'b0': self.n_channel * 3,
+            'b1': self.n_channel * 4,
+            'c0': self.n_channel * 4,
+            'c1': self.n_channel * 6,
+            'c2': self.n_channel * 6,
+            'd1': self.n_channel * 4
         }
         a_channels2 = {
-            'a0': 64,
-            'b0': 48,
-            'b1': 64,
-            'c0': 64,
-            'c1': 96,
-            'c2': 96,
-            'd1': 64
+            'a0': self.n_channel * 4,
+            'b0': self.n_channel * 3,
+            'b1': self.n_channel * 4,
+            'c0': self.n_channel * 4,
+            'c1': self.n_channel * 6,
+            'c2': self.n_channel * 6,
+            'd1': self.n_channel * 4
         }
         stacker.add_layer(self.module_A, a_channels0)
         stacker.add_layer(self.module_A, a_channels1)
         stacker.add_layer(self.module_A, a_channels2)
 
         a_b_multi_pool_channels = {
-            'a0': 384,
+            'a0': self.n_channel * 24,
 
-            'b0': 64,
-            'b1': 96,
-            'b2': 96,
+            'b0': self.n_channel * 4,
+            'b1': self.n_channel * 6,
+            'b2': self.n_channel * 6,
 
-            'c0': 64,
+            'c0': self.n_channel * 4,
         }
         stacker.add_layer(self.multi_pool_A, a_b_multi_pool_channels)
 
         b_channels0 = {
-            'a0': 192,
+            'a0': self.n_channel * 12,
 
-            'b0': 128,
-            'b1': 128,
-            'b2': 192,
+            'b0': self.n_channel * 8,
+            'b1': self.n_channel * 8,
+            'b2': self.n_channel * 12,
 
-            'c0': 128,
-            'c1': 128,
-            'c2': 128,
-            'c3': 128,
-            'c4': 192,
+            'c0': self.n_channel * 8,
+            'c1': self.n_channel * 8,
+            'c2': self.n_channel * 8,
+            'c3': self.n_channel * 8,
+            'c4': self.n_channel * 12,
 
-            'd1': 192,
+            'd1': self.n_channel * 12,
         }
         b_channels1 = {
-            'a0': 192,
+            'a0': self.n_channel * 12,
 
-            'b0': 160,
-            'b1': 160,
-            'b2': 192,
+            'b0': self.n_channel * 10,
+            'b1': self.n_channel * 10,
+            'b2': self.n_channel * 12,
 
-            'c0': 160,
-            'c1': 160,
-            'c2': 160,
-            'c3': 160,
-            'c4': 192,
+            'c0': self.n_channel * 10,
+            'c1': self.n_channel * 10,
+            'c2': self.n_channel * 10,
+            'c3': self.n_channel * 10,
+            'c4': self.n_channel * 12,
 
-            'd1': 192,
+            'd1': self.n_channel * 12,
         }
         b_channels2 = {
-            'a0': 192,
+            'a0': self.n_channel * 12,
 
-            'b0': 160,
-            'b1': 160,
-            'b2': 192,
+            'b0': self.n_channel * 10,
+            'b1': self.n_channel * 10,
+            'b2': self.n_channel * 12,
 
-            'c0': 160,
-            'c1': 160,
-            'c2': 160,
-            'c3': 160,
-            'c4': 192,
+            'c0': self.n_channel * 10,
+            'c1': self.n_channel * 10,
+            'c2': self.n_channel * 10,
+            'c3': self.n_channel * 10,
+            'c4': self.n_channel * 12,
 
-            'd1': 192,
+            'd1': self.n_channel * 12,
         }
         b_channels3 = {
-            'a0': 192,
+            'a0': self.n_channel * 12,
 
-            'b0': 192,
-            'b1': 192,
-            'b2': 192,
+            'b0': self.n_channel * 12,
+            'b1': self.n_channel * 12,
+            'b2': self.n_channel * 12,
 
-            'c0': 192,
-            'c1': 192,
-            'c2': 192,
-            'c3': 192,
-            'c4': 192,
+            'c0': self.n_channel * 12,
+            'c1': self.n_channel * 12,
+            'c2': self.n_channel * 12,
+            'c3': self.n_channel * 12,
+            'c4': self.n_channel * 12,
 
-            'd1': 192,
+            'd1': self.n_channel * 12,
         }
         stacker.add_layer(self.module_B, b_channels0)
         stacker.add_layer(self.module_B, b_channels1)
@@ -237,43 +235,43 @@ class InceptionV2Structure(BaseInceptionStructure):
         self.aux_logit, self.aux_proba = self.aux(stacker.last_layer, self.n_classes)
 
         b_c_multipool_channels = {
-            'a0': 192,
-            'a1': 320,
+            'a0': self.n_channel * 12,
+            'a1': self.n_channel * 20,
 
-            'b0': 192,
-            'b1': 192,
-            'b2': 192,
-            'b3': 192,
+            'b0': self.n_channel * 12,
+            'b1': self.n_channel * 12,
+            'b2': self.n_channel * 12,
+            'b3': self.n_channel * 12,
         }
         stacker.add_layer(self.multipool_B, b_c_multipool_channels)
 
         c_channels0 = {
-            'a0': 320,
+            'a0': self.n_channel * 20,
 
-            'b0': 384,
-            'b1-0': 384,
-            'b1-1': 384,
+            'b0': self.n_channel * 24,
+            'b1-0': self.n_channel * 24,
+            'b1-1': self.n_channel * 24,
 
-            'c0': 448,
-            'c1': 384,
-            'c2-0': 384,
-            'c2-1': 384,
+            'c0': self.n_channel * 28,
+            'c1': self.n_channel * 24,
+            'c2-0': self.n_channel * 24,
+            'c2-1': self.n_channel * 24,
 
-            'd1': 192,
+            'd1': self.n_channel * 12,
         }
         c_channels1 = {
-            'a0': 320,
+            'a0': self.n_channel * 20,
 
-            'b0': 384,
-            'b1-0': 384,
-            'b1-1': 384,
+            'b0': self.n_channel * 24,
+            'b1-0': self.n_channel * 24,
+            'b1-1': self.n_channel * 24,
 
-            'c0': 448,
-            'c1': 384,
-            'c2-0': 384,
-            'c2-1': 384,
+            'c0': self.n_channel * 28,
+            'c1': self.n_channel * 24,
+            'c2-0': self.n_channel * 24,
+            'c2-1': self.n_channel * 24,
 
-            'd1': 192,
+            'd1': self.n_channel * 12,
         }
         stacker.add_layer(self.module_C, c_channels0)
         stacker.add_layer(self.module_C, c_channels1)
@@ -285,7 +283,7 @@ class InceptionV2Structure(BaseInceptionStructure):
         stacker.max_pooling((8, 8, 8, 8))
         # dropout
         stacker.flatten()
-        stacker.linear_block(1000, relu)
+        stacker.linear_block(self.n_channel * 64, relu)
         stacker.linear(self.n_classes)
         logit = stacker.last_layer
         stacker.softmax()
