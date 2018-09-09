@@ -3,15 +3,12 @@
 import numpy as np
 import pandas as pd
 
-from script.data_handler.TGS_salt import TGS_salt
-from script.model.sklearn_like_model.net_structure.Base_net_structure import Base_net_structure
 from script.util.Logger import pprint_logger, Logger
 from script.util.PlotTools import PlotTools
-from script.util.Stacker import Stacker
 from script.util.deco import deco_timeit
 # print(built-in function) is not good for logging
-from unit_test.model.sklearn_like_model.net_structure.test_FusionNetStructure import test_FusionNetStructure
-from unit_test.model.sklearn_like_model.net_structure.test_InceptionStructure import test_InceptionStructure
+from script.workbench.TGS_salt_inference import cnn_pipeline, Unet_pipeline
+from slackbot.SlackBot import deco_slackbot
 
 bprint = print
 logger = Logger('bench_code', level='INFO', )
@@ -40,51 +37,6 @@ def is_black_image(image):
         return False
 
 
-def test_empty_mask_clf():
-    data_pack = TGS_salt()
-    data_pack.load('./data/TGS_salt')
-    train_set = data_pack['train']
-    test_set = data_pack['test']
-    print(train_set.keys)
-    train_set.x_keys = ['image']
-    train_set.y_keys = ['empty_mask']
-
-    a = train_set.next_batch(10, batch_keys=['image', 'mask', 'empty_mask'], out_type='np_dict')
-    image = a['image']
-    mask = a['mask']
-    y = a['empty_mask']
-    plot.plot_image_tile(np.concatenate([image, mask]).reshape([20, 101, 101, 1]), title='empty_mask')
-
-    # cnn = model()
-    # for e in range(epoch):
-    #     cnn.train(x, y)
-    #
-    #     metric = cnn.score(x, y)
-    #     print(metric)
-
-
-class empty_mask_clf:
-    pass
-
-
-def test_code_generator():
-    import test_mode
-
-    pprint(test_mode.__dict__)
-    except_list = ['__name__', '__doc__', '__package__', '__loader__', '__spec__', '__file__', '__cached__',
-                   '__builtins__']
-
-    pprint(test_mode.__dict__.keys())
-    keys = [key for key in test_mode.__dict__.keys() if key not in except_list]
-    pprint(keys)
-
-    d = {key: test_mode.__dict__[key] for key in keys}
-    pprint(d)
-
-    for k, v in d.items():
-        print(k, type(v))
-
-
 class ExperimentResult:
     def __init__(self):
         self.elapse_time = None
@@ -99,6 +51,9 @@ class ExperimentResult:
 
     def __str__(self):
         pass
+
+    def _param_dict(self, **kwargs):
+        return kwargs
 
 
 def get_platform_info():
@@ -115,20 +70,30 @@ def get_platform_info():
         'uname': platform.uname(),
         'win32_ver': platform.win32_ver(),
         'java_ver': platform.java_ver(),
-        'dist': platform.dist(),
-        'linux_distribution': platform.linux_distribution(),
         'mac_ver': platform.mac_ver(),
     }
     return info
 
 
-@deco_timeit
-def main():
-    import platform
+def deco_sigint_catch():
+    # TODO
+    import signal
+    import sys
 
-    pprint(get_platform_info())
+    def signal_handler(signal, frame):  # SIGINT handler정의
+        print('You pressed Ctrl+C!')
+        # DB정리하는 코드
+        sys.exit(0)
 
-    # test_InceptionStructure()
+    signal.signal(signal.SIGINT, signal_handler)  # 등록
+    print('Press Ctrl+C')
+    signal.pause()
     pass
 
-    # test_empty_mask_clf()
+
+@deco_timeit
+@deco_slackbot('./slackbot/tokens/ml_bot_token', 'mltool_bot')
+def main():
+    # cnn_pipeline().train(100)
+    Unet_pipeline().train(100, augmentation=False, early_stop=True, patience=20)
+    pass
