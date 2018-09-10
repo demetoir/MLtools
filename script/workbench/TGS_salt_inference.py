@@ -175,11 +175,12 @@ class Unet_epoch_callback(BaseEpochCallback):
         self.test_y = test_y
         self.params = params
         params_str = "_".join([f"{key}={val}" for key, val in self.params.items()])
-        self.summary_train_loss = TFSummary(f'./tf_summary/TGS_salt/SS/{params_str}/train', 'loss')
-        self.summary_train_acc = TFSummary(f'./tf_summary/TGS_salt/SS/{params_str}/train', 'acc')
-        self.summary_test_acc = TFSummary(f'./tf_summary/TGS_salt/SS/{params_str}/test', 'acc')
+        self.summary_train_loss = TFSummary(f'./tf_summary/TGS_salt/SS/{params_str}/train', 'train_loss')
+        self.summary_train_acc = TFSummary(f'./tf_summary/TGS_salt/SS/{params_str}/train', 'train_acc')
+        self.summary_test_acc = TFSummary(f'./tf_summary/TGS_salt/SS/{params_str}/test', 'test_acc')
+        self.top_k_save = Top_k_save(f'instance/TGS_salt/SS/{params_str}')
 
-    def print_TGS_salt_metric(self, dataset, epoch):
+    def log_TGS_salt_metric(self, dataset, epoch):
         x, y = dataset.next_batch(1000)
         x = x.reshape([-1, 101, 101, 1])
         y = y.reshape([-1, 101, 101, 1])
@@ -190,7 +191,7 @@ class Unet_epoch_callback(BaseEpochCallback):
         self.train_loss = self.model.metric(x, y)
         self.train_score = TGS_salt_metric(y, predict_train)
         self.test_score = TGS_salt_metric(self.test_y, predict_test)
-        tqdm.write(f'TGS_salt_metric train = {self.train_score}\n'
+        tqdm.write(f'e:{epoch}, TGS_salt_metric train = {self.train_score}\n'
                    f'test = {self.test_score}\n')
 
     def plot_mask(self, dataset, epoch):
@@ -221,8 +222,9 @@ class Unet_epoch_callback(BaseEpochCallback):
 
     def __call__(self, sess, dataset, epoch, log=None):
         self.plot_mask(dataset, epoch)
-        self.print_TGS_salt_metric(dataset, epoch)
+        self.log_TGS_salt_metric(dataset, epoch)
         self.update_summary(sess, epoch)
+        self.top_k_save(self.test_score, self.model)
 
 
 def to_dict(**kwargs):
@@ -236,12 +238,9 @@ class SemanticSegmentation_pipeline:
         # self.aug_callback = TGS_salt_aug_callback
         # self.epoch_callback = epoch_callback
 
-        self.aug_callback = None
+        self.init_dataset()
 
-        self.epoch_callback = None
-        self.model = None
-
-    def train(self, n_epoch=10, augmentation=False, early_stop=True, patience=20):
+    def init_dataset(self):
         train_set = self.data_helper.train_set
 
         x_full, y_full = train_set.full_batch()
@@ -255,32 +254,106 @@ class SemanticSegmentation_pipeline:
         train_y_encode = mask_label_encoder.to_label(train_y)
         test_y_encode = mask_label_encoder.to_label(test_y)
 
+        self.x_full = x_full
+        self.y_full = y_full
+        self.train_x = train_x
+        self.test_x = test_x
+        self.train_y = train_y
+        self.test_y = test_y
+        self.train_y_encode = train_y_encode
+        self.test_y_encode = test_y_encode
+
+    def param_FusionNet(self, run, verbose=10, learning_rate=0.01, learning_rate_decay_rate=0.99,
+                        learning_rate_decay_method=None, beta1=0.9, batch_size=100, stage=4,
+                        loss_type='pixel_wise_softmax', n_classes=2,
+                        capacity=64, depth=1):
+        # loss_type = 'pixel_wise_softmax'
+        # loss_type = 'iou'
+        # loss_type = 'dice_soft'
+        params = to_dict(
+            run=run,
+            verbose=verbose,
+            learning_rate=learning_rate,
+            beta1=beta1,
+            batch_size=batch_size,
+            stage=stage,
+            net_type='FusionNet',
+            loss_type=loss_type,
+            capacity=capacity,
+            n_classes=n_classes,
+            depth=depth
+        )
+        return params
+
+    def param_UNet(self, run, verbose=10, learning_rate=0.01, learning_rate_decay_rate=0.99,
+                   learning_rate_decay_method=None, beta1=0.9, batch_size=100, stage=4,
+                   loss_type='pixel_wise_softmax', n_classes=2,
+                   capacity=64, depth=1):
+        # loss_type = 'pixel_wise_softmax'
+        # loss_type = 'iou'
+        # loss_type = 'dice_soft'
+        params = to_dict(
+            run=run,
+            verbose=verbose,
+            learning_rate=learning_rate,
+            beta1=beta1,
+            batch_size=batch_size,
+            stage=stage,
+            net_type='UNet',
+            loss_type=loss_type,
+            capacity=capacity,
+            n_classes=n_classes,
+            depth=depth
+        )
+        return params
+
+    def param_Unet_res_block(self):
         # loss_type = 'pixel_wise_softmax'
         loss_type = 'iou'
         # loss_type = 'dice_soft'
-        channel = 6
+        channel = 16
         level = 4
-        learning_rate = 0.01
+        learning_rate = 0.002
         batch_size = 256
-        net_type = 'UNet'
+        net_type = 'FusionNet'
+        n_conv_blocks = 10
         params = to_dict(
+            run=1,
+            n_conv_blocks=n_conv_blocks,
             loss_type=loss_type,
-            channel=channel,
+            net_capacity=channel,
             level=level,
             learning_rate=learning_rate,
             batch_size=batch_size,
             net_type=net_type)
-        self.model = SemanticSegmentation(stage=4, batch_size=batch_size, net_type=net_type,
-                                          Unet_level=level, net_capacity=channel, loss_type=loss_type,
-                                          learning_rate=learning_rate)
+        return params
 
-        epoch_callback = Unet_epoch_callback(self.model, test_x, test_y, params)
+    def make_model(self, params):
+        pass
+
+    def _train(self):
+        pass
+
+    def to_string(self, params):
+        return "_".join([f"{key}={val}" for key, val in params.items()])
+
+    def train(self, params, n_epoch=10, augmentation=False, early_stop=True, patience=20, save_path=None):
+        params_str = self.to_string(params)
+        model = SemanticSegmentation(**params)
+
+        epoch_callback = Unet_epoch_callback(model, self.test_x, self.test_y, params)
         dataset_callback = TGS_salt_aug_callback if augmentation else None
-        self.model.train(train_x, train_y_encode, epoch=n_epoch, aug_callback=dataset_callback,
-                         epoch_callback=epoch_callback, early_stop=early_stop, patience=patience,
-                         iter_pbar=True)
 
-        self.model.save('./instance/Unet')
+        # epoch_callback = None
+        # dataset_callback = None
+
+        model.train(self.train_x, self.train_y_encode, epoch=n_epoch, aug_callback=dataset_callback,
+                    epoch_callback=epoch_callback, early_stop=early_stop, patience=patience,
+                    iter_pbar=True)
+
+        if save_path is None:
+            save_path = f'./instance/TGS_salt/SS/{params_str}'
+        model.save(save_path)
 
 
 class cnn_EpochCallback(BaseEpochCallback):
