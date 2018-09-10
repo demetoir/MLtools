@@ -7,26 +7,22 @@ from script.util.tensor_ops import CONV_FILTER_3311, relu, CONV_FILTER_2211, CON
 
 class UNetStructure(Base_net_structure):
 
-    def __init__(self, x, n_classes=2, level=4, n_conv_blocks=2, capacity=None, reuse=False, name=None, verbose=0):
+    def __init__(self, x, n_classes=2, level=4, depth=1, capacity=64, reuse=False, name=None, verbose=0):
         super().__init__(capacity=capacity, reuse=reuse, name=name, verbose=verbose)
         self.x = x
         self.n_classes = n_classes
         self.level = level
-        self.n_conv_blocks = n_conv_blocks
-
-        if self.capacity:
-            self.n_channel = self.capacity
-        else:
-            self.n_channel = 64
+        self.depth = depth
+        self.n_channel = self.capacity
 
     def build(self):
         def _Unet_recursion(stacker, n_channel, level):
             if level == 0:
-                for i in range(self.n_conv_blocks):
+                for i in range(self.depth):
                     stacker.conv_block(n_channel, CONV_FILTER_3311, relu)
             else:
                 # encode
-                for i in range(self.n_conv_blocks):
+                for i in range(self.depth):
                     stacker.conv_block(n_channel, CONV_FILTER_3311, relu)
                 concat = stacker.last_layer
                 stacker.max_pooling(CONV_FILTER_2222)
@@ -37,7 +33,7 @@ class UNetStructure(Base_net_structure):
                 stacker.upscale_2x_block(n_channel, CONV_FILTER_2211, relu)
 
                 stacker.concat(concat, axis=3)
-                for i in range(self.n_conv_blocks):
+                for i in range(self.depth):
                     stacker.conv_block(n_channel, CONV_FILTER_3311, relu)
 
             return stacker
