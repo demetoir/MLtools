@@ -1,6 +1,7 @@
 from script.model.sklearn_like_model.BaseModel import BaseModel
 from script.model.sklearn_like_model.Mixin import Xs_MixIn, Ys_MixIn, supervised_trainMethodMixIn, predictMethodMixIn, \
     predict_probaMethodMixIn, scoreMethodMixIn, supervised_metricMethodMixIn
+from script.model.sklearn_like_model.TFDynamicLearningRate import TFDynamicLearningRate
 from script.model.sklearn_like_model.net_structure.FusionNetStructure import FusionNetStructure
 from script.model.sklearn_like_model.net_structure.UNetStructure import UNetStructure
 from script.util.tensor_ops import *
@@ -71,7 +72,7 @@ class SemanticSegmentation(
         'FusionNet': FusionNetStructure,
     }
 
-    def __init__(self, verbose=10, learning_rate=0.001, learning_rate_decay_rate=0.99,
+    def __init__(self, verbose=10, learning_rate=0.01, learning_rate_decay_rate=0.99,
                  learning_rate_decay_method=None, beta1=0.9, batch_size=100, stage=4,
                  net_type='UNet', loss_type='pixel_wise_softmax', n_classes=1, Unet_level=4,
                  net_capacity=64, **kwargs):
@@ -98,6 +99,12 @@ class SemanticSegmentation(
         self.net_capacity = net_capacity
         self.net_type = net_type
         self.net_structure_class = self.net_structure_class_dict[net_type]
+
+    def update_learning_rate(self, lr):
+        self.learning_rate = lr
+
+        if self.sess is not None:
+            self.drl.update(self.sess, self.learning_rate)
 
     def _build_input_shapes(self, shapes):
         ret = {}
@@ -126,7 +133,10 @@ class SemanticSegmentation(
             predicts=self._predict)
 
     def _build_train_ops(self):
-        self._train_ops = tf.train.AdamOptimizer(self.learning_rate, beta1=self.beta1) \
+        self.drl = TFDynamicLearningRate(self.learning_rate)
+        self.drl.build()
+
+        self._train_ops = tf.train.AdamOptimizer(self.drl.learning_rate, beta1=self.beta1) \
             .minimize(self.loss, var_list=self.vars)
 
     @property
