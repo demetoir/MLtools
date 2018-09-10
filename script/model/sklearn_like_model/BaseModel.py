@@ -41,7 +41,7 @@ class BaseEpochCallback:
     def __init__(self):
         pass
 
-    def __call__(self, dataset, epoch, log=None):
+    def __call__(self, sess, dataset, epoch, log=None):
         raise NotImplementedError
 
 
@@ -312,7 +312,7 @@ class BaseModel(LoggerMixIn, input_shapesMixIN, metadataMixIN, paramsMixIn, loss
 
             if epoch_callback:
                 try:
-                    epoch_callback(dataset, e, tqdm.write)
+                    epoch_callback(self.sess, dataset, e, tqdm.write)
                 except BaseException as error:
                     tqdm.write(error_trace(error))
 
