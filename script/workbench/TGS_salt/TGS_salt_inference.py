@@ -1,18 +1,16 @@
-import numpy as np
 from pprint import pprint
 from imgaug import augmenters as iaa
 from sklearn.decomposition import PCA
 from sklearn.manifold import TSNE
-from tqdm import tqdm
 from script.data_handler.ImgMaskAug import ActivatorMask, ImgMaskAug
 from script.data_handler.TGS_salt import collect_images, TRAIN_MASK_PATH, TGS_salt, \
-    mask_label_encoder, TRAIN_IMAGE_PATH, TEST_IMAGE_PATH, RLE_mask_encoding
-from script.model.sklearn_like_model.BaseModel import BaseDatasetCallback, BaseEpochCallback
-from script.model.sklearn_like_model.ImageClf import ImageClf
-from script.model.sklearn_like_model.Top_k_save import Top_k_save
-from script.model.sklearn_like_model.SemanticSegmentation import SemanticSegmentation
+    TRAIN_IMAGE_PATH, TEST_IMAGE_PATH, RLE_mask_encoding
+from script.model.sklearn_like_model.BaseModel import BaseDatasetCallback
+from script.model.sklearn_like_model.TFSummary import TFSummaryParams
 from script.util.PlotTools import PlotTools
-from script.util.numpy_utils import np_img_to_img_scatter, np_img_gray_to_rgb
+from script.util.misc_util import path_join
+from script.util.numpy_utils import *
+import tensorflow as tf
 
 plot = PlotTools(save=True, show=False)
 
@@ -51,61 +49,23 @@ def TGS_salt_metric(mask_true, mask_predict):
     return ret
 
 
-class TGS_salt_aug_callback(BaseDatasetCallback):
-    def __str__(self):
-        return self.__class__.__name__
+def to_dict(**kwargs):
+    return kwargs
 
-    def __repr__(self):
-        return self.__class__.__name__
 
-    def __init__(self, x, y, batch_size):
-        super().__init__(x, y, batch_size)
+def save_tf_summary_params(path, params):
+    with tf.Session() as sess:
+        run_id = params['run_id']
+        path = path_join(path, run_id)
+        summary_params = TFSummaryParams(path, 'params')
+        summary_params.update(sess, params)
+        summary_params.flush()
+        summary_params.close()
+        print(f'TFSummaryParams save at {path}')
 
-        self.seq = iaa.Sequential([
-            iaa.OneOf([
-                iaa.PiecewiseAffine((0.002, 0.1), name='PiecewiseAffine'),
-                iaa.Affine(rotate=(-20, 20)),
-                iaa.Affine(shear=(-45, 45)),
-                iaa.Affine(translate_percent=(0, 0.3), mode='symmetric'),
-                iaa.Affine(translate_percent=(0, 0.3), mode='wrap'),
-                # iaa.PerspectiveTransform((0.0, 0.3))
-            ], name='affine'),
-            iaa.Fliplr(0.5, name="horizontal flip"),
-            # iaa.Crop(percent=(0, 0.3), name='crop'),
 
-            # image only
-            iaa.OneOf([
-                iaa.Add((-45, 45), name='bright'),
-                iaa.Multiply((0.5, 1.5), name='contrast')]
-            ),
-            iaa.OneOf([
-                iaa.AverageBlur((1, 5), name='AverageBlur'),
-                # iaa.BilateralBlur(),
-                iaa.GaussianBlur((0.1, 2), name='GaussianBlur'),
-                # iaa.MedianBlur((1, 7), name='MedianBlur'),
-            ], name='blur'),
-
-            # scale to  128 * 128
-            # iaa.Scale((128, 128), name='to 128 * 128'),
-        ])
-        self.activator = ActivatorMask(['bright', 'contrast', 'AverageBlur', 'GaussianBlur', 'MedianBlur'])
-        self.aug = ImgMaskAug(self.x, self.y, self.seq, self.activator, self.batch_size, n_jobs=4, q_size=4000)
-
-    @property
-    def size(self):
-        return len(self.x)
-
-    def shuffle(self):
-        pass
-
-    def next_batch(self, batch_size, batch_keys=None, update_cursor=True, balanced_class=False, out_type='concat'):
-        x, y = self.aug.get_batch()
-
-        # try:
-        #     plot.plot_image_tile(np.concatenate([x, y]), title='aug')
-        # except BaseException:
-        #     pass
-        return x[:batch_size], y[:batch_size]
+def param_to_string(params):
+    return "_".join([f"{key}={val}" for key, val in params.items()])
 
 
 class data_helper:
@@ -165,175 +125,61 @@ class data_helper:
         return None
 
 
-class Unet_epoch_callback(BaseEpochCallback):
-    def __init__(self, model, test_x, test_y):
-        super().__init__()
-        self.model = model
-        self.plot = plot
-        self.test_x = test_x
-        self.test_y = test_y
+class TGS_salt_aug_callback(BaseDatasetCallback):
+    def __str__(self):
+        return self.__class__.__name__
 
-    def print_TGS_salt_metric(self, dataset, epoch):
-        x, y = dataset.next_batch(100)
-        x = x.reshape([-1, 101, 101, 1])
-        y = y.reshape([-1, 101, 101, 1])
-        predict_train = self.model.predict(x)
-        predict_train = mask_label_encoder.from_label(predict_train)
-        predict_test = self.model.predict(self.test_x)
-        predict_test = mask_label_encoder.from_label(predict_test)
+    def __repr__(self):
+        return self.__class__.__name__
 
-        train_score = TGS_salt_metric(y, predict_train)
-        test_score = TGS_salt_metric(self.test_y, predict_test)
-        tqdm.write(f'TGS_salt_metric train = {train_score}\n'
-                   f'test = {test_score}\n')
+    def __init__(self, x, y, batch_size):
+        super().__init__(x, y, batch_size)
 
-    def plot_mask(self, dataset, epoch):
-        x, y = dataset.next_batch(20)
-        x = x.reshape([-1, 101, 101, 1])
-        y = y.reshape([-1, 101, 101, 1]) * 254
-        predict = self.model.predict(x)
-        proba = self.model.predict_proba(x)
-        proba = proba[:, :, :, 1].reshape([-1, 101, 101, 1]) * 255
-        predict = mask_label_encoder.from_label(predict)
+        self.seq = iaa.Sequential([
+            iaa.OneOf([
+                iaa.PiecewiseAffine((0.002, 0.1), name='PiecewiseAffine'),
+                iaa.Affine(rotate=(-20, 20)),
+                iaa.Affine(shear=(-45, 45)),
+                iaa.Affine(translate_percent=(0, 0.3), mode='symmetric'),
+                iaa.Affine(translate_percent=(0, 0.3), mode='wrap'),
+                # iaa.PerspectiveTransform((0.0, 0.3))
+            ], name='affine'),
+            iaa.Fliplr(0.5, name="horizontal flip"),
+            # iaa.Crop(percent=(0, 0.3), name='crop'),
 
-        def f(*args, size=10):
-            ret = []
-            for i in range(0, len(args[0]), size):
-                for j in range(len(args)):
-                    ret += [args[j][i:i + size]]
+            # image only
+            iaa.OneOf([
+                iaa.Add((-45, 45), name='bright'),
+                iaa.Multiply((0.5, 1.5), name='contrast')]
+            ),
+            iaa.OneOf([
+                iaa.AverageBlur((1, 5), name='AverageBlur'),
+                # iaa.BilateralBlur(),
+                iaa.GaussianBlur((0.1, 2), name='GaussianBlur'),
+                # iaa.MedianBlur((1, 7), name='MedianBlur'),
+            ], name='blur'),
 
-            return np.concatenate(ret, axis=0)
+            # scale to  128 * 128
+            # iaa.Scale((128, 128), name='to 128 * 128'),
+        ])
+        self.activator = ActivatorMask(['bright', 'contrast', 'AverageBlur', 'GaussianBlur', 'MedianBlur'])
+        self.aug = ImgMaskAug(self.x, self.y, self.seq, self.activator, self.batch_size, n_jobs=4, q_size=4000)
 
-        tile = f(x, y, predict, proba)
-        self.plot.plot_image_tile(tile, title=f'predict_epoch({epoch})', column=10,
-                                  path=f'./matplot/{self.model.id}/predict_epoch({epoch}).png')
+    @property
+    def size(self):
+        return len(self.x)
 
-    def __call__(self, dataset, epoch, log=None):
-        self.plot_mask(dataset, epoch)
-        self.print_TGS_salt_metric(dataset, epoch)
+    def shuffle(self):
+        pass
 
+    def next_batch(self, batch_size, batch_keys=None, update_cursor=True, balanced_class=False, out_type='concat'):
+        x, y = self.aug.get_batch()
 
-class SemanticSegmentation_pipeline:
-    def __init__(self):
-        self.data_helper = data_helper()
-        self.plot = plot
-        # self.aug_callback = TGS_salt_aug_callback
-        # self.epoch_callback = epoch_callback
-
-        self.aug_callback = None
-
-        self.epoch_callback = None
-        self.model = None
-
-    def train(self, n_epoch=10, augmentation=False, early_stop=True, patience=20):
-        train_set = self.data_helper.train_set
-
-        x_full, y_full = train_set.full_batch()
-        x_full = x_full.reshape([-1, 101, 101, 1])
-        y_full = y_full.reshape([-1, 101, 101, 1])
-
-        from sklearn.model_selection import train_test_split
-        train_x, test_x, train_y, test_y = train_test_split(
-            x_full, y_full, test_size=0.33)
-
-        train_y_encode = mask_label_encoder.to_label(train_y)
-        test_y_encode = mask_label_encoder.to_label(test_y)
-
-        loss_type = 'pixel_wise_softmax'
-        # loss_type = 'iou'
-        # loss_type = 'dice_soft'
-        channel = 16
-        level = 4
-        learning_rate = 0.02
-        batch_size = 256
-        net_type = 'UNet'
-        self.model = SemanticSegmentation(stage=4, batch_size=batch_size, net_type=net_type,
-                                          Unet_level=level, net_capacity=channel, loss_type=loss_type,
-                                          learning_rate=learning_rate)
-
-        epoch_callback = Unet_epoch_callback(self.model, test_x, test_y)
-        dataset_callback = TGS_salt_aug_callback if augmentation else None
-        self.model.train(train_x, train_y_encode, epoch=n_epoch, aug_callback=dataset_callback,
-                         epoch_callback=epoch_callback, early_stop=early_stop, patience=patience,
-                         iter_pbar=True)
-
-        self.model.save('./instance/Unet')
-
-
-class cnn_EpochCallback(BaseEpochCallback):
-    def __init__(self, model, test_x, test_y, sample_x, sample_y):
-        super().__init__()
-        self.model = model
-        self.test_x = test_x
-        self.test_y = test_y
-        self.sample_x = sample_x
-        self.sample_y = sample_y
-        self.k = 5
-        self.top_k = [np.Inf for _ in range(self.k)]
-        self.top_k_save = Top_k_save('./instance/TGS_salt_cnn_top_k')
-
-    def __call__(self, dataset, epoch, log=None):
-        from sklearn.metrics import confusion_matrix
-        from sklearn.metrics import accuracy_score
-
-        test_predict = self.model.predict(self.test_x)
-        test_score = accuracy_score(self.test_y, test_predict)
-        test_confusion = confusion_matrix(self.test_y, test_predict)
-
-        sample_predict = self.model.predict(self.sample_x)
-        sample_score = accuracy_score(self.sample_y, sample_predict)
-        sample_confusion = confusion_matrix(self.sample_y, sample_predict)
-        log(f'e={epoch}, '
-            f'sample_score = {sample_score}, \n'
-            f'sample_confusion = {sample_confusion}, \n'
-            f'test_score = {test_score}, \n'
-            f'test_confusion ={test_confusion}\n')
-
-        # self.top_k_save(test_score, clf)
-
-
-class cnn_pipeline:
-    def __init__(self):
-        self.data_helper = data_helper()
-        self.plot = plot
-        self.data_helper.train_set.y_keys = ['empty_mask']
-
-    def train(self, n_epoch, augmentation=False, early_stop=True, patience=20):
-        train_set = self.data_helper.train_set
-        train_x, train_y = train_set.full_batch()
-        train_x = train_x.reshape([-1, 101, 101, 1])
-        train_y = train_y.reshape([-1, 1])
-        from sklearn.preprocessing import OneHotEncoder
-        enc = OneHotEncoder()
-        enc.fit(train_y)
-
-        from sklearn.model_selection import train_test_split
-        train_x, test_x, train_y, test_y = train_test_split(
-            train_x, train_y, test_size=0.33)
-
-        train_y_onehot = enc.transform(train_y).toarray()
-        test_y_onehot = enc.transform(test_y).toarray()
-
-        print(np.mean(train_y))
-
-        sample_size = 100
-        sample_x = train_x[:sample_size]
-        sample_y = train_y[:sample_size]
-        sample_y_onehot = train_y_onehot[:sample_size]
-
-        net_capacity = 8
-        net_type = 'InceptionV1'
-        clf = ImageClf(net_type=net_type, net_capacity=net_capacity)
-        Epoch_callback = cnn_EpochCallback(clf, test_x, test_y, sample_x, sample_y)
-        clf.train(train_x, train_y_onehot, epoch=n_epoch, epoch_callback=Epoch_callback,
-                  batch_size=16, iter_pbar=True,
-                  dataset_callback=None, early_stop=early_stop, patience=patience)
-
-        clf.save('./instance/test')
-
-        score = clf.score(sample_x, sample_y_onehot)
-        test_score = clf.score(test_x, test_y_onehot)
-        print(f'score = {score}, test= {test_score}')
+        # try:
+        #     plot.plot_image_tile(np.concatenate([x, y]), title='aug')
+        # except BaseException:
+        #     pass
+        return x[:batch_size], y[:batch_size]
 
 
 def masking_images(image, mask, mask_rate=.8):

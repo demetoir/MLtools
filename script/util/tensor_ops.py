@@ -392,8 +392,11 @@ def collect_vars(scope):
 
 
 def placeholder(dtype, shape, name):
-    if shape[0] == -1:
+    if len(shape) == 0:
+        shape = []
+    elif shape[0] == -1:
         shape[0] = None
+
     return tf.placeholder(dtype=dtype, shape=shape, name=name)
 
 

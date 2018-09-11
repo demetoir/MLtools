@@ -5,7 +5,7 @@ from imgaug import augmenters as iaa
 from script.data_handler.ImgMaskAug import ActivatorMask
 from script.data_handler.TGS_salt import load_sample_image, collect_images, TRAIN_MASK_PATH
 from script.util.PlotTools import PlotTools
-from script.workbench.TGS_salt_inference import TGS_salt_metric
+from script.workbench.TGS_salt.TGS_salt_inference import TGS_salt_metric
 from script.model.sklearn_like_model.Top_k_save import Top_k_save
 
 plot = PlotTools(save=True, show=False)

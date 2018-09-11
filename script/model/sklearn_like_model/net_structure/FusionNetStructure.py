@@ -7,16 +7,14 @@ from script.util.tensor_ops import conv_block, CONV_FILTER_3311, relu, \
 
 class FusionNetStructure(Base_net_structure):
 
-    def __init__(self, x, level=4, n_classes=2, capacity=None, reuse=False, name=None, verbose=0):
+    def __init__(self, x, level=4, n_classes=2, depth=1, capacity=64, reuse=False, name=None, verbose=0):
         super().__init__(capacity, reuse, name, verbose)
 
         self.x = x
         self.level = level
         self.n_classes = n_classes
-        if self.capacity:
-            self.n_channel = capacity
-        else:
-            self.n_channel = 64
+        self.depth = depth
+        self.n_channel = capacity
 
     def build(self):
         self.logit, self.proba = self._recursion_build()
@@ -34,12 +32,14 @@ class FusionNetStructure(Base_net_structure):
         def recursion(stacker, n_channel, level):
             if level == 0:
                 stacker.conv_block(n_channel, CONV_FILTER_3311, relu)
-                stacker.add_layer(_residual_block, n_channel, CONV_FILTER_3311, relu)
+                for i in range(self.depth):
+                    stacker.add_layer(_residual_block, n_channel, CONV_FILTER_3311, relu)
                 stacker.conv_block(n_channel, CONV_FILTER_3311, relu)
             else:
                 # encode
                 stacker.conv_block(n_channel, CONV_FILTER_3311, relu)
-                stacker.add_layer(_residual_block, n_channel, CONV_FILTER_3311, relu)
+                for i in range(self.depth):
+                    stacker.add_layer(_residual_block, n_channel, CONV_FILTER_3311, relu)
                 stacker.conv_block(n_channel, CONV_FILTER_3311, relu)
                 x_add = stacker.last_layer
                 concat = stacker.last_layer
@@ -57,7 +57,8 @@ class FusionNetStructure(Base_net_structure):
                 stacker.residual_add(x_add)
 
                 stacker.conv_block(n_channel, CONV_FILTER_3311, relu)
-                stacker.add_layer(_residual_block, n_channel, CONV_FILTER_3311, relu)
+                for i in range(self.depth):
+                    stacker.add_layer(_residual_block, n_channel, CONV_FILTER_3311, relu)
                 stacker.conv_block(n_channel, CONV_FILTER_3311, relu)
 
             return stacker

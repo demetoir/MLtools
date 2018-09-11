@@ -41,7 +41,7 @@ class BaseEpochCallback:
     def __init__(self):
         pass
 
-    def __call__(self, dataset, epoch, log=None):
+    def __call__(self, sess, dataset, epoch, log=None):
         raise NotImplementedError
 
 
@@ -172,11 +172,12 @@ class BaseModel(LoggerMixIn, input_shapesMixIN, metadataMixIN, paramsMixIn, loss
         :raise NotImplementError
         if not implemented
         """
-        self.global_step = tf.get_variable("global_step", shape=1, initializer=tf.zeros_initializer)
-        self.op_inc_global_step = tf.assign(self.global_step, self.global_step + 1, name='op_inc_global_step')
+        init = tf.constant(0, dtype=tf.int32)
+        self.global_step = tf.get_variable("global_step", initializer=init)
+        self.op_inc_global_step = tf.assign_add(self.global_step, 1, name='op_inc_global_step')
 
-        self.global_epoch = tf.get_variable("global_epoch", shape=1, initializer=tf.zeros_initializer)
-        self.op_inc_global_step = tf.assign(self.global_epoch, self.global_step + 1, name='op_inc_global_epoch')
+        self.global_epoch = tf.get_variable("global_epoch", initializer=init)
+        self.op_inc_global_epoch = tf.assign_add(self.global_epoch, 1, name='op_inc_global_epoch')
 
     def _build_train_ops(self):
         """Load train operation of model
@@ -304,21 +305,23 @@ class BaseModel(LoggerMixIn, input_shapesMixIN, metadataMixIN, paramsMixIn, loss
         epoch_pbar = trange if epoch_pbar else range
         iter_pbar = trange if iter_pbar else range
         metric = None
-        for e in epoch_pbar(1, epoch + 1):
+        for _ in epoch_pbar(1, epoch + 1):
             dataset.shuffle()
             for _ in iter_pbar(int(dataset.size / batch_size)):
                 iter_num += 1
                 self._train_iter(dataset, batch_size)
 
+            self.sess.run(self.op_inc_global_epoch)
+            global_epoch = self.sess.run(self.global_epoch)
             if epoch_callback:
                 try:
-                    epoch_callback(dataset, e, tqdm.write)
+                    epoch_callback(self.sess, dataset, global_epoch, tqdm.write)
                 except BaseException as error:
                     tqdm.write(error_trace(error))
 
             metric = getattr(self, 'metric')(x, y)
             if early_stop:
-                tqdm.write(f'e = {e}, metric = {metric}, recent best = {recent_best}')
+                tqdm.write(f'e = {global_epoch}, metric = {metric}, recent best = {recent_best}')
                 # self.log.info(f'e = {e}, metric = {metric}, best = {last_metric}')
 
                 if recent_best > metric:
@@ -334,7 +337,7 @@ class BaseModel(LoggerMixIn, input_shapesMixIN, metadataMixIN, paramsMixIn, loss
                     # self.log.info(f'early stop')
                     break
             else:
-                tqdm.write(f"e:{e}, i:{iter_num}, metric : {np.mean(metric)}")
+                tqdm.write(f"e:{global_epoch}, i:{iter_num}, metric : {np.mean(metric)}")
                 # self.log.info(f"e:{e}, i:{iter_num}, metric : {np.mean(metric)}")
 
         if dataset_callback:
