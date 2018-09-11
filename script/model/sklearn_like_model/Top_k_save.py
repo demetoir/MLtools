@@ -16,7 +16,10 @@ class Top_k_save:
         if os.path.exists(self.top_k_json_path):
             self.top_k = load_json(self.top_k_json_path)
         else:
-            self.top_k = [np.Inf] + [-np.Inf for _ in range(self.k)]
+            if self.max_best:
+                self.top_k = [np.Inf] + [-np.Inf for _ in range(self.k)]
+            else:
+                self.top_k = [-np.Inf] + [np.Inf for _ in range(self.k)]
 
         if self.save_model:
             for i in range(1, self.k + 1):
@@ -24,9 +27,10 @@ class Top_k_save:
 
     def __call__(self, metric, model):
         metric = float(metric)
+        sign = 1 if self.max_best else -1
         try:
             for i in reversed(range(1, self.k + 1)):
-                if self.top_k[i - 1] >= metric >= self.top_k[i]:
+                if sign * self.top_k[i - 1] >= sign * metric >= sign * self.top_k[i]:
                     # update top_k
                     self.top_k.insert(i, metric)
                     self.top_k.pop(self.k + 1)
