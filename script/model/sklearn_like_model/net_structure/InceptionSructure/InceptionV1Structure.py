@@ -119,7 +119,7 @@ class InceptionV1Structure(BaseInceptionStructure):
             'd1': self.n_channel * 4,
         }
         stacker.add_layer(self.inception_dimension_reduction, channels_4a)
-        self.aux0_logit, self.aux0_proba = self.aux(stacker.last_layer, 64, 'aux0')
+        self.aux0_logit, self.aux0_proba = self.aux(stacker.last_layer, self.n_channel * 4, 'aux0')
         channels_4b = {
             'a0': self.n_channel * 10,
             'b0': self.n_channel * 7,
@@ -147,7 +147,7 @@ class InceptionV1Structure(BaseInceptionStructure):
             'd1': self.n_channel * 4,
         }
         stacker.add_layer(self.inception_dimension_reduction, channels_4d)
-        self.aux1_logit, self.aux1_proba = self.aux(stacker.last_layer, 64, 'aux1')
+        self.aux1_logit, self.aux1_proba = self.aux(stacker.last_layer, self.n_channel * 4, 'aux1')
         channels_4e = {
             'a0': self.n_channel * 16,
             'b0': self.n_channel * 10,
@@ -188,16 +188,15 @@ class InceptionV1Structure(BaseInceptionStructure):
         proba = stacker.last_layer
         return logit, proba
 
-    @staticmethod
-    def stem(stacker, name='stem'):
+    def stem(self,stacker, name='stem'):
         with tf.variable_scope(name):
-            stacker.conv_block(64, CONV_FILTER_7722, relu)
+            stacker.conv_block(self.n_channel * 4, CONV_FILTER_7722, relu)
             stacker.max_pooling(CONV_FILTER_3322)
             # LRN
             # tf.nn.local_response_normalization()
             stacker.bn()
-            stacker.conv_block(64, CONV_FILTER_1111, relu)
-            stacker.conv_block(192, CONV_FILTER_3311, relu)
+            stacker.conv_block(self.n_channel * 4, CONV_FILTER_1111, relu)
+            stacker.conv_block(self.n_channel * 12, CONV_FILTER_3311, relu)
             # LRN
             # tf.nn.local_response_normalization()
             # alpha = 0.0001, k = 1, beta = 0.75, n = 5,
