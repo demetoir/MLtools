@@ -59,6 +59,8 @@ def save_tf_summary_params(path, params):
         path = path_join(path, run_id)
         summary_params = TFSummaryParams(path, 'params')
         summary_params.update(sess, params)
+        summary_params.flush()
+        summary_params.close()
         print(f'TFSummaryParams save at {path}')
 
 
