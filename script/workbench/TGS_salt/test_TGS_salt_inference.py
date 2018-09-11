@@ -6,7 +6,6 @@ from script.data_handler.ImgMaskAug import ActivatorMask
 from script.data_handler.TGS_salt import load_sample_image, collect_images, TRAIN_MASK_PATH
 from script.util.PlotTools import PlotTools
 from script.workbench.TGS_salt.TGS_salt_inference import TGS_salt_metric
-from script.model.sklearn_like_model.Top_k_save import Top_k_save
 
 plot = PlotTools(save=True, show=False)
 
@@ -70,16 +69,6 @@ def test_TGS_salt_aug_callback():
 
     tile = np.concatenate(tile)
     plot.plot_image_tile(tile, title=f'test_image_aug', column=5, )
-
-
-def test_top_k():
-    class dummy_model:
-        def save(self, path):
-            print(f'model save at {path}')
-
-    top_k_save = Top_k_save('./instance/top_k')
-    for i in [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 10, 10, 10, -1, -1, -1]:
-        top_k_save(i, dummy_model())
 
 
 def test_TGS_salt_metric():
