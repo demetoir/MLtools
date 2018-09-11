@@ -107,9 +107,12 @@ class is_emtpy_mask_clf_pipeline:
         self.sample_y = sample_y
         self.sample_y_onehot = sample_y_onehot
 
-    def params(self, run_id=None, learning_rate=0.01, learning_rate_decay_rate=0.99,
-               learning_rate_decay_method=None, beta1=0.9, batch_size=128, net_type='InceptionV1',
-               n_classes=None, capacity=4, ):
+    def params(self, run_id=None,
+               learning_rate=0.01, learning_rate_decay_rate=0.99, learning_rate_decay_method=None, beta1=0.9,
+               batch_size=100,
+               net_type='VGG16', n_classes=2, capacity=64,
+               use_l1_norm=False, l1_norm_rate=0.01,
+               use_l2_norm=False, l2_norm_rate=0.01):
         # net_type = 'InceptionV1'
         net_type = 'InceptionV2'
         # net_type = 'InceptionV4'
@@ -130,6 +133,10 @@ class is_emtpy_mask_clf_pipeline:
             learning_rate=learning_rate,
             beta1=beta1,
             n_classes=2,
+            use_l1_norm=use_l1_norm,
+            l1_norm_rate=l1_norm_rate,
+            use_l2_norm=use_l2_norm,
+            l2_norm_rate=l2_norm_rate,
         )
 
     def train(self, params, n_epoch, augmentation=False, early_stop=True, patience=20):
