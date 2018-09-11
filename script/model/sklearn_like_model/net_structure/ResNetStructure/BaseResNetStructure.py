@@ -92,11 +92,11 @@ class BaseResNetStructure(Base_net_structure):
         return stacker
 
     @staticmethod
-    def foot(stacker, n_classes):
+    def foot(stacker, n_channel, n_classes):
         stacker.avg_pooling(CONV_FILTER_7777)
         stacker.flatten()
-        stacker.linear_block(1000, relu)
-        stacker.linear_block(1000, relu)
+        stacker.linear_block(n_channel * 64, relu)
+        stacker.linear_block(n_channel * 64, relu)
         stacker.linear(n_classes)
         logit = stacker.last_layer
         stacker.softmax()
@@ -113,4 +113,4 @@ class BaseResNetStructure(Base_net_structure):
             self.stacker.resize_image((224, 224))
             self.stacker = self.head(self.stacker)
             self.stacker = self.body(self.stacker)
-            self.logit, self.proba = self.foot(self.stacker, self.n_classes)
+            self.logit, self.proba = self.foot(self.stacker, self.n_channel, self.n_classes)
