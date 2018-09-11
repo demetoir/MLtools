@@ -11,7 +11,6 @@ from script.model.sklearn_like_model.net_structure.ResNetStructure.ResNet18Struc
 from script.model.sklearn_like_model.net_structure.ResNetStructure.ResNet34Structure import ResNet34Structure
 from script.model.sklearn_like_model.net_structure.ResNetStructure.ResNet50Structure import ResNet50Structure
 from script.model.sklearn_like_model.net_structure.VGG16Structure import VGG16Structure
-from script.util.Stacker import Stacker
 from script.util.tensor_ops import *
 
 
@@ -74,18 +73,6 @@ class ImageClf(
         ret.update(self._build_Xs_input_shape(shapes))
         ret.update(self._build_Ys_input_shape(shapes))
         return ret
-
-    def classifier(self, Xs, net_shapes, name='classifier'):
-        with tf.variable_scope(name):
-            layer = Stacker(flatten(Xs))
-
-            for net_shape in net_shapes:
-                layer.linear_block(net_shape, relu)
-
-            layer.linear(self.Y_flatten_size)
-            logit = layer.last_layer
-            h = softmax(logit)
-        return logit, h
 
     def _build_main_graph(self):
         self.Xs = tf.placeholder(tf.float32, self.Xs_shape, name='Xs')
