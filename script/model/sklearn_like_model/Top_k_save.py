@@ -23,6 +23,7 @@ class Top_k_save:
                 setup_directory(path_join(self.path, f'top_{i}'))
 
     def __call__(self, metric, model):
+        metric = float(metric)
         try:
             for i in reversed(range(1, self.k + 1)):
                 if self.top_k[i - 1] >= metric >= self.top_k[i]:
@@ -60,4 +61,3 @@ class Top_k_save:
         except BaseException as e:
             print(error_trace(e))
             raise RuntimeError(f'while Top k save, raise {e}')
-
