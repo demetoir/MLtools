@@ -1,39 +1,34 @@
+import tensorflow as tf
 from pprint import pprint
 from script.model.sklearn_like_model.BaseModel import BaseEpochCallback
 from script.model.sklearn_like_model.ImageClf import ImageClf
-from script.model.sklearn_like_model.TFSummary import TFSummary
+from script.model.sklearn_like_model.TFSummary import TFSummaryParams, TFSummaryScalar
 from script.model.sklearn_like_model.Top_k_save import Top_k_save
+from script.util.misc_util import time_stamp, path_join
 from script.util.numpy_utils import *
-from script.workbench.TGS_salt.TGS_salt_inference import data_helper, plot, to_dict, param_to_string
+from script.workbench.TGS_salt.TGS_salt_inference import data_helper, plot, to_dict
 
 
 class cnn_EpochCallback(BaseEpochCallback):
-    def __init__(self, model, train_x, train_y, test_x, test_y, params, encoder):
+    def __init__(self, model, train_x, train_y, test_x, test_y, params):
         super().__init__()
         self.train_x = train_x
         self.train_y = train_y
         self.model = model
         self.test_x = test_x
         self.test_y = test_y
-
         self.params = params
-        self.encoder = encoder
 
         self.k = 5
         self.top_k = [np.Inf for _ in range(self.k)]
-        self.base_path = f'./instance/TGS_salt/empty_mask_clf'
 
-        params_str = "_".join([f"{key}={val}" for key, val in self.params.items()])
-        self.top_k_save = Top_k_save(f'.\\instance\\TGS_salt\\empty_mask_clf\\{params_str}\\top_k')
-
-        self.summary_train_loss = None
-        self.summary_train_acc = None
-        self.summary_test_acc = None
-
-        self.summary_train_loss = TFSummary(f'./tf_summary/TGS_salt/empty_mask_clf/{params_str}/train', 'train_loss')
-        self.summary_train_acc = TFSummary(f'./tf_summary/TGS_salt/empty_mask_clf/{params_str}/train', 'train_acc')
-        self.summary_test_acc = TFSummary(f'./tf_summary/TGS_salt/empty_mask_clf/{params_str}/test', 'test_acc')
-        # self.summary_params = TFSummary()
+        self.run_id = self.params['run_id']
+        run_id = self.run_id
+        self.base_path = path_join(f'./tf_summary/TGS_salt/empty_mask_clf', run_id)
+        self.top_k_save = Top_k_save(path_join(self.base_path, 'top_k'))
+        self.summary_train_loss = TFSummaryScalar(path_join(self.base_path, 'train'), 'train_loss')
+        self.summary_train_acc = TFSummaryScalar(path_join(self.base_path, 'train'), 'train_acc')
+        self.summary_test_acc = TFSummaryScalar(path_join(self.base_path, 'test'), 'test_acc')
 
     def log_score(self, epoch, log):
         from sklearn.metrics import confusion_matrix
@@ -64,7 +59,7 @@ class cnn_EpochCallback(BaseEpochCallback):
     def __call__(self, sess, dataset, epoch, log=None):
         self.log_score(epoch, log)
         self.update_summary(sess, epoch)
-        # self.top_k_save(self.test_score, self.model)
+        self.top_k_save(self.test_score, self.model)
 
 
 class is_emtpy_mask_clf_pipeline:
@@ -74,7 +69,7 @@ class is_emtpy_mask_clf_pipeline:
         self.data_helper.train_set.y_keys = ['empty_mask']
 
         self.init_dataset()
-        self.base_path = f'./instance/TGS_salt/empty_mask_clf'
+        self.base_path = f'./tf_summary/TGS_salt/empty_mask_clf'
 
     def init_dataset(self):
         train_set = self.data_helper.train_set
@@ -110,7 +105,7 @@ class is_emtpy_mask_clf_pipeline:
         self.sample_y = sample_y
         self.sample_y_onehot = sample_y_onehot
 
-    def params(self, run, learning_rate=0.01, learning_rate_decay_rate=0.99,
+    def params(self, run_id=None, learning_rate=0.01, learning_rate_decay_rate=0.99,
                learning_rate_decay_method=None, beta1=0.9, batch_size=128, net_type='InceptionV1',
                n_classes=None, capacity=4, ):
         # net_type = 'InceptionV1'
@@ -122,8 +117,11 @@ class is_emtpy_mask_clf_pipeline:
         # net_type = 'ResNet101'
         # net_type = 'ResNet152'
 
+        if run_id is None:
+            run_id = time_stamp()
+
         return to_dict(
-            run=run,
+            run_id=run_id,
             batch_size=batch_size,
             net_type=net_type,
             capacity=capacity,
@@ -132,9 +130,16 @@ class is_emtpy_mask_clf_pipeline:
             n_classes=2,
         )
 
+    @staticmethod
+    def save_tf_summary_params(params):
+        with tf.Session() as sess:
+            run_id = params['run_id']
+            summary_params = TFSummaryParams(f'./tf_summary/TGS_salt/empty_mask_clf/{run_id}', 'params')
+            summary_params.update(sess, params)
+
     def train(self, params, n_epoch, augmentation=False, early_stop=True, patience=20):
+        self.save_tf_summary_params(params)
         pprint(f'train {params}')
-        params_str = param_to_string(params)
 
         clf = ImageClf(**params)
         epoch_callback = cnn_EpochCallback(
@@ -142,13 +147,10 @@ class is_emtpy_mask_clf_pipeline:
             self.train_x, self.train_y_onehot,
             self.test_x, self.test_y_onehot,
             params,
-            self.enc
         )
 
         clf.train(self.train_x, self.train_y_onehot, epoch=n_epoch, epoch_callback=epoch_callback,
                   iter_pbar=True, dataset_callback=None, early_stop=early_stop, patience=patience)
-
-        clf.save(f'./instance/TGS_salt/empty_mask_clf/{params_str}')
 
         score = clf.score(self.sample_x, self.sample_y_onehot)
         test_score = clf.score(self.test_x, self.test_y_onehot)
