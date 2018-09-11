@@ -6,8 +6,11 @@ from script.data_handler.ImgMaskAug import ActivatorMask, ImgMaskAug
 from script.data_handler.TGS_salt import collect_images, TRAIN_MASK_PATH, TGS_salt, \
     TRAIN_IMAGE_PATH, TEST_IMAGE_PATH, RLE_mask_encoding
 from script.model.sklearn_like_model.BaseModel import BaseDatasetCallback
+from script.model.sklearn_like_model.TFSummary import TFSummaryParams
 from script.util.PlotTools import PlotTools
+from script.util.misc_util import path_join
 from script.util.numpy_utils import *
+import tensorflow as tf
 
 plot = PlotTools(save=True, show=False)
 
@@ -48,6 +51,15 @@ def TGS_salt_metric(mask_true, mask_predict):
 
 def to_dict(**kwargs):
     return kwargs
+
+
+def save_tf_summary_params(path, params):
+    with tf.Session() as sess:
+        run_id = params['run_id']
+        path = path_join(path, run_id)
+        summary_params = TFSummaryParams(path, 'params')
+        summary_params.update(sess, params)
+        print(f'TFSummaryParams save at {path}')
 
 
 def param_to_string(params):
