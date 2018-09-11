@@ -1,3 +1,4 @@
+from script.model.TFNormalize import TFL1Normalize, TFL2Normalize
 from script.model.sklearn_like_model.BaseModel import BaseModel
 from script.model.sklearn_like_model.Mixin import Xs_MixIn, Ys_MixIn, supervised_trainMethodMixIn, predictMethodMixIn, \
     predict_probaMethodMixIn, scoreMethodMixIn, supervised_metricMethodMixIn
@@ -37,8 +38,11 @@ class ImageClf(
     }
 
     def __init__(self, verbose=10, learning_rate=0.01, learning_rate_decay_rate=0.99,
-                 learning_rate_decay_method=None, beta1=0.9, batch_size=100, net_type='VGG16',
-                 n_classes=2, capacity=64, **kwargs):
+                 learning_rate_decay_method=None, beta1=0.9, batch_size=100,
+                 net_type='VGG16', n_classes=2, capacity=64,
+                 use_l1_norm=False, l1_norm_rate=0.01,
+                 use_l2_norm=False, l2_norm_rate=0.01,
+                 **kwargs):
         BaseModel.__init__(self, verbose, **kwargs)
         Xs_MixIn.__init__(self)
         Ys_MixIn.__init__(self)
@@ -56,6 +60,11 @@ class ImageClf(
         self.learning_rate_decay_rate = learning_rate_decay_rate
         self.learning_rate = learning_rate
         self.net_capacity = capacity
+
+        self.use_l1_norm = use_l1_norm
+        self.l1_norm_rate = l1_norm_rate
+        self.use_l2_norm = use_l2_norm
+        self.l2_norm_rate = l2_norm_rate
 
         self.net_structure = None
         self.net_structure_class = self.net_structure_class_dict[self.net_type]
@@ -104,16 +113,21 @@ class ImageClf(
     def _build_loss_function(self):
         self.loss = tf.nn.softmax_cross_entropy_with_logits_v2(labels=self.Ys, logits=self._logit)
 
-        # todo normalize term
-        # self.l1_norm_penalty = L1_norm(self.vars, lambda_=self.l1_norm_lambda)
-        # self.l1_norm_penalty_mean = tf.reduce_mean(self.l1_norm_penalty, name='l1_norm_penalty_mean')
-        # # self.l1_norm_penalty *= wall_decay(0.999, self.global_step, 100)
-        # self.l2_norm_penalty = L2_norm(self.vars, lambda_=self.l2_norm_lambda)
-        # self.l2_norm_penalty_mean = tf.reduce_mean(self.l2_norm_penalty, name='l2_norm_penalty_mean')
-        #
+        if self.use_l1_norm:
+            self.l1_norm = TFL1Normalize(self.net_structure.vars, self.l1_norm_rate)
+            self.l1_norm.build()
+            self.loss += self.l1_norm.penalty
+
+        if self.use_l2_norm:
+            self.l2_norm = TFL2Normalize(self.net_structure.vars, self.l1_norm_rate)
+            self.l2_norm.build()
+            self.loss += self.l2_norm.penalty
+
+        # TODO
         # self.loss = self.loss + self.l1_norm_penalty
         # # average top k loss
         # self.loss = average_top_k_loss(self.loss, self.K_average_top_k_loss)
+
         self._metric_ops = self.loss
 
     def _build_train_ops(self):
