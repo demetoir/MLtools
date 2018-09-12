@@ -114,7 +114,7 @@ class is_emtpy_mask_clf_pipeline:
                use_l1_norm=False, l1_norm_rate=0.01,
                use_l2_norm=False, l2_norm_rate=0.01):
         # net_type = 'InceptionV1'
-        net_type = 'InceptionV2'
+        # net_type = 'InceptionV2'
         # net_type = 'InceptionV4'
         # net_type = 'ResNet18'
         # net_type = 'ResNet34'
