@@ -320,6 +320,10 @@ class BaseModel(LoggerMixIn, input_shapesMixIN, metadataMixIN, paramsMixIn, loss
                     tqdm.write(error_trace(error))
 
             metric = getattr(self, 'metric')(x, y)
+            if metric in (np.nan, np.inf, -np.inf):
+                tqdm.write(f'train fail, e = {global_epoch}, metric = {metric}, recent best = {recent_best}')
+                break
+
             if early_stop:
                 tqdm.write(f'e = {global_epoch}, metric = {metric}, recent best = {recent_best}')
                 # self.log.info(f'e = {e}, metric = {metric}, best = {last_metric}')
