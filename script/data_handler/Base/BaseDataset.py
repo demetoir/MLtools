@@ -271,8 +271,8 @@ class BaseDataset(LoggerMixIn, PickleMixIn, metaclass=MetaDataset):
             batch = np.vstack(batch)
             batch = batch.reshape([batch_size, -1])
 
-        if batch.ndim >= 2 and batch.shape[1] == 1:
-            batch = batch.reshape([batch_size])
+        # if batch.ndim >= 2 and batch.shape[1] == 1:
+        #     batch = batch.reshape([batch_size])
 
         return batch
 
