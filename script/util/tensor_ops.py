@@ -508,6 +508,10 @@ def pixel_wise_softmax(output_map, name='pixel_wise_softmax', reuse=False):
         return exponential_map / normalize
 
 
+def MAE_loss(x, y, name='MAE'):
+    return tf.identity(tf.reduce_mean(tf.abs(x - y)), name=name)
+
+
 def MSE_loss(x, y, name='MSE'):
     return tf.identity(tf.reduce_mean((x - y) * (x - y)), name=name)
 
