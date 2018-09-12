@@ -338,9 +338,13 @@ class PlotTools(LoggerMixIn):
         fig = self.figure
 
         for idx, (xy, (marker, color)) in enumerate(zip(np_arr, scatter_markers)):
-            # print(xy)
             x, y = xy[:, 0], xy[:, 1]
-            self.plt.scatter(x, y, marker_size, color, marker, label=str(idx))
+
+            if labels:
+                label = labels[idx]
+            else:
+                label = str(idx)
+            self.plt.scatter(x, y, marker_size, color, marker, label=label)
 
         self.plt.legend(loc='center left', bbox_to_anchor=(1, 0.5))
 
