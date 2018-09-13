@@ -87,6 +87,7 @@ def np_img_to_tile(np_imgs, column_size=10, padding=3, padding_value=0):
     :param np_imgs: numpy images
     numpy image shape expect NHWC
     :param column_size: column size of grid tile image
+    :param padding_value: value to padding area
 
     :return: gird tiled numpy image(HWC shape)
     """
