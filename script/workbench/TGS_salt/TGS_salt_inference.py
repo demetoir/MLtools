@@ -290,9 +290,9 @@ class experiment:
 
         masked = []
         mean = []
-        for image, mask, id in zip(images, masks, ids):
+        for image, mask, id_ in zip(images, masks, ids):
             a = np.sum(mask) / (101 * 101 * 1 * 255)
-            print(id, a)
+            print(id_, a)
             if a > 0.6:
                 masked += [masking_images(image, mask)]
                 mean += [a]
@@ -315,9 +315,9 @@ class experiment:
 
         masked = []
         mean = []
-        for image, mask, id in zip(images, masks, ids):
+        for image, mask, id_ in zip(images, masks, ids):
             a = np.sum(image) / (101 * 101 * 3 * 255)
-            print(id, a)
+            print(id_, a)
             if a > 0.85:
                 masked += [masking_images(image, mask)]
                 mean += [a]
@@ -341,9 +341,9 @@ class experiment:
 
         masked = []
         mean = []
-        for image, mask, id in zip(images, masks, ids):
+        for image, mask, id_ in zip(images, masks, ids):
             a = np.sum(image) / (101 * 101 * 3 * 255)
-            print(id, a)
+            print(id_, a)
             if a < 0.20:
                 masked += [masking_images(image, mask)]
                 mean += [a]
@@ -365,14 +365,14 @@ class experiment:
         masks = masks.reshape([-1, 101, 101])
 
         masked = []
-        for image, mask, id in zip(images, masks, ids):
+        for image, mask, id_ in zip(images, masks, ids):
             rle_mask = RLE_mask_encoding(mask.reshape([101, 101]).transpose())
             n_rle_mask = len(rle_mask)
             a = n_rle_mask
             mask_area = np.sum(mask) / (101 * 101 * 255)
 
             if 0 < a / 2 < 8 and 0.1 < mask_area < 0.99:
-                print(id, a, rle_mask)
+                print(id_, a, rle_mask)
                 masked += [masking_images(image, mask)]
 
         masked = np.array(masked)
