@@ -62,19 +62,15 @@ class ImgMaskAug(LoggerMixIn):
 
             self.workers += [worker]
 
-    def terminate(self):
-        self.join_signal.set()
-        time.sleep(0.01)
+    def __enter__(self):
+        return self
 
-        while True:
-            try:
-                self.q.get(timeout=0.1)
-            except QueueEmpty:
-                break
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.terminate()
+        return True
 
-        for worker in self.workers:
-            worker.terminate()
-            worker.join()
+    def __del__(self):
+        self.terminate()
 
     def _iter_augment(self, images, masks, batch_size, aug_seq, hook_func, queue, join_signal, finish_signal):
         try:
@@ -101,6 +97,20 @@ class ImgMaskAug(LoggerMixIn):
         finally:
             finish_signal.set()
 
+    def terminate(self):
+        self.join_signal.set()
+        time.sleep(0.01)
+
+        while True:
+            try:
+                self.q.get(timeout=0.1)
+            except QueueEmpty:
+                break
+
+        for worker in self.workers:
+            worker.terminate()
+            worker.join()
+
     def get_batch(self):
         while True:
             try:
@@ -112,12 +122,5 @@ class ImgMaskAug(LoggerMixIn):
 
         return image, mask
 
-    def __enter__(self):
-        return self
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        self.terminate()
-        return True
 
-    def __del__(self):
-        self.terminate()
