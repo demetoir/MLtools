@@ -1,6 +1,6 @@
 from pprint import pprint
 
-from script.model.TFNormalize import TFL1Normalize, TFL2Normalize
+from script.model.sklearn_like_model.TFNormalize import TFL1Normalize, TFL2Normalize
 from script.model.sklearn_like_model.BaseModel import BaseEpochCallback
 from script.model.sklearn_like_model.BaseModel import BaseModel
 from script.model.sklearn_like_model.Mixin import Xs_MixIn, Ys_MixIn, supervised_trainMethodMixIn, predictMethodMixIn, \
