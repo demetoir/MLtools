@@ -126,7 +126,7 @@ class data_helper:
 
 
 class TGS_salt_aug_callback(BaseDatasetCallback):
-    def __init__(self, x, y, batch_size):
+    def __init__(self, x, y, batch_size, n_job=4, q_size=1000):
         super().__init__(x, y, batch_size)
 
         self.seq = iaa.Sequential([
@@ -157,7 +157,7 @@ class TGS_salt_aug_callback(BaseDatasetCallback):
             # iaa.Scale((128, 128), name='to 128 * 128'),
         ])
         self.activator = ActivatorMask(['bright', 'contrast', 'AverageBlur', 'GaussianBlur', 'MedianBlur'])
-        self.aug = ImgMaskAug(self.x, self.y, self.seq, self.activator, self.batch_size, n_jobs=1, q_size=4000)
+        self.aug = ImgMaskAug(self.x, self.y, self.seq, self.activator, self.batch_size, n_jobs=n_job, q_size=q_size)
 
     def __str__(self):
         return self.__class__.__name__
