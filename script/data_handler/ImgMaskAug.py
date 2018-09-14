@@ -5,6 +5,7 @@ from queue import Empty as QueueEmpty, Full as QueueFull
 from script.data_handler.Base.BaseDataset import BaseDataset
 from script.util.MixIn import LoggerMixIn
 from script.util.misc_util import error_trace
+from script.workbench.NpSharedObj import NpSharedObj
 
 
 class ActivatorMask:
@@ -42,12 +43,14 @@ class ImgMaskAug(LoggerMixIn):
             finished_signal = mp.Event()
             self.finished_signals += [finished_signal]
 
+            shared_images = NpSharedObj.from_np(self.images)
+            shared_masks = NpSharedObj.from_np(self.masks)
             worker = mp.Process(
                 target=ImgMaskAug._iter_augment,
                 args=(
                     None,
-                    self.images,
-                    self.masks,
+                    shared_images.encode(),
+                    shared_masks.encode(),
                     self.n_batch,
                     self.aug_seq,
                     self.hook_func,
@@ -74,6 +77,8 @@ class ImgMaskAug(LoggerMixIn):
 
     def _iter_augment(self, images, masks, batch_size, aug_seq, hook_func, queue, join_signal, finish_signal):
         try:
+            images = NpSharedObj.decode(images).np
+            masks = NpSharedObj.decode(masks).np
             dataset = BaseDataset(x=images, y=masks)
 
             while True:
@@ -121,6 +126,3 @@ class ImgMaskAug(LoggerMixIn):
                 pass
 
         return image, mask
-
-
-
