@@ -297,7 +297,7 @@ class BaseModel(LoggerMixIn, input_shapesMixIN, metadataMixIN, paramsMixIn, loss
               **kwargs):
         self._prepare_train(Xs=x, Ys=y)
         batch_size = getattr(self, 'batch_size') if batch_size is None else batch_size
-        dataset = dataset_callback(x, y, batch_size) if dataset_callback else BaseDataset(x=x, y=y)
+        dataset = dataset_callback if dataset_callback else BaseDataset(x=x, y=y)
         epoch_callback = epoch_callback if epoch_callback else None
         recent_best = np.Inf
         patience_count = 0
