@@ -80,7 +80,6 @@ class ImgMaskAug(LoggerMixIn):
             images = NpSharedObj.decode(images).np
             masks = NpSharedObj.decode(masks).np
             dataset = BaseDataset(x=images, y=masks)
-
             while True:
                 image, mask = dataset.next_batch(batch_size, balanced_class=False)
                 seq_det = aug_seq.to_deterministic()
@@ -111,6 +110,9 @@ class ImgMaskAug(LoggerMixIn):
                 self.q.get(timeout=0.1)
             except QueueEmpty:
                 break
+            except BaseException as e:
+                print(error_trace(e))
+                break
 
         for worker in self.workers:
             worker.terminate()
@@ -122,7 +124,7 @@ class ImgMaskAug(LoggerMixIn):
                 image, mask = self.q.get(timeout=0.01)
                 break
             except QueueEmpty:
-                print(f'queue is empt, bottle neck occur, need to raise n_jobs')
+                # print(f'queue is empt, bottle neck occur, need to raise n_jobs')
                 pass
 
         return image, mask
