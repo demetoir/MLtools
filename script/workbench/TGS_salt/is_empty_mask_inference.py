@@ -25,16 +25,13 @@ class cnn_EpochCallback(BaseEpochCallback):
         self.test_y = test_y
         self.params = params
 
-        self.k = 5
-        self.top_k = [np.Inf for _ in range(self.k)]
-
         self.run_id = self.params['run_id']
 
         self.summary_train_loss = TFSummaryScalar(path_join(SUMMARY_PATH, self.run_id, 'train'), 'train_loss')
         self.summary_train_acc = TFSummaryScalar(path_join(SUMMARY_PATH, self.run_id, 'train'), 'train_acc')
         self.summary_test_acc = TFSummaryScalar(path_join(SUMMARY_PATH, self.run_id, 'test'), 'test_acc')
 
-        self.top_k_save = Top_k_save(path_join(INSTANCE_PATH, self.run_id, 'top_k'))
+        self.top_k_save = Top_k_save(path_join(INSTANCE_PATH, self.run_id, 'top_k'), k=1)
 
     def log_score(self, epoch, log):
         from sklearn.metrics import confusion_matrix
@@ -69,39 +66,39 @@ class cnn_EpochCallback(BaseEpochCallback):
 
 
 class aug_callback(BaseDatasetCallback):
-    def __init__(self, x, y, batch_size, n_job=4, q_size=512, enc=None):
+    def __init__(self, x, y, batch_size, n_job=2, q_size=100, enc=None):
         super().__init__(x, y, batch_size)
 
-        sometimes = lambda aug: iaa.Sometimes(0.10, aug)
+        sometimes = lambda aug: iaa.Sometimes(0.5, aug)
         self.seq = iaa.Sequential([
-            sometimes(
-                iaa.OneOf([
-                    # iaa.PiecewiseAffine((0.002, 0.1), name='PiecewiseAffine'),
-                    iaa.Affine(rotate=(-10, 10)),
-                    iaa.Affine(shear=(-20, 20)),
-                    iaa.Affine(translate_percent=(0, 0.2), mode='symmetric'),
-                    iaa.Affine(translate_percent=(0, 0.2), mode='wrap'),
-                    # iaa.PerspectiveTransform((0.0, 0.3))
-                ], name='affine')
-            ),
-            sometimes(iaa.Fliplr(0.5, name="horizontal flip")),
-            sometimes(iaa.Crop(percent=(0, 0.2), name='crop')),
+            # sometimes(
+            #     iaa.OneOf([
+            #         # iaa.PiecewiseAffine((0.002, 0.1), name='PiecewiseAffine'),
+            #         iaa.Affine(rotate=(-10, 10)),
+            #         iaa.Affine(shear=(-20, 20)),
+            #         iaa.Affine(translate_percent=(0, 0.2), mode='symmetric'),
+            #         iaa.Affine(translate_percent=(0, 0.2), mode='wrap'),
+            #         # iaa.PerspectiveTransform((0.0, 0.3))
+            #     ], name='affine')
+            # ),
+            iaa.Fliplr(0.5, name="horizontal flip"),
+            # sometimes(iaa.Crop(percent=(0, 0.2), name='crop')),
 
             # image only
-            sometimes(
-                iaa.OneOf([
-                    iaa.Add((-45, 45), name='bright'),
-                    iaa.Multiply((0.5, 1.5), name='contrast')]
-                )
-            ),
-            sometimes(
-                iaa.OneOf([
-                    iaa.AverageBlur((1, 5), name='AverageBlur'),
-                    # iaa.BilateralBlur(),
-                    iaa.GaussianBlur((0.1, 2), name='GaussianBlur'),
-                    # iaa.MedianBlur((1, 7), name='MedianBlur'),
-                ], name='blur')
-            ),
+            # sometimes(
+            #     iaa.OneOf([
+            #         iaa.Add((-45, 45), name='bright'),
+            #         iaa.Multiply((0.5, 1.5), name='contrast')]
+            #     )
+            # ),
+            # sometimes(
+            #     iaa.OneOf([
+            #         iaa.AverageBlur((1, 5), name='AverageBlur'),
+            #         # iaa.BilateralBlur(),
+            #         iaa.GaussianBlur((0.1, 2), name='GaussianBlur'),
+            #         # iaa.MedianBlur((1, 7), name='MedianBlur'),
+            #     ], name='blur')
+            # ),
 
             # scale to  128 * 128
             # iaa.Scale((128, 128), name='to 128 * 128'),
@@ -199,7 +196,7 @@ class is_emtpy_mask_clf_pipeline:
                batch_size=100,
                net_type='VGG16', n_classes=2, capacity=64,
                use_l1_norm=False, l1_norm_rate=0.01,
-               use_l2_norm=False, l2_norm_rate=0.01, comment=None):
+               use_l2_norm=False, l2_norm_rate=0.01, comment=''):
         # net_type = 'InceptionV1'
         # net_type = 'InceptionV2'
         # net_type = 'InceptionV4'
@@ -227,11 +224,14 @@ class is_emtpy_mask_clf_pipeline:
             comment=comment,
         )
 
-    def train(self, params, n_epoch, augmentation=False, early_stop=True, patience=20):
+    def train(self, params, n_epoch, augmentation=False, early_stop=True, patience=20, path=None):
         save_tf_summary_params(SUMMARY_PATH, params)
         pprint(f'train {params}')
 
-        clf = ImageClf(**params)
+        if path:
+            clf = ImageClf(**params).load(path)
+        else:
+            clf = ImageClf(**params)
         epoch_callback = cnn_EpochCallback(
             clf,
             self.train_x, self.train_y_onehot,
@@ -240,18 +240,17 @@ class is_emtpy_mask_clf_pipeline:
         )
 
         if augmentation:
+            clf.train(self.train_x, self.train_y_onehot, epoch=30, epoch_callback=epoch_callback,
+                      iter_pbar=True, dataset_callback=None, early_stop=early_stop, patience=patience)
+
             dataset_callback = aug_callback(
                 self.aug_train_x,
                 self.aug_train_y,
                 params['batch_size'],
                 enc=self.enc
             )
-            clf.train(self.train_x, self.train_y_onehot, epoch=n_epoch, epoch_callback=epoch_callback,
+            clf.train(self.train_x, self.train_y_onehot, epoch=n_epoch - 30, epoch_callback=epoch_callback,
                       iter_pbar=True, dataset_callback=dataset_callback, early_stop=early_stop, patience=patience)
         else:
             clf.train(self.train_x, self.train_y_onehot, epoch=n_epoch, epoch_callback=epoch_callback,
                       iter_pbar=True, dataset_callback=None, early_stop=early_stop, patience=patience)
-
-        score = clf.score(self.sample_x, self.sample_y_onehot)
-        test_score = clf.score(self.test_x, self.test_y_onehot)
-        print(f'score = {score}, test= {test_score}')
