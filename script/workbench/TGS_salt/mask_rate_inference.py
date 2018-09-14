@@ -262,7 +262,7 @@ class mask_rate_reg_pipeline:
                learning_rate_decay_method=None, beta1=0.9, batch_size=100,
                net_type='VGG16', capacity=64, loss_type='MSE',
                use_l1_norm=False, l1_norm_rate=0.01,
-               use_l2_norm=False, l2_norm_rate=0.01, ):
+               use_l2_norm=False, l2_norm_rate=0.01, comment=None):
         # net_type = 'InceptionV1'
         # net_type = 'InceptionV2'
         # net_type = 'InceptionV4'
@@ -287,6 +287,7 @@ class mask_rate_reg_pipeline:
             l1_norm_rate=l1_norm_rate,
             use_l2_norm=use_l2_norm,
             l2_norm_rate=l2_norm_rate,
+            comment=comment
         )
 
     def train(self, params, n_epoch, augmentation=False, early_stop=True, patience=20):
