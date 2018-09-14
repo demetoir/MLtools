@@ -1,11 +1,14 @@
 from pprint import pprint
-from script.model.sklearn_like_model.BaseModel import BaseEpochCallback
+
+from script.data_handler.ImgMaskAug import ActivatorMask, ImgMaskAug
+from script.model.sklearn_like_model.BaseModel import BaseEpochCallback, BaseDatasetCallback
 from script.model.sklearn_like_model.ImageClf import ImageClf
 from script.model.sklearn_like_model.TFSummary import TFSummaryScalar
 from script.model.sklearn_like_model.Top_k_save import Top_k_save
 from script.util.misc_util import time_stamp, path_join
 from script.util.numpy_utils import *
 from script.workbench.TGS_salt.TGS_salt_inference import data_helper, plot, to_dict, save_tf_summary_params
+from imgaug import augmenters as iaa
 
 SUMMARY_PATH = f'./tf_summary/TGS_salt/empty_mask_clf'
 INSTANCE_PATH = f'./instance/TGS_salt/empty_mask_clf'
@@ -65,16 +68,86 @@ class cnn_EpochCallback(BaseEpochCallback):
         self.top_k_save(self.test_score, self.model)
 
 
+class aug_callback(BaseDatasetCallback):
+    def __init__(self, x, y, batch_size, n_job=4, q_size=512, enc=None):
+        super().__init__(x, y, batch_size)
+
+        sometimes = lambda aug: iaa.Sometimes(0.10, aug)
+        self.seq = iaa.Sequential([
+            sometimes(
+                iaa.OneOf([
+                    # iaa.PiecewiseAffine((0.002, 0.1), name='PiecewiseAffine'),
+                    iaa.Affine(rotate=(-10, 10)),
+                    iaa.Affine(shear=(-20, 20)),
+                    iaa.Affine(translate_percent=(0, 0.2), mode='symmetric'),
+                    iaa.Affine(translate_percent=(0, 0.2), mode='wrap'),
+                    # iaa.PerspectiveTransform((0.0, 0.3))
+                ], name='affine')
+            ),
+            sometimes(iaa.Fliplr(0.5, name="horizontal flip")),
+            sometimes(iaa.Crop(percent=(0, 0.2), name='crop')),
+
+            # image only
+            sometimes(
+                iaa.OneOf([
+                    iaa.Add((-45, 45), name='bright'),
+                    iaa.Multiply((0.5, 1.5), name='contrast')]
+                )
+            ),
+            sometimes(
+                iaa.OneOf([
+                    iaa.AverageBlur((1, 5), name='AverageBlur'),
+                    # iaa.BilateralBlur(),
+                    iaa.GaussianBlur((0.1, 2), name='GaussianBlur'),
+                    # iaa.MedianBlur((1, 7), name='MedianBlur'),
+                ], name='blur')
+            ),
+
+            # scale to  128 * 128
+            # iaa.Scale((128, 128), name='to 128 * 128'),
+        ])
+        self.activator = ActivatorMask(['bright', 'contrast', 'AverageBlur', 'GaussianBlur', 'MedianBlur'])
+        self.aug = ImgMaskAug(self.x, self.y, self.seq, self.activator, self.batch_size, n_jobs=n_job, q_size=q_size)
+
+        self.enc = enc
+
+    def __str__(self):
+        return self.__class__.__name__
+
+    def __repr__(self):
+        return self.__class__.__name__
+
+    @property
+    def size(self):
+        return len(self.x)
+
+    def shuffle(self):
+        pass
+
+    def next_batch(self, batch_size, batch_keys=None, update_cursor=True, balanced_class=False, out_type='concat'):
+        x, y = self.aug.get_batch()
+        y = y.reshape([batch_size, -1])
+        y = np.mean(y, axis=1)
+        y = y == 0
+        y = y.reshape([-1, 1])
+        y = self.enc.transform(y).toarray()
+
+        return x[:batch_size], y[:batch_size]
+
+
 class is_emtpy_mask_clf_pipeline:
     def __init__(self):
-        self.data_helper = data_helper()
         self.plot = plot
-        self.data_helper.train_set.y_keys = ['empty_mask']
-
+        import random
+        self.random_sate = random.randint(1, 1234567)
         self.init_dataset()
+        self.init_aug_set()
 
     def init_dataset(self):
+        self.data_helper = data_helper()
+        self.data_helper.train_set.y_keys = ['empty_mask']
         train_set = self.data_helper.train_set
+
         train_x, train_y = train_set.full_batch()
         train_x = train_x.reshape([-1, 101, 101, 1])
         train_y = train_y.reshape([-1, 1])
@@ -84,12 +157,10 @@ class is_emtpy_mask_clf_pipeline:
 
         from sklearn.model_selection import train_test_split
         train_x, test_x, train_y, test_y = train_test_split(
-            train_x, train_y, test_size=0.33)
+            train_x, train_y, test_size=0.33, random_state=self.random_sate)
         self.enc = enc
         train_y_onehot = enc.transform(train_y).toarray()
         test_y_onehot = enc.transform(test_y).toarray()
-
-        print(np.mean(train_y))
 
         sample_size = 100
         sample_x = train_x[:sample_size]
@@ -106,6 +177,22 @@ class is_emtpy_mask_clf_pipeline:
         self.sample_x = sample_x
         self.sample_y = sample_y
         self.sample_y_onehot = sample_y_onehot
+
+    def init_aug_set(self):
+        self.data_helper.train_set.y_keys = ['mask']
+        train_set = self.data_helper.train_set
+        x_full, y_full = train_set.full_batch()
+        x_full = x_full.reshape([-1, 101, 101, 1])
+        y_full = y_full.reshape([-1, 101, 101, 1])
+
+        from sklearn.model_selection import train_test_split
+        train_x, test_x, train_y, test_y = train_test_split(
+            x_full, y_full, test_size=0.33, random_state=self.random_sate)
+
+        self.aug_train_x = train_x
+        self.aug_test_x = test_x
+        self.aug_train_y = train_y
+        self.aug_test_y = test_y
 
     def params(self, run_id=None,
                learning_rate=0.01, learning_rate_decay_rate=0.99, learning_rate_decay_method=None, beta1=0.9,
@@ -151,8 +238,18 @@ class is_emtpy_mask_clf_pipeline:
             params,
         )
 
-        clf.train(self.train_x, self.train_y_onehot, epoch=n_epoch, epoch_callback=epoch_callback,
-                  iter_pbar=True, dataset_callback=None, early_stop=early_stop, patience=patience)
+        if augmentation:
+            dataset_callback = aug_callback(
+                self.aug_train_x,
+                self.aug_train_y,
+                params['batch_size'],
+                enc=self.enc
+            )
+            clf.train(self.train_x, self.train_y_onehot, epoch=n_epoch, epoch_callback=epoch_callback,
+                      iter_pbar=True, dataset_callback=dataset_callback, early_stop=early_stop, patience=patience)
+        else:
+            clf.train(self.train_x, self.train_y_onehot, epoch=n_epoch, epoch_callback=epoch_callback,
+                      iter_pbar=True, dataset_callback=None, early_stop=early_stop, patience=patience)
 
         score = clf.score(self.sample_x, self.sample_y_onehot)
         test_score = clf.score(self.test_x, self.test_y_onehot)
