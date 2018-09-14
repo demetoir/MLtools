@@ -126,12 +126,6 @@ class data_helper:
 
 
 class TGS_salt_aug_callback(BaseDatasetCallback):
-    def __str__(self):
-        return self.__class__.__name__
-
-    def __repr__(self):
-        return self.__class__.__name__
-
     def __init__(self, x, y, batch_size):
         super().__init__(x, y, batch_size)
 
@@ -145,7 +139,7 @@ class TGS_salt_aug_callback(BaseDatasetCallback):
                 # iaa.PerspectiveTransform((0.0, 0.3))
             ], name='affine'),
             iaa.Fliplr(0.5, name="horizontal flip"),
-            # iaa.Crop(percent=(0, 0.3), name='crop'),
+            iaa.Crop(percent=(0, 0.3), name='crop'),
 
             # image only
             iaa.OneOf([
@@ -163,7 +157,13 @@ class TGS_salt_aug_callback(BaseDatasetCallback):
             # iaa.Scale((128, 128), name='to 128 * 128'),
         ])
         self.activator = ActivatorMask(['bright', 'contrast', 'AverageBlur', 'GaussianBlur', 'MedianBlur'])
-        self.aug = ImgMaskAug(self.x, self.y, self.seq, self.activator, self.batch_size, n_jobs=4, q_size=4000)
+        self.aug = ImgMaskAug(self.x, self.y, self.seq, self.activator, self.batch_size, n_jobs=1, q_size=4000)
+
+    def __str__(self):
+        return self.__class__.__name__
+
+    def __repr__(self):
+        return self.__class__.__name__
 
     @property
     def size(self):
