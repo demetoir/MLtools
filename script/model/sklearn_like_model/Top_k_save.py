@@ -28,6 +28,10 @@ class Top_k_save:
     def __call__(self, metric, model):
         metric = float(metric)
         sign = 1 if self.max_best else -1
+
+        print(f'current top_k')
+        pprint(self.top_k[1:])
+
         try:
             for i in reversed(range(1, self.k + 1)):
                 if sign * self.top_k[i - 1] >= sign * metric >= sign * self.top_k[i]:
@@ -37,7 +41,6 @@ class Top_k_save:
 
                     # dump top_k json
                     dump_json(self.top_k, path_join(self.path, 'top_k.json'))
-
                     print(f'update top_k at {i}th, metric = {metric}')
                     pprint(self.top_k[1:])
 
