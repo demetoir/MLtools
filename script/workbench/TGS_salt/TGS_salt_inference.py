@@ -126,32 +126,32 @@ class data_helper:
 
 
 class TGS_salt_aug_callback(BaseDatasetCallback):
-    def __init__(self, x, y, batch_size, n_job=4, q_size=1000):
+    def __init__(self, x, y, batch_size, n_job=2, q_size=100):
         super().__init__(x, y, batch_size)
 
         self.seq = iaa.Sequential([
-            iaa.OneOf([
-                iaa.PiecewiseAffine((0.002, 0.1), name='PiecewiseAffine'),
-                iaa.Affine(rotate=(-20, 20)),
-                iaa.Affine(shear=(-45, 45)),
-                iaa.Affine(translate_percent=(0, 0.3), mode='symmetric'),
-                iaa.Affine(translate_percent=(0, 0.3), mode='wrap'),
-                # iaa.PerspectiveTransform((0.0, 0.3))
-            ], name='affine'),
+            # iaa.OneOf([
+            #     iaa.PiecewiseAffine((0.002, 0.1), name='PiecewiseAffine'),
+            #     iaa.Affine(rotate=(-20, 20)),
+            #     iaa.Affine(shear=(-45, 45)),
+            #     iaa.Affine(translate_percent=(0, 0.3), mode='symmetric'),
+            #     iaa.Affine(translate_percent=(0, 0.3), mode='wrap'),
+            #     # iaa.PerspectiveTransform((0.0, 0.3))
+            # ], name='affine'),
             iaa.Fliplr(0.5, name="horizontal flip"),
-            iaa.Crop(percent=(0, 0.3), name='crop'),
+            # iaa.Crop(percent=(0, 0.3), name='crop'),
 
             # image only
-            iaa.OneOf([
-                iaa.Add((-45, 45), name='bright'),
-                iaa.Multiply((0.5, 1.5), name='contrast')]
-            ),
-            iaa.OneOf([
-                iaa.AverageBlur((1, 5), name='AverageBlur'),
-                # iaa.BilateralBlur(),
-                iaa.GaussianBlur((0.1, 2), name='GaussianBlur'),
-                # iaa.MedianBlur((1, 7), name='MedianBlur'),
-            ], name='blur'),
+            # iaa.OneOf([
+            #     iaa.Add((-45, 45), name='bright'),
+            #     iaa.Multiply((0.5, 1.5), name='contrast')]
+            # ),
+            # iaa.OneOf([
+            #     iaa.AverageBlur((1, 5), name='AverageBlur'),
+            #     # iaa.BilateralBlur(),
+            #     iaa.GaussianBlur((0.1, 2), name='GaussianBlur'),
+            #     # iaa.MedianBlur((1, 7), name='MedianBlur'),
+            # ], name='blur'),
 
             # scale to  128 * 128
             # iaa.Scale((128, 128), name='to 128 * 128'),
