@@ -113,8 +113,8 @@ class SemanticSegmentation(
         return ret
 
     def _build_main_graph(self):
-        self.Xs = tf.placeholder(tf.float32, self.Xs_shape, name='Xs')
-        self.Ys = tf.placeholder(tf.float32, self.Ys_shape, name='Ys')
+        self.Xs = placeholder(tf.float32, self.Xs_shape, name='Xs')
+        self.Ys = placeholder(tf.float32, self.Ys_shape, name='Ys')
 
         self.net_structure = self.net_structure_class(
             self.Xs, capacity=self.capacity, depth=self.depth, level=self.stage,
@@ -131,9 +131,18 @@ class SemanticSegmentation(
         self._predict_ops = self._predict
 
     def _build_loss_function(self):
-        self.loss = self._build_loss(
-            self.loss_type, labels=self.Ys, logits=self._logit, probas=self._proba,
-            predicts=self._predict)
+        if self.loss_type == 'combine':
+            self.iou_loss = self._build_loss(
+                'iou', labels=self.Ys, logits=self._logit, probas=self._proba,
+                predicts=self._predict)
+            self.pixel_wise_softmax = self._build_loss(
+                'pixel_wise_softmax', labels=self.Ys, logits=self._logit, probas=self._proba,
+                predicts=self._predict)
+
+            self.loss = self.iou_loss + self.pixel_wise_softmax
+        else:
+            self.loss = self._build_loss(
+                self.loss_type, labels=self.Ys, logits=self._logit, probas=self._proba, predicts=self._predict)
 
     def _build_train_ops(self):
         self.drl = TFDynamicLearningRate(self.learning_rate)
@@ -141,6 +150,7 @@ class SemanticSegmentation(
 
         self._train_ops = tf.train.AdamOptimizer(self.drl.learning_rate, beta1=self.beta1) \
             .minimize(self.loss, var_list=self.vars)
+
 
     @property
     def train_ops(self):
