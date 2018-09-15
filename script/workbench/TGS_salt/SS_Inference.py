@@ -117,7 +117,8 @@ class SemanticSegmentation_pipeline:
     def params(self, run_id=None, verbose=10, learning_rate=0.01, learning_rate_decay_rate=0.99,
                learning_rate_decay_method=None, beta1=0.9, batch_size=100, stage=4,
                loss_type='pixel_wise_softmax', n_classes=2, net_type=None,
-               capacity=64, depth=2, comment=''):
+               capacity=64, depth=2, dropout_rate=0.5,
+               comment=''):
         # loss_type = 'pixel_wise_softmax'
         # loss_type = 'iou'
         # loss_type = 'dice_soft'
@@ -140,6 +141,7 @@ class SemanticSegmentation_pipeline:
             capacity=capacity,
             n_classes=n_classes,
             depth=depth,
+            dropout_rate=dropout_rate,
             comment=comment
         )
         return params
