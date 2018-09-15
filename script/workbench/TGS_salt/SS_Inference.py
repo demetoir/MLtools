@@ -4,7 +4,7 @@ from tqdm import tqdm
 from script.data_handler.TGS_salt import mask_label_encoder
 from script.model.sklearn_like_model.BaseModel import BaseEpochCallback
 from script.model.sklearn_like_model.SemanticSegmentation import SemanticSegmentation
-from script.model.sklearn_like_model.TFSummary import TFSummary
+from script.model.sklearn_like_model.TFSummary import TFSummaryScalar
 from script.model.sklearn_like_model.Top_k_save import Top_k_save
 from script.util.misc_util import time_stamp, path_join
 from script.workbench.TGS_salt.TGS_salt_inference import plot, TGS_salt_metric, data_helper, to_dict, \
@@ -26,11 +26,11 @@ class Unet_epoch_callback(BaseEpochCallback):
 
         self.run_id = self.params['run_id']
 
-        self.summary_train_loss = TFSummary(path_join(SUMMARY_PATH, self.run_id, 'train'), 'train_loss')
-        self.summary_train_acc = TFSummary(path_join(SUMMARY_PATH, self.run_id, 'train'), 'train_acc')
-        self.summary_test_acc = TFSummary(path_join(SUMMARY_PATH, self.run_id, 'test'), 'test_acc')
+        self.summary_train_loss = TFSummaryScalar(path_join(SUMMARY_PATH, self.run_id, 'train'), 'train_loss')
+        self.summary_train_acc = TFSummaryScalar(path_join(SUMMARY_PATH, self.run_id, 'train'), 'train_acc')
+        self.summary_test_acc = TFSummaryScalar(path_join(SUMMARY_PATH, self.run_id, 'test'), 'test_acc')
 
-        self.top_k_save = Top_k_save(path_join(INSTANCE_PATH, self.run_id))
+        self.top_k_save = Top_k_save(path_join(INSTANCE_PATH, self.run_id), k=3)
 
     def log_TGS_salt_metric(self, dataset, epoch):
         x, y = dataset.next_batch(1000)
@@ -116,17 +116,17 @@ class SemanticSegmentation_pipeline:
 
     def params(self, run_id=None, verbose=10, learning_rate=0.01, learning_rate_decay_rate=0.99,
                learning_rate_decay_method=None, beta1=0.9, batch_size=100, stage=4,
-               loss_type='pixel_wise_softmax', n_classes=2,
-               capacity=64, depth=1, comment=None):
+               loss_type='pixel_wise_softmax', n_classes=2, net_type=None,
+               capacity=64, depth=2, comment=''):
         # loss_type = 'pixel_wise_softmax'
         # loss_type = 'iou'
         # loss_type = 'dice_soft'
         if run_id is None:
             run_id = time_stamp()
 
-        net_type = 'FusionNet'
-        net_type = 'UNet'
-        net_type = 'UNet_res_block'
+        # net_type = 'FusionNet'
+        # net_type = 'UNet'
+        # net_type = 'UNet_res_block'
 
         params = to_dict(
             run_id=run_id,
@@ -144,18 +144,18 @@ class SemanticSegmentation_pipeline:
         )
         return params
 
-    def train(self, params, n_epoch=10, augmentation=False, early_stop=True, patience=20, save_path=None):
+    def train(self, params, n_epoch=10, augmentation=False, early_stop=True, patience=20, path=None):
         save_tf_summary_params(SUMMARY_PATH, params)
 
-        model = SemanticSegmentation(**params)
+        if path:
+            model = SemanticSegmentation().load(path)
+        else:
+            model = SemanticSegmentation(**params)
 
         epoch_callback = Unet_epoch_callback(model, self.test_x, self.test_y, params)
-        dataset_callback = TGS_salt_aug_callback if augmentation else None
+        dataset_callback = TGS_salt_aug_callback(self.train_x, self.train_y_encode, params['batch_size']) \
+            if augmentation else None
 
         model.train(self.train_x, self.train_y_encode, epoch=n_epoch, aug_callback=dataset_callback,
                     epoch_callback=epoch_callback, early_stop=early_stop, patience=patience,
                     iter_pbar=True)
-
-        # if save_path is None:
-        #     save_path = f'./instance/TGS_salt/SS/{params_str}'
-        # model.save(save_path)
