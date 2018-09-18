@@ -25,6 +25,12 @@ def iou_metric(true, predict):
     return iou_score
 
 
+def masks_rate(masks):
+    size = masks.shape[0]
+    mask = masks.reshape([size, -1])
+    return np.mean(mask, axis=1)
+
+
 def TGS_salt_metric(mask_true, mask_predict):
     def _metric(mask_true, mask_predict):
         if np.sum(mask_true) == 0:
