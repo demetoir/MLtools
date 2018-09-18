@@ -126,44 +126,44 @@ class data_helper:
 
 
 class TGS_salt_aug_callback(BaseDatasetCallback):
-    def __str__(self):
-        return self.__class__.__name__
-
-    def __repr__(self):
-        return self.__class__.__name__
-
-    def __init__(self, x, y, batch_size):
+    def __init__(self, x, y, batch_size, n_job=2, q_size=100):
         super().__init__(x, y, batch_size)
 
         self.seq = iaa.Sequential([
-            iaa.OneOf([
-                iaa.PiecewiseAffine((0.002, 0.1), name='PiecewiseAffine'),
-                iaa.Affine(rotate=(-20, 20)),
-                iaa.Affine(shear=(-45, 45)),
-                iaa.Affine(translate_percent=(0, 0.3), mode='symmetric'),
-                iaa.Affine(translate_percent=(0, 0.3), mode='wrap'),
-                # iaa.PerspectiveTransform((0.0, 0.3))
-            ], name='affine'),
+            # iaa.OneOf([
+            #     iaa.PiecewiseAffine((0.002, 0.1), name='PiecewiseAffine'),
+            #     iaa.Affine(rotate=(-20, 20)),
+            #     iaa.Affine(shear=(-45, 45)),
+            #     iaa.Affine(translate_percent=(0, 0.3), mode='symmetric'),
+            #     iaa.Affine(translate_percent=(0, 0.3), mode='wrap'),
+            #     # iaa.PerspectiveTransform((0.0, 0.3))
+            # ], name='affine'),
             iaa.Fliplr(0.5, name="horizontal flip"),
             # iaa.Crop(percent=(0, 0.3), name='crop'),
 
             # image only
-            iaa.OneOf([
-                iaa.Add((-45, 45), name='bright'),
-                iaa.Multiply((0.5, 1.5), name='contrast')]
-            ),
-            iaa.OneOf([
-                iaa.AverageBlur((1, 5), name='AverageBlur'),
-                # iaa.BilateralBlur(),
-                iaa.GaussianBlur((0.1, 2), name='GaussianBlur'),
-                # iaa.MedianBlur((1, 7), name='MedianBlur'),
-            ], name='blur'),
+            # iaa.OneOf([
+            #     iaa.Add((-45, 45), name='bright'),
+            #     iaa.Multiply((0.5, 1.5), name='contrast')]
+            # ),
+            # iaa.OneOf([
+            #     iaa.AverageBlur((1, 5), name='AverageBlur'),
+            #     # iaa.BilateralBlur(),
+            #     iaa.GaussianBlur((0.1, 2), name='GaussianBlur'),
+            #     # iaa.MedianBlur((1, 7), name='MedianBlur'),
+            # ], name='blur'),
 
             # scale to  128 * 128
             # iaa.Scale((128, 128), name='to 128 * 128'),
         ])
         self.activator = ActivatorMask(['bright', 'contrast', 'AverageBlur', 'GaussianBlur', 'MedianBlur'])
-        self.aug = ImgMaskAug(self.x, self.y, self.seq, self.activator, self.batch_size, n_jobs=4, q_size=4000)
+        self.aug = ImgMaskAug(self.x, self.y, self.seq, self.activator, self.batch_size, n_jobs=n_job, q_size=q_size)
+
+    def __str__(self):
+        return self.__class__.__name__
+
+    def __repr__(self):
+        return self.__class__.__name__
 
     @property
     def size(self):
@@ -290,9 +290,9 @@ class experiment:
 
         masked = []
         mean = []
-        for image, mask, id in zip(images, masks, ids):
+        for image, mask, id_ in zip(images, masks, ids):
             a = np.sum(mask) / (101 * 101 * 1 * 255)
-            print(id, a)
+            print(id_, a)
             if a > 0.6:
                 masked += [masking_images(image, mask)]
                 mean += [a]
@@ -315,9 +315,9 @@ class experiment:
 
         masked = []
         mean = []
-        for image, mask, id in zip(images, masks, ids):
+        for image, mask, id_ in zip(images, masks, ids):
             a = np.sum(image) / (101 * 101 * 3 * 255)
-            print(id, a)
+            print(id_, a)
             if a > 0.85:
                 masked += [masking_images(image, mask)]
                 mean += [a]
@@ -341,9 +341,9 @@ class experiment:
 
         masked = []
         mean = []
-        for image, mask, id in zip(images, masks, ids):
+        for image, mask, id_ in zip(images, masks, ids):
             a = np.sum(image) / (101 * 101 * 3 * 255)
-            print(id, a)
+            print(id_, a)
             if a < 0.20:
                 masked += [masking_images(image, mask)]
                 mean += [a]
@@ -365,14 +365,14 @@ class experiment:
         masks = masks.reshape([-1, 101, 101])
 
         masked = []
-        for image, mask, id in zip(images, masks, ids):
+        for image, mask, id_ in zip(images, masks, ids):
             rle_mask = RLE_mask_encoding(mask.reshape([101, 101]).transpose())
             n_rle_mask = len(rle_mask)
             a = n_rle_mask
             mask_area = np.sum(mask) / (101 * 101 * 255)
 
             if 0 < a / 2 < 8 and 0.1 < mask_area < 0.99:
-                print(id, a, rle_mask)
+                print(id_, a, rle_mask)
                 masked += [masking_images(image, mask)]
 
         masked = np.array(masked)

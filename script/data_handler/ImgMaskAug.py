@@ -5,6 +5,7 @@ from queue import Empty as QueueEmpty, Full as QueueFull
 from script.data_handler.Base.BaseDataset import BaseDataset
 from script.util.MixIn import LoggerMixIn
 from script.util.misc_util import error_trace
+from script.workbench.NpSharedObj import NpSharedObj
 
 
 class ActivatorMask:
@@ -42,12 +43,14 @@ class ImgMaskAug(LoggerMixIn):
             finished_signal = mp.Event()
             self.finished_signals += [finished_signal]
 
+            shared_images = NpSharedObj.from_np(self.images)
+            shared_masks = NpSharedObj.from_np(self.masks)
             worker = mp.Process(
                 target=ImgMaskAug._iter_augment,
                 args=(
                     None,
-                    self.images,
-                    self.masks,
+                    shared_images.encode(),
+                    shared_masks.encode(),
                     self.n_batch,
                     self.aug_seq,
                     self.hook_func,
@@ -62,24 +65,21 @@ class ImgMaskAug(LoggerMixIn):
 
             self.workers += [worker]
 
-    def terminate(self):
-        self.join_signal.set()
-        time.sleep(0.01)
+    def __enter__(self):
+        return self
 
-        while True:
-            try:
-                self.q.get(timeout=0.1)
-            except QueueEmpty:
-                break
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.terminate()
+        return True
 
-        for worker in self.workers:
-            worker.terminate()
-            worker.join()
+    def __del__(self):
+        self.terminate()
 
     def _iter_augment(self, images, masks, batch_size, aug_seq, hook_func, queue, join_signal, finish_signal):
         try:
+            images = NpSharedObj.decode(images).np
+            masks = NpSharedObj.decode(masks).np
             dataset = BaseDataset(x=images, y=masks)
-
             while True:
                 image, mask = dataset.next_batch(batch_size, balanced_class=False)
                 seq_det = aug_seq.to_deterministic()
@@ -101,23 +101,30 @@ class ImgMaskAug(LoggerMixIn):
         finally:
             finish_signal.set()
 
+    def terminate(self):
+        self.join_signal.set()
+        time.sleep(0.01)
+
+        while True:
+            try:
+                self.q.get(timeout=0.1)
+            except QueueEmpty:
+                break
+            except BaseException as e:
+                print(error_trace(e))
+                break
+
+        for worker in self.workers:
+            worker.terminate()
+            worker.join()
+
     def get_batch(self):
         while True:
             try:
                 image, mask = self.q.get(timeout=0.01)
                 break
             except QueueEmpty:
-                print(f'queue is empt, bottle neck occur, need to raise n_jobs')
+                # print(f'queue is empt, bottle neck occur, need to raise n_jobs')
                 pass
 
         return image, mask
-
-    def __enter__(self):
-        return self
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        self.terminate()
-        return True
-
-    def __del__(self):
-        self.terminate()

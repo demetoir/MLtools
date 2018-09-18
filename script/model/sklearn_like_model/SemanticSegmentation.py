@@ -75,7 +75,8 @@ class SemanticSegmentation(
     def __init__(self, verbose=10, learning_rate=0.01, learning_rate_decay_rate=0.99,
                  learning_rate_decay_method=None, beta1=0.9, batch_size=100, stage=4,
                  net_type='UNet', loss_type='pixel_wise_softmax', n_classes=2,
-                 capacity=64, depth=1, **kwargs):
+                 capacity=64, depth=1, dropout_rate=0.5,
+                 **kwargs):
         BaseModel.__init__(self, verbose, **kwargs)
         Xs_MixIn.__init__(self)
         Ys_MixIn.__init__(self)
@@ -97,6 +98,7 @@ class SemanticSegmentation(
         self.n_classes = n_classes
         self.capacity = capacity
         self.depth = depth
+        self.dropout_rate = dropout_rate
 
         self.net_structure_class = self.net_structure_class_dict[net_type]
 
@@ -113,8 +115,8 @@ class SemanticSegmentation(
         return ret
 
     def _build_main_graph(self):
-        self.Xs = tf.placeholder(tf.float32, self.Xs_shape, name='Xs')
-        self.Ys = tf.placeholder(tf.float32, self.Ys_shape, name='Ys')
+        self.Xs = placeholder(tf.float32, self.Xs_shape, name='Xs')
+        self.Ys = placeholder(tf.float32, self.Ys_shape, name='Ys')
 
         self.net_structure = self.net_structure_class(
             self.Xs, capacity=self.capacity, depth=self.depth, level=self.stage,
@@ -131,9 +133,18 @@ class SemanticSegmentation(
         self._predict_ops = self._predict
 
     def _build_loss_function(self):
-        self.loss = self._build_loss(
-            self.loss_type, labels=self.Ys, logits=self._logit, probas=self._proba,
-            predicts=self._predict)
+        if self.loss_type == 'BCE+dice_soft':
+            self.dice_soft = self._build_loss(
+                'dice_soft', labels=self.Ys, logits=self._logit, probas=self._proba,
+                predicts=self._predict)
+            self.pixel_wise_softmax = self._build_loss(
+                'pixel_wise_softmax', labels=self.Ys, logits=self._logit, probas=self._proba,
+                predicts=self._predict)
+
+            self.loss = self.dice_soft + self.pixel_wise_softmax
+        else:
+            self.loss = self._build_loss(
+                self.loss_type, labels=self.Ys, logits=self._logit, probas=self._proba, predicts=self._predict)
 
     def _build_train_ops(self):
         self.drl = TFDynamicLearningRate(self.learning_rate)
@@ -163,5 +174,9 @@ class SemanticSegmentation(
         return self.loss
 
     def _train_iter(self, dataset, batch_size):
+        self.net_structure.set_train(self.sess)
+
         Xs, Ys = dataset.next_batch(batch_size, balanced_class=False)
         self.sess.run(self.train_ops, feed_dict={self._Xs: Xs, self._Ys: Ys})
+
+        self.net_structure.set_predict(self.sess)
