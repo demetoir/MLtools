@@ -16,25 +16,19 @@ plot = PlotTools(save=True, show=False)
 
 
 def TGS_salt_metric(mask_true, mask_predict):
-    # TODO
     def _metric(mask_true, mask_predict):
-        if np.sum(mask_true) == 0 and np.sum(mask_predict) > 0:
-            # return 0
-            return 1
-        elif np.sum(mask_true) == 0 and np.sum(mask_predict) == 0:
-            return 1
+        if np.sum(mask_true) == 0:
+            return 0 if np.sum(mask_predict) > 0 else 1
         else:
             threshold = np.arange(0.5, 1, 0.05)
 
             mask_true = mask_true / 255
             mask_predict = mask_predict / 255
 
-            upper = np.logical_and(mask_true, mask_predict)
-            lower = np.logical_or(mask_true, mask_predict)
-            iou_score = np.sum(upper) / np.sum(lower)
-            # print(iou_score)
+            intersect = np.logical_and(mask_true, mask_predict)
+            union = np.logical_or(mask_true, mask_predict)
+            iou_score = np.sum(intersect) / np.sum(union)
 
-            # print(threshold <= iou_score)
             score = np.sum(threshold <= iou_score) / 10.0
             return score
 
