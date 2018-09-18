@@ -6,11 +6,12 @@ from script.util.misc_util import path_join, load_json, setup_directory, dump_js
 
 
 class Top_k_save:
-    def __init__(self, path, k=5, max_best=True, save_model=True):
+    def __init__(self, path, k=5, max_best=True, save_model=True, name='top_k_save'):
         self.path = path
         self.k = k
         self.max_best = max_best
         self.save_model = save_model
+        self.name = name
 
         self.top_k_json_path = path_join(self.path, 'top_k.json')
         if os.path.exists(self.top_k_json_path):
@@ -29,7 +30,9 @@ class Top_k_save:
         metric = float(metric)
         sign = 1 if self.max_best else -1
 
-        print(f'current top_k')
+
+        print()
+        print(f'{self.name} current top_k')
         pprint(self.top_k[1:])
 
         try:
