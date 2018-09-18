@@ -15,20 +15,24 @@ import tensorflow as tf
 plot = PlotTools(save=True, show=False)
 
 
+def iou_metric(true, predict):
+    true = true / 255
+    predict = predict / 255
+
+    intersect = np.logical_and(true, predict)
+    union = np.logical_or(true, predict)
+    iou_score = np.sum(intersect) / np.sum(union)
+    return iou_score
+
+
 def TGS_salt_metric(mask_true, mask_predict):
     def _metric(mask_true, mask_predict):
         if np.sum(mask_true) == 0:
             return 0 if np.sum(mask_predict) > 0 else 1
         else:
+            iou_score = iou_metric(mask_true, mask_predict)
+
             threshold = np.arange(0.5, 1, 0.05)
-
-            mask_true = mask_true / 255
-            mask_predict = mask_predict / 255
-
-            intersect = np.logical_and(mask_true, mask_predict)
-            union = np.logical_or(mask_true, mask_predict)
-            iou_score = np.sum(intersect) / np.sum(union)
-
             score = np.sum(threshold <= iou_score) / 10.0
             return score
 
