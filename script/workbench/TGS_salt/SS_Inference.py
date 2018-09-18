@@ -29,6 +29,10 @@ class Epoch_callback(BaseEpochCallback):
         self.summary_train_loss = TFSummaryScalar(path_join(SUMMARY_PATH, self.run_id, 'train'), 'train_loss')
         self.summary_train_acc = TFSummaryScalar(path_join(SUMMARY_PATH, self.run_id, 'train'), 'train_acc')
         self.summary_test_acc = TFSummaryScalar(path_join(SUMMARY_PATH, self.run_id, 'test'), 'test_acc')
+        self.summary_non_empty_train_score = TFSummaryScalar(path_join(SUMMARY_PATH, self.run_id, 'train'),
+                                                             'non_empty_train_score')
+        self.summary_non_empty_test_score = TFSummaryScalar(path_join(SUMMARY_PATH, self.run_id, 'test'),
+                                                            'non_empty_test_score')
 
         self.test_score_top_k_save = Top_k_save(
             path_join(INSTANCE_PATH, self.run_id, 'test_score'),
@@ -87,23 +91,32 @@ class Epoch_callback(BaseEpochCallback):
             path=path_join(PLOT_PATH, self.run_id, f'predict_mask/({epoch}).png'))
 
     def plot_non_mask_rate_iou(self, epoch):
-        size = 100
+        size = 512
         test_y = self.test_y[:size]
         test_predict = self.test_predict[:size]
 
-        x = masks_rate(test_y)
-        y = iou_metric(test_y, test_predict)
-        dots = zip(x, y)
+        xs = masks_rate(test_y)
+        xs = xs.reshape([-1])
+        xs /= 255
+
+        ys = np.array([iou_metric(true, predict) for true, predict in zip(test_y, test_predict)])
+
+        dots = np.array([[x, y] for x, y in zip(xs, ys)])
+
         self.plot.scatter_2d(
             dots,
             title=f'test set mask rate and iou',
-            path=path_join(PLOT_PATH, self.run_id, f'test_set_mask_rate_iou/({epoch}).png')
+            path=path_join(PLOT_PATH, self.run_id, f'test_set_mask_rate_iou/({epoch}).png'),
+            x_label='mask_rate',
+            y_label='iou'
         )
 
     def update_summary(self, sess, epoch):
         self.summary_train_loss.update(sess, self.train_loss, epoch)
         self.summary_train_acc.update(sess, self.train_score, epoch)
         self.summary_test_acc.update(sess, self.test_score, epoch)
+        self.summary_non_empty_test_score.update(sess, self.test_non_empty_score, epoch)
+        self.summary_non_empty_train_score.update(sess, self.train_non_empty_score, epoch)
 
     def update_data(self, sess, dataset, epoch):
         train_x, train_y = dataset.next_batch(1000)
@@ -166,6 +179,8 @@ class Epoch_callback(BaseEpochCallback):
         self.plot_mask_image(dataset, epoch)
         self.log_TGS_salt_metric(epoch)
         self.update_summary(sess, epoch)
+        self.plot_non_mask_rate_iou(epoch)
+
         self.test_score_top_k_save(self.test_score, self.model)
         self.non_empty_mask_test_score_top_k_save(self.test_non_empty_score, self.model)
 
