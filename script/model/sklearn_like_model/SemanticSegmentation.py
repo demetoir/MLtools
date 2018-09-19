@@ -170,14 +170,14 @@ class SemanticSegmentation(
         self.Ys = placeholder(tf.float32, self.Ys_shape, name='Ys')
 
         net_class = self.net_structure_class_dict[self.net_type]
-        self.net_structure = net_class(
+        self.net_module = net_class(
             self.Xs, capacity=self.capacity, depth=self.depth, level=self.stage,
             n_classes=self.n_classes
         )
-        self.net_structure.build()
-        self.vars = self.net_structure.vars
-        self._logit = self.net_structure.logit
-        self._proba = self.net_structure.proba
+        self.net_module.build()
+        self.vars = self.net_module.vars
+        self._logit = self.net_module.logit
+        self._proba = self.net_module.proba
         self._predict = reshape(tf.argmax(self._proba, 3, name="predicted"), self.Ys_shape,
                                 name='predict')
 
@@ -262,9 +262,9 @@ class SemanticSegmentation(
         return self.loss
 
     def _train_iter(self, dataset, batch_size):
-        self.net_structure.set_train(self.sess)
+        self.net_module.set_train(self.sess)
 
         Xs, Ys = dataset.next_batch(batch_size, balanced_class=False)
         self.sess.run(self.train_ops, feed_dict={self._Xs: Xs, self._Ys: Ys})
 
-        self.net_structure.set_predict(self.sess)
+        self.net_module.set_predict(self.sess)
