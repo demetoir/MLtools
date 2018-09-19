@@ -201,21 +201,24 @@ class BaseModel(LoggerMixIn, input_shapesMixIN, metadataMixIN, paramsMixIn, loss
             path = os.path.join(ROOT_PATH, 'instance', self.id)
 
         self.instance_path = path
-        self.save_folder_path = path_join(self.instance_path, 'check_point')
-        self.check_point_path = path_join(self.save_folder_path, 'instance.ckpt')
-        self.metadata_path = path_join(self.instance_path, 'meta.json')
         setup_directory(self.instance_path)
+
+        self.save_folder_path = path_join(self.instance_path, 'check_point')
         setup_directory(self.save_folder_path)
+
+        self.metadata_path = path_join(self.instance_path, 'meta.json')
         self._save_metadata(self.metadata_path)
 
         self.input_shapes_path = path_join(self.instance_path, 'input_shapes.pkl')
         self._save_input_shapes(self.input_shapes_path)
+
         self.params_path = path_join(self.instance_path, 'params.pkl')
         self._save_params(self.params_path)
 
         self._open_session()
         self._open_saver()
 
+        self.check_point_path = path_join(self.save_folder_path, 'instance.ckpt')
         self.saver.save(self.sess, self.check_point_path)
 
         self.log.info("saved at {}".format(self.instance_path))
