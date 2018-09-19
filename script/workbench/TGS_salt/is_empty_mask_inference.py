@@ -4,7 +4,7 @@ from script.data_handler.ImgMaskAug import ActivatorMask, ImgMaskAug
 from script.model.sklearn_like_model.BaseModel import BaseEpochCallback, BaseDatasetCallback
 from script.model.sklearn_like_model.ImageClf import ImageClf
 from script.model.sklearn_like_model.TFSummary import TFSummaryScalar
-from script.model.sklearn_like_model.Top_k_save import Top_k_save
+from script.model.sklearn_like_model.callback.Top_k_save import Top_k_save
 from script.util.misc_util import time_stamp, path_join
 from script.util.numpy_utils import *
 from script.workbench.TGS_salt.TGS_salt_inference import TGS_salt_DataHelper, plot, to_dict, save_tf_summary_params
@@ -191,12 +191,24 @@ class is_emtpy_mask_clf_pipeline:
         self.aug_train_y = train_y
         self.aug_test_y = test_y
 
-    def params(self, run_id=None,
-               learning_rate=0.01, learning_rate_decay_rate=0.99, learning_rate_decay_method=None, beta1=0.9,
-               batch_size=100,
-               net_type='VGG16', n_classes=2, capacity=64,
-               use_l1_norm=False, l1_norm_rate=0.01,
-               use_l2_norm=False, l2_norm_rate=0.01, comment=''):
+    def params(
+            self,
+            run_id=None,
+            learning_rate=0.01,
+            beta1=0.9,
+            batch_size=100,
+            net_type='VGG16',
+            n_classes=2,
+            capacity=64,
+            use_l1_norm=False,
+            l1_norm_rate=0.01,
+            use_l2_norm=False,
+            l2_norm_rate=0.01,
+            dropout_rate=0.5,
+            fc_depth=2,
+            fc_capacity=1024,
+            comment=''
+    ):
         # net_type = 'InceptionV1'
         # net_type = 'InceptionV2'
         # net_type = 'InceptionV4'
@@ -216,11 +228,14 @@ class is_emtpy_mask_clf_pipeline:
             capacity=capacity,
             learning_rate=learning_rate,
             beta1=beta1,
-            n_classes=2,
+            n_classes=n_classes,
             use_l1_norm=use_l1_norm,
             l1_norm_rate=l1_norm_rate,
             use_l2_norm=use_l2_norm,
             l2_norm_rate=l2_norm_rate,
+            dropout_rate=dropout_rate,
+            fc_depth=fc_depth,
+            fc_capacity=fc_capacity,
             comment=comment,
         )
 
