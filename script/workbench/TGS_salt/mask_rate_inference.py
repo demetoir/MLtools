@@ -19,7 +19,7 @@ from script.model.sklearn_like_model.NetModule.VGG16NetModule import VGG16NetMod
 from script.util.misc_util import time_stamp, path_join
 from script.util.numpy_utils import *
 from script.util.tensor_ops import *
-from script.workbench.TGS_salt.TGS_salt_inference import data_helper, plot, to_dict, save_tf_summary_params
+from script.workbench.TGS_salt.TGS_salt_inference import TGS_salt_DataHelper, plot, to_dict, save_tf_summary_params
 
 task_name = 'mask_rate_reg'
 SUMMARY_PATH = f'./tf_summary/TGS_salt/mask_rate_reg'
@@ -229,7 +229,7 @@ class EpochCallback(BaseEpochCallback):
 
 class mask_rate_reg_pipeline:
     def __init__(self):
-        self.data_helper = data_helper()
+        self.data_helper = TGS_salt_DataHelper()
         self.plot = plot
         self.data_helper.train_set.y_keys = ['mask_rate']
 

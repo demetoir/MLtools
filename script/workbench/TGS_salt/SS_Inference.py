@@ -7,7 +7,7 @@ from script.model.sklearn_like_model.SemanticSegmentation import SemanticSegment
 from script.model.sklearn_like_model.TFSummary import TFSummaryScalar
 from script.model.sklearn_like_model.callback.Top_k_save import Top_k_save
 from script.util.misc_util import time_stamp, path_join
-from script.workbench.TGS_salt.TGS_salt_inference import plot, TGS_salt_metric, data_helper, to_dict, \
+from script.workbench.TGS_salt.TGS_salt_inference import plot, TGS_salt_metric, TGS_salt_DataHelper, to_dict, \
     TGS_salt_aug_callback, save_tf_summary_params, iou_metric, masks_rate
 
 SUMMARY_PATH = f'./tf_summary/TGS_salt/SS'
@@ -187,7 +187,7 @@ class Epoch_callback(BaseEpochCallback):
 
 class SemanticSegmentation_pipeline:
     def __init__(self):
-        self.data_helper = data_helper()
+        self.data_helper = TGS_salt_DataHelper()
         self.plot = plot
         # self.aug_callback = TGS_salt_aug_callback
         # self.epoch_callback = epoch_callback

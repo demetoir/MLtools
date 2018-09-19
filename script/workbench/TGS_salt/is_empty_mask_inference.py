@@ -7,7 +7,7 @@ from script.model.sklearn_like_model.TFSummary import TFSummaryScalar
 from script.model.sklearn_like_model.Top_k_save import Top_k_save
 from script.util.misc_util import time_stamp, path_join
 from script.util.numpy_utils import *
-from script.workbench.TGS_salt.TGS_salt_inference import data_helper, plot, to_dict, save_tf_summary_params
+from script.workbench.TGS_salt.TGS_salt_inference import TGS_salt_DataHelper, plot, to_dict, save_tf_summary_params
 from imgaug import augmenters as iaa
 
 SUMMARY_PATH = f'./tf_summary/TGS_salt/empty_mask_clf'
@@ -141,7 +141,7 @@ class is_emtpy_mask_clf_pipeline:
         self.init_aug_set()
 
     def init_dataset(self):
-        self.data_helper = data_helper()
+        self.data_helper = TGS_salt_DataHelper()
         self.data_helper.train_set.y_keys = ['empty_mask']
         train_set = self.data_helper.train_set
 

@@ -72,7 +72,7 @@ def param_to_string(params):
     return "_".join([f"{key}={val}" for key, val in params.items()])
 
 
-class data_helper:
+class TGS_salt_DataHelper:
     def __init__(self, data_pack_path='./data/TGS_salt', sample_offset=10, sample_size=10):
         self.data_pack_path = data_pack_path
         self.sample_offset = sample_offset
