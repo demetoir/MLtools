@@ -153,8 +153,6 @@ class SemanticSegmentation(
         self.depth = depth
         self.dropout_rate = dropout_rate
 
-        self.net_structure_class = self.net_structure_class_dict[net_type]
-
     def update_learning_rate(self, lr):
         self.learning_rate = lr
 
@@ -171,7 +169,8 @@ class SemanticSegmentation(
         self.Xs = placeholder(tf.float32, self.Xs_shape, name='Xs')
         self.Ys = placeholder(tf.float32, self.Ys_shape, name='Ys')
 
-        self.net_structure = self.net_structure_class(
+        net_class = self.net_structure_class_dict[self.net_type]
+        self.net_structure = net_class(
             self.Xs, capacity=self.capacity, depth=self.depth, level=self.stage,
             n_classes=self.n_classes
         )
