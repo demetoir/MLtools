@@ -5,7 +5,7 @@ from script.data_handler.TGS_salt import mask_label_encoder
 from script.model.sklearn_like_model.BaseModel import BaseEpochCallback
 from script.model.sklearn_like_model.SemanticSegmentation import SemanticSegmentation
 from script.model.sklearn_like_model.TFSummary import TFSummaryScalar
-from script.model.sklearn_like_model.Top_k_save import Top_k_save
+from script.model.sklearn_like_model.callback.Top_k_save import Top_k_save
 from script.util.misc_util import time_stamp, path_join
 from script.workbench.TGS_salt.TGS_salt_inference import plot, TGS_salt_metric, data_helper, to_dict, \
     TGS_salt_aug_callback, save_tf_summary_params, iou_metric, masks_rate

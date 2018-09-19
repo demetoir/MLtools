@@ -1,6 +1,6 @@
 from tqdm import trange, tqdm
 from script.data_handler.Base.BaseDataset import BaseDataset
-from script.model.sklearn_like_model.EarlyStop import EarlyStop
+from script.model.sklearn_like_model.callback.EarlyStop import EarlyStop
 from script.model.sklearn_like_model.Mixin import input_shapesMixIN, metadataMixIN, paramsMixIn, loss_packMixIn
 from script.data_handler.DummyDataset import DummyDataset
 from script.util.MixIn import LoggerMixIn

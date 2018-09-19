@@ -6,7 +6,7 @@ from script.model.sklearn_like_model.BaseModel import BaseModel
 from script.model.sklearn_like_model.Mixin import Xs_MixIn, Ys_MixIn, supervised_trainMethodMixIn, predictMethodMixIn, \
     predict_probaMethodMixIn, scoreMethodMixIn, supervised_metricMethodMixIn
 from script.model.sklearn_like_model.TFSummary import TFSummaryScalar
-from script.model.sklearn_like_model.Top_k_save import Top_k_save
+from script.model.sklearn_like_model.callback.Top_k_save import Top_k_save
 from script.model.sklearn_like_model.net_structure.InceptionSructure.InceptionV1Structure import InceptionV1Structure
 from script.model.sklearn_like_model.net_structure.InceptionSructure.InceptionV2Structure import InceptionV2Structure
 from script.model.sklearn_like_model.net_structure.InceptionSructure.InceptionV4Structure import InceptionV4Structure

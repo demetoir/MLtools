@@ -1,4 +1,4 @@
-from script.model.sklearn_like_model.Top_k_save import Top_k_save
+from script.model.sklearn_like_model.callback.Top_k_save import Top_k_save
 
 
 def test_top_k():
