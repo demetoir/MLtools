@@ -1,10 +1,10 @@
-from script.model.sklearn_like_model.net_structure.InceptionSructure.BaseInceptionStructure import \
-    BaseInceptionStructure
+from script.model.sklearn_like_model.NetModule.InceptionSructure.BaseInceptionNetModule import \
+    BaseInceptionNetModule
 from script.util.Stacker import Stacker
 from script.util.tensor_ops import *
 
 
-class InceptionV2Structure(BaseInceptionStructure):
+class InceptionV2NetModule(BaseInceptionNetModule):
     @staticmethod
     def module_A(x, channels, name='module_A'):
         with tf.variable_scope(name):

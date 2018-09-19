@@ -1,10 +1,10 @@
 import numpy as np
 import tensorflow as tf
 
-from script.model.sklearn_like_model.net_structure.ResNetStructure.ResNet101Structure import ResNet101Structure
-from script.model.sklearn_like_model.net_structure.ResNetStructure.ResNet152Structure import ResNet152Structure
-from script.model.sklearn_like_model.net_structure.ResNetStructure.ResNet18Structure import ResNet18Structure
-from script.model.sklearn_like_model.net_structure.ResNetStructure.ResNet50Structure import ResNet50Structure
+from script.model.sklearn_like_model.NetModule.ResNetStructure.ResNet101NetModule import ResNet101Structure
+from script.model.sklearn_like_model.NetModule.ResNetStructure.ResNet152NetModule import ResNet152Structure
+from script.model.sklearn_like_model.NetModule.ResNetStructure.ResNet18NetModule import ResNet18NetModule
+from script.model.sklearn_like_model.NetModule.ResNetStructure.ResNet50NetModule import ResNet50Structure
 from script.util.deco import deco_timeit
 from script.util.elapse_time import elapse_time
 
@@ -14,7 +14,7 @@ def test_ResNet18Structure():
     x = tf.placeholder(tf.float32, [None, 128, 128, 3])
     n_classes = 10
 
-    net = ResNet18Structure(x, n_classes)
+    net = ResNet18NetModule(x, n_classes)
     with elapse_time('build'):
         net.build()
 

@@ -1,7 +1,7 @@
-from script.model.sklearn_like_model.net_structure.ResNetStructure.BaseResNetStructure import BaseResNetStructure
+from script.model.sklearn_like_model.NetModule.ResNetStructure.BaseResNetStructure import BaseResNetNetModule
 
 
-class ResNet18Structure(BaseResNetStructure):
+class ResNet18NetModule(BaseResNetNetModule):
     def body(self, stacker):
         stacker.add_layer(self.residual_block_type2, self.n_channel)
         stacker.add_layer(self.residual_block_type2, self.n_channel)

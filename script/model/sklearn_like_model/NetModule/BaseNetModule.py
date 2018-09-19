@@ -4,7 +4,7 @@ from script.util.tensor_ops import collect_vars, join_scope, get_scope
 import tensorflow as tf
 
 
-class Base_net_structure(LoggerMixIn):
+class BaseNetModule(LoggerMixIn):
     def __init__(self, capacity=None, reuse=False, name=None, verbose=0):
         super().__init__(verbose)
         self.capacity = capacity

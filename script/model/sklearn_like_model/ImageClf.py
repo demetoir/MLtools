@@ -2,15 +2,15 @@ from script.model.sklearn_like_model.TFNormalize import TFL1Normalize, TFL2Norma
 from script.model.sklearn_like_model.BaseModel import BaseModel
 from script.model.sklearn_like_model.Mixin import Xs_MixIn, Ys_MixIn, supervised_trainMethodMixIn, predictMethodMixIn, \
     predict_probaMethodMixIn, scoreMethodMixIn, supervised_metricMethodMixIn
-from script.model.sklearn_like_model.net_structure.InceptionSructure.InceptionV1Structure import InceptionV1Structure
-from script.model.sklearn_like_model.net_structure.InceptionSructure.InceptionV2Structure import InceptionV2Structure
-from script.model.sklearn_like_model.net_structure.InceptionSructure.InceptionV4Structure import InceptionV4Structure
-from script.model.sklearn_like_model.net_structure.ResNetStructure.ResNet101Structure import ResNet101Structure
-from script.model.sklearn_like_model.net_structure.ResNetStructure.ResNet152Structure import ResNet152Structure
-from script.model.sklearn_like_model.net_structure.ResNetStructure.ResNet18Structure import ResNet18Structure
-from script.model.sklearn_like_model.net_structure.ResNetStructure.ResNet34Structure import ResNet34Structure
-from script.model.sklearn_like_model.net_structure.ResNetStructure.ResNet50Structure import ResNet50Structure
-from script.model.sklearn_like_model.net_structure.VGG16Structure import VGG16Structure
+from script.model.sklearn_like_model.NetModule.InceptionSructure.InceptionV1Structure import InceptionV1NetModule
+from script.model.sklearn_like_model.NetModule.InceptionSructure.InceptionV2Structure import InceptionV2NetModule
+from script.model.sklearn_like_model.NetModule.InceptionSructure.InceptionV4Structure import InceptionV4NetModule
+from script.model.sklearn_like_model.NetModule.ResNetStructure.ResNet101NetModule import ResNet101Structure
+from script.model.sklearn_like_model.NetModule.ResNetStructure.ResNet152NetModule import ResNet152Structure
+from script.model.sklearn_like_model.NetModule.ResNetStructure.ResNet18NetModule import ResNet18NetModule
+from script.model.sklearn_like_model.NetModule.ResNetStructure.ResNet34NetModule import ResNet34NetModule
+from script.model.sklearn_like_model.NetModule.ResNetStructure.ResNet50NetModule import ResNet50Structure
+from script.model.sklearn_like_model.NetModule.VGG16NetModule import VGG16NetModule
 from script.util.tensor_ops import *
 
 
@@ -25,15 +25,15 @@ class ImageClf(
     supervised_metricMethodMixIn,
 ):
     net_structure_class_dict = {
-        'VGG16': VGG16Structure,
-        'ResNet18': ResNet18Structure,
-        'ResNet34': ResNet34Structure,
+        'VGG16': VGG16NetModule,
+        'ResNet18': ResNet18NetModule,
+        'ResNet34': ResNet34NetModule,
         'ResNet50': ResNet50Structure,
         'ResNet101': ResNet101Structure,
         'ResNet152': ResNet152Structure,
-        'InceptionV1': InceptionV1Structure,
-        'InceptionV2': InceptionV2Structure,
-        'InceptionV4': InceptionV4Structure,
+        'InceptionV1': InceptionV1NetModule,
+        'InceptionV2': InceptionV2NetModule,
+        'InceptionV4': InceptionV4NetModule,
     }
 
     def __init__(self, verbose=10, learning_rate=0.01, learning_rate_decay_rate=0.99,

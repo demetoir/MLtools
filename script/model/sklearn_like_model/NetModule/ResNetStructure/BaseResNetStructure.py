@@ -1,9 +1,9 @@
-from script.model.sklearn_like_model.net_structure.Base_net_structure import Base_net_structure
+from script.model.sklearn_like_model.NetModule.BaseNetModule import BaseNetModule
 from script.util.Stacker import Stacker
 from script.util.tensor_ops import *
 
 
-class BaseResNetStructure(Base_net_structure):
+class BaseResNetNetModule(BaseNetModule):
     def __init__(self, x, n_classes, capacity=None, reuse=False, name=None, verbose=0):
         super().__init__(capacity, reuse, name, verbose)
         self.x = x

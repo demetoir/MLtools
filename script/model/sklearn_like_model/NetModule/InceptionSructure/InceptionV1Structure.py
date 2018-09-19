@@ -1,10 +1,10 @@
-from script.model.sklearn_like_model.net_structure.InceptionSructure.BaseInceptionStructure import \
-    BaseInceptionStructure
+from script.model.sklearn_like_model.NetModule.InceptionSructure.BaseInceptionNetModule import \
+    BaseInceptionNetModule
 from script.util.Stacker import Stacker
 from script.util.tensor_ops import *
 
 
-class InceptionV1Structure(BaseInceptionStructure):
+class InceptionV1NetModule(BaseInceptionNetModule):
     @staticmethod
     def inception_dimension_reduction(x, channels, name='inception_dimension_reduction'):
         with tf.variable_scope(name):

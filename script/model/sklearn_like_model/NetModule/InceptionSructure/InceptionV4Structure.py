@@ -1,10 +1,10 @@
-from script.model.sklearn_like_model.net_structure.InceptionSructure.BaseInceptionStructure import \
-    BaseInceptionStructure
+from script.model.sklearn_like_model.NetModule.InceptionSructure.BaseInceptionNetModule import \
+    BaseInceptionNetModule
 from script.util.Stacker import Stacker
 from script.util.tensor_ops import *
 
 
-class InceptionV4Structure(BaseInceptionStructure):
+class InceptionV4NetModule(BaseInceptionNetModule):
     def stem(self, stacker, name='stem'):
         with tf.variable_scope(name):
             def mix_0(x, name='mix_0'):

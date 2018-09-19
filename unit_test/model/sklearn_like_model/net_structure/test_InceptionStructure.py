@@ -3,9 +3,9 @@ from pprint import pprint
 import numpy as np
 import tensorflow as tf
 
-from script.model.sklearn_like_model.net_structure.InceptionSructure.InceptionV4Structure import InceptionV4Structure
-from script.model.sklearn_like_model.net_structure.InceptionSructure.InceptionV2Structure import InceptionV2Structure
-from script.model.sklearn_like_model.net_structure.InceptionSructure.InceptionV1Structure import InceptionV1Structure
+from script.model.sklearn_like_model.NetModule.InceptionSructure.InceptionV4Structure import InceptionV4NetModule
+from script.model.sklearn_like_model.NetModule.InceptionSructure.InceptionV2Structure import InceptionV2NetModule
+from script.model.sklearn_like_model.NetModule.InceptionSructure.InceptionV1Structure import InceptionV1NetModule
 from script.util.deco import deco_timeit
 from script.util.elapse_time import elapse_time
 
@@ -18,7 +18,7 @@ def test_InceptionV1Structure():
     for model_type in model_types:
         print(f'test_model_type= {model_type}')
         x = tf.placeholder(tf.float32, [None, 128, 128, 3])
-        net = InceptionV1Structure(x, n_classes, model_type=model_type)
+        net = InceptionV1NetModule(x, n_classes, model_type=model_type)
         with elapse_time('build'):
             net.build()
 
@@ -48,7 +48,7 @@ def test_InceptionV2Structure():
     # model_types = [1, 2, 3, 4]
     model_type = 2
     x = tf.placeholder(tf.float32, [None, 128, 128, 3])
-    net = InceptionV2Structure(x, n_classes, model_type=model_type)
+    net = InceptionV2NetModule(x, n_classes, model_type=model_type)
     with elapse_time('build'):
         net.build()
 
@@ -71,7 +71,7 @@ def test_InceptionV4Structure():
     # model_types = [1, 2, 3, 4]
     model_type = 4
     x = tf.placeholder(tf.float32, [None, 128, 128, 3])
-    net = InceptionV4Structure(x, n_classes, model_type=model_type)
+    net = InceptionV4NetModule(x, n_classes, model_type=model_type)
     with elapse_time('build'):
         net.build()
 

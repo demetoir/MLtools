@@ -2,8 +2,8 @@ from script.model.sklearn_like_model.BaseModel import BaseModel
 from script.model.sklearn_like_model.Mixin import Xs_MixIn, Ys_MixIn, supervised_trainMethodMixIn, predictMethodMixIn, \
     predict_probaMethodMixIn, scoreMethodMixIn, supervised_metricMethodMixIn
 from script.model.sklearn_like_model.TFDynamicLearningRate import TFDynamicLearningRate
-from script.model.sklearn_like_model.net_structure.FusionNetStructure import FusionNetStructure
-from script.model.sklearn_like_model.net_structure.UNetStructure import UNetStructure
+from script.model.sklearn_like_model.NetModule.FusionNetStructure import FusionNetModule
+from script.model.sklearn_like_model.NetModule.UNetNetModule import UNetNetModule
 from script.util.MixIn import LoggerMixIn
 from script.util.tensor_ops import *
 import numpy as np
@@ -110,8 +110,8 @@ class SemanticSegmentation(
     supervised_metricMethodMixIn,
 ):
     net_structure_class_dict = {
-        'UNet': UNetStructure,
-        'FusionNet': FusionNetStructure,
+        'UNet': UNetNetModule,
+        'FusionNet': FusionNetModule,
     }
 
     def __init__(

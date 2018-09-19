@@ -1,5 +1,5 @@
 from tensorflow.contrib import slim
-from script.model.sklearn_like_model.net_structure.FusionNetStructure import FusionNetStructure
+from script.model.sklearn_like_model.NetModule.FusionNetStructure import FusionNetModule
 import tensorflow as tf
 import numpy as np
 from script.util.deco import deco_timeit
@@ -13,7 +13,7 @@ def show_summary():
 @deco_timeit
 def test_FusionNetStructure():
     x = tf.placeholder(tf.float32, [None, 128, 128, 3])
-    net = FusionNetStructure(x)
+    net = FusionNetModule(x)
     net.build()
 
     h = net.proba
