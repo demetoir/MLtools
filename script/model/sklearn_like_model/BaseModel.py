@@ -1,5 +1,6 @@
 from tqdm import trange, tqdm
 from script.data_handler.Base.BaseDataset import BaseDataset
+from script.model.sklearn_like_model.EarlyStop import EarlyStop
 from script.model.sklearn_like_model.Mixin import input_shapesMixIN, metadataMixIN, paramsMixIn, loss_packMixIn
 from script.data_handler.DummyDataset import DummyDataset
 from script.util.MixIn import LoggerMixIn
@@ -302,16 +303,13 @@ class BaseModel(LoggerMixIn, input_shapesMixIN, metadataMixIN, paramsMixIn, loss
         batch_size = getattr(self, 'batch_size') if batch_size is None else batch_size
         dataset = dataset_callback if dataset_callback else BaseDataset(x=x, y=y)
         epoch_callback = epoch_callback if epoch_callback else None
-        recent_best = np.Inf
-        patience_count = 0
-        iter_num = 0
-        epoch_pbar = trange if epoch_pbar else range
+        early_stop = EarlyStop(patience, tqdm.write) if early_stop else None
+        epoch_pbar = tqdm([i for i in range(1, epoch + 1)]) if epoch_pbar else None
         iter_pbar = trange if iter_pbar else range
         metric = None
-        for _ in epoch_pbar(1, epoch + 1):
+        for _ in range(1, epoch + 1):
             dataset.shuffle()
             for _ in iter_pbar(int(dataset.size / batch_size)):
-                iter_num += 1
                 self._train_iter(dataset, batch_size)
 
             self.sess.run(self.op_inc_global_epoch)
@@ -324,28 +322,18 @@ class BaseModel(LoggerMixIn, input_shapesMixIN, metadataMixIN, paramsMixIn, loss
 
             metric = getattr(self, 'metric')(x, y)
             if metric in (np.nan, np.inf, -np.inf):
-                tqdm.write(f'train fail, e = {global_epoch}, metric = {metric}, recent best = {recent_best}')
+                tqdm.write(f'train fail, e = {global_epoch}, metric = {metric}')
                 break
 
-            if early_stop:
-                tqdm.write(f'e = {global_epoch}, metric = {metric}, recent best = {recent_best}')
-                # self.log.info(f'e = {e}, metric = {metric}, best = {last_metric}')
-
-                if recent_best > metric:
-                    tqdm.write(f'improve {recent_best - metric}')
-                    # self.log.info(f'improve {last_metric - metric}')
-                    recent_best = metric
-                    patience_count = 0
-                else:
-                    patience_count += 1
-
-                if patience_count == patience:
-                    tqdm.write(f'early stop')
-                    # self.log.info(f'early stop')
-                    break
+            if early_stop and early_stop(metric, global_epoch):
+                break
             else:
-                tqdm.write(f"e:{global_epoch}, i:{iter_num}, metric : {np.mean(metric)}")
+                tqdm.write(f"e:{global_epoch}, metric : {np.mean(metric)}")
                 # self.log.info(f"e:{e}, i:{iter_num}, metric : {np.mean(metric)}")
+
+            if epoch_pbar: epoch_pbar.update(1)
+
+        if epoch_pbar: epoch_pbar.close()
 
         if dataset_callback:
             del dataset
