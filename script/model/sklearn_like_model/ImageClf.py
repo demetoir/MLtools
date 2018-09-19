@@ -58,7 +58,7 @@ class ImageClf(
         self.learning_rate_decay_method = learning_rate_decay_method
         self.learning_rate_decay_rate = learning_rate_decay_rate
         self.learning_rate = learning_rate
-        self.net_capacity = capacity
+        self.capacity = capacity
 
         self.use_l1_norm = use_l1_norm
         self.l1_norm_rate = l1_norm_rate
@@ -66,7 +66,6 @@ class ImageClf(
         self.l2_norm_rate = l2_norm_rate
 
         self.net_structure = None
-        self.net_structure_class = self.net_structure_class_dict[self.net_type]
 
     def _build_input_shapes(self, shapes):
         ret = {}
@@ -81,8 +80,9 @@ class ImageClf(
             self.n_classes = self.Ys.shape[1]
         self.Ys_label = onehot_to_index(self.Ys)
 
-        self.net_structure = self.net_structure_class(
-            self.Xs, self.n_classes, capacity=self.net_capacity,
+        net_class = self.net_structure_class_dict[self.net_type]
+        self.net_structure = net_class(
+            self.Xs, self.n_classes, capacity=self.capacity,
         )
         self.net_structure.build()
         self._logit = self.net_structure.logit
