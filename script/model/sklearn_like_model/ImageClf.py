@@ -53,6 +53,7 @@ class ImageClf(
             l2_norm_rate=0.01,
             dropout_rate=0.5,
             fc_depth=2,
+            fc_capacity=1024,
             **kwargs
     ):
         BaseModel.__init__(self, verbose, **kwargs)
@@ -76,6 +77,7 @@ class ImageClf(
         self.l2_norm_rate = l2_norm_rate
         self.dropout_rate = dropout_rate
         self.fc_depth = fc_depth
+        self.fc_capacity = fc_capacity
 
     def _build_input_shapes(self, shapes):
         ret = {}
@@ -101,7 +103,7 @@ class ImageClf(
         self.mlp_net_module = MLPNetModule(
             self.net_module.flatten_layer,
             self.n_classes,
-            capacity=self.capacity * 64,
+            capacity=self.fc_capacity,
             dropout_rate=self.dropout_rate,
             depth=self.fc_depth,
         ).build()
