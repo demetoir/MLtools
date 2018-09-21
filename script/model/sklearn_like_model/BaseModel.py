@@ -100,7 +100,6 @@ class BaseModel(LoggerMixIn, input_shapesMixIN, metadataMixIN, paramsMixIn, loss
 
     def __del__(self):
         del self.sessionManager
-        self.reset_graph()
 
     @property
     def sess(self):
@@ -133,10 +132,6 @@ class BaseModel(LoggerMixIn, input_shapesMixIN, metadataMixIN, paramsMixIn, loss
     @property
     def is_built(self):
         return self._is_input_shape_built and self._is_graph_built
-
-    def reset_graph(self):
-        tf.reset_default_graph()
-        self._is_graph_built = False
 
     def _build_graph(self):
         try:
@@ -222,7 +217,6 @@ class BaseModel(LoggerMixIn, input_shapesMixIN, metadataMixIN, paramsMixIn, loss
             except BaseException:
                 raise ModelBuildFailError(f'input_shape build fail, {inputs}')
 
-        self.reset_graph()
         self._build_graph()
 
         self.sessionManager.open_if_not()
@@ -267,7 +261,6 @@ class BaseModel(LoggerMixIn, input_shapesMixIN, metadataMixIN, paramsMixIn, loss
         self._load_input_shapes(os.path.join(path, 'input_shapes.pkl'))
         self._is_input_shape_built = True
 
-        self.reset_graph()
         self._build_graph()
 
         self.sessionManager.open_if_not()
