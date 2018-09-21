@@ -1,16 +1,16 @@
-from tqdm import trange, tqdm
-from script.data_handler.Base.BaseDataset import BaseDataset
-from script.model.sklearn_like_model.callback.EarlyStop import EarlyStop
-from script.model.sklearn_like_model.Mixin import input_shapesMixIN, metadataMixIN, paramsMixIn, loss_packMixIn
-from script.data_handler.DummyDataset import DummyDataset
-from script.util.MixIn import LoggerMixIn
-from script.util.misc_util import time_stamp, path_join, log_error_trace, error_trace
-from script.util.misc_util import setup_directory
-from env_settting import *
-from functools import reduce
-import tensorflow as tf
-import os
 import numpy as np
+import tensorflow as tf
+from tqdm import trange, tqdm
+from env_settting import *
+from script.data_handler.Base.BaseDataset import BaseDataset
+from script.data_handler.DummyDataset import DummyDataset
+from script.model.sklearn_like_model.Mixin import input_shapesMixIN, metadataMixIN, paramsMixIn, loss_packMixIn
+from script.model.sklearn_like_model.SessionManager import SessionManager
+from script.model.sklearn_like_model.callback.EarlyStop import EarlyStop
+from script.util.MixIn import LoggerMixIn
+from script.util.misc_util import setup_directory
+from script.util.misc_util import time_stamp, path_join, error_trace
+from script.util.tensor_ops import join_scope
 
 
 class ModelBuildFailError(BaseException):
@@ -71,10 +71,23 @@ class BaseModel(LoggerMixIn, input_shapesMixIN, metadataMixIN, paramsMixIn, loss
         paramsMixIn.__init__(self)
         loss_packMixIn.__init__(self)
 
+        if 'sess' in kwargs:
+            sess = kwargs['sess']
+        else:
+            sess = None
+        if 'config' in kwargs:
+            config = kwargs['config']
+        else:
+            config = None
+
+        self.sessionManager = SessionManager(
+            sess=sess,
+            config=config,
+        )
+
+        self._is_input_shape_built = False
+        self._is_graph_built = False
         self.verbose = verbose
-        self.sess = None
-        self.saver = None
-        self.__is_built = False
 
         # gen instance id
         self.id = "_".join([self.__str__(), time_stamp()])
@@ -82,39 +95,50 @@ class BaseModel(LoggerMixIn, input_shapesMixIN, metadataMixIN, paramsMixIn, loss
     def __str__(self):
         return "%s_%s" % (self.AUTHOR, self.__class__.__name__)
 
+    def __repr__(self):
+        return "%s_%s" % (self.AUTHOR, self.__class__.__name__)
+
     def __del__(self):
-        # TODO this del need hack
-        try:
-            self._close_session()
-            self._close_saver()
-            # reset tensorflow graph
-        except BaseException:
-            pass
+        del self.sessionManager
+        self.reset_graph()
 
-    def _open_saver(self):
-        if self.saver is None:
-            self.saver = tf.train.Saver()
+    @property
+    def sess(self):
+        return self.sessionManager.sess
 
-    def _close_saver(self):
-        self.saver = None
+    @property
+    def var_list(self):
+        var_list = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope=self.id)
 
-    def _open_session(self):
-        try:
-            if self.sess is None:
-                self.sess = tf.Session()
-                self.sess.run(tf.global_variables_initializer())
+        return var_list
 
-        except BaseException as e:
-            log_error_trace(self.log.error, e, head='fail to open tf.Session()')
+    @property
+    def main_graph_var_list(self):
+        return tf.get_collection(
+            tf.GraphKeys.GLOBAL_VARIABLES,
+            scope=join_scope(self.id, 'main_graph')
+        )
 
-    def _close_session(self):
-        if self.sess is not None:
-            self.sess.close()
-            self.sess = None
+    @property
+    def train_op_var_list(self):
+        return tf.get_collection(
+            tf.GraphKeys.GLOBAL_VARIABLES,
+            scope=join_scope(self.id, 'main_graph')
+        )
 
-    def _build(self):
+    @property
+    def trainable_var_list(self):
+        return tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope=self.id)
+
+    @property
+    def is_built(self):
+        return self._is_input_shape_built and self._is_graph_built
+
+    def reset_graph(self):
         tf.reset_default_graph()
+        self._is_graph_built = False
 
+    def _build_graph(self):
         try:
             with tf.variable_scope(str(self.id)):
                 with tf.variable_scope("misc_ops"):
@@ -122,7 +146,8 @@ class BaseModel(LoggerMixIn, input_shapesMixIN, metadataMixIN, paramsMixIn, loss
                     self._build_misc_ops()
 
                 self.log.debug('build_main_graph')
-                self._build_main_graph()
+                with tf.variable_scope('main_graph'):
+                    self._build_main_graph()
 
                 with tf.variable_scope('loss_function'):
                     self.log.debug('build_loss_function')
@@ -132,13 +157,13 @@ class BaseModel(LoggerMixIn, input_shapesMixIN, metadataMixIN, paramsMixIn, loss
                     self.log.debug('build_train_ops')
                     self._build_train_ops()
 
-        except BaseException as e:
-            log_error_trace(self.log.error, e)
-            log_error_trace(print, e)
-            raise ModelBuildFailError("ModelBuildFailError")
-        else:
-            self.__is_built = True
+            self._is_graph_built = True
             self.log.info("build success")
+
+        except BaseException as e:
+            self.log.error(error_trace(e))
+            print(error_trace(e))
+            raise ModelBuildFailError("ModelBuildFailError")
 
     def _build_input_shapes(self, shapes):
         """load input shapes for tensor placeholder
@@ -188,15 +213,28 @@ class BaseModel(LoggerMixIn, input_shapesMixIN, metadataMixIN, paramsMixIn, loss
         """
         raise NotImplementedError
 
-    def _prepare_train(self, **kwargs):
-        shapes = {}
-        for key in kwargs:
-            shapes[key] = kwargs[key]
-        input_shapes = self._build_input_shapes(shapes)
-        self._apply_input_shapes(input_shapes)
-        self._check_build()
+    def build(self, **inputs):
+        if not self._is_input_shape_built:
+            try:
+                input_shapes = self._build_input_shapes(inputs)
+                self._apply_input_shapes(input_shapes)
+                self._is_input_shape_built = True
+            except BaseException:
+                raise ModelBuildFailError(f'input_shape build fail, {inputs}')
+
+        self.reset_graph()
+        self._build_graph()
+
+        self.sessionManager.open_if_not()
+        self.sessionManager.init_variable(self.var_list)
 
     def save(self, path=None):
+        if not self.is_built:
+            raise RuntimeError(f'can not save un built model, {self}')
+
+        if not self.sessionManager.is_opened:
+            raise RuntimeError(f'can not save model without session {self}')
+
         if path is None:
             self.log.info('save directory not specified, use default directory')
             path = os.path.join(ROOT_PATH, 'instance', self.id)
@@ -207,6 +245,11 @@ class BaseModel(LoggerMixIn, input_shapesMixIN, metadataMixIN, paramsMixIn, loss
         self.save_folder_path = path_join(self.instance_path, 'check_point')
         setup_directory(self.save_folder_path)
 
+        self.check_point_path = path_join(self.save_folder_path, 'instance.ckpt')
+        saver = tf.train.Saver(self.var_list)
+        saver.save(self.sess, self.check_point_path)
+        self.log.info("saved at {}".format(self.instance_path))
+
         self.metadata_path = path_join(self.instance_path, 'meta.json')
         self._save_metadata(self.metadata_path)
 
@@ -216,33 +259,26 @@ class BaseModel(LoggerMixIn, input_shapesMixIN, metadataMixIN, paramsMixIn, loss
         self.params_path = path_join(self.instance_path, 'params.pkl')
         self._save_params(self.params_path)
 
-        self._open_session()
-        self._open_saver()
-
-        self.check_point_path = path_join(self.save_folder_path, 'instance.ckpt')
-        self.saver.save(self.sess, self.check_point_path)
-
-        self.log.info("saved at {}".format(self.instance_path))
-
         return self.instance_path
 
     def load(self, path):
-        self._close_session()
-        self._close_saver()
-
         self._load_metadata(os.path.join(path, 'meta.json'))
         self._load_params(os.path.join(path, 'params.pkl'))
         self._load_input_shapes(os.path.join(path, 'input_shapes.pkl'))
+        self._is_input_shape_built = True
 
-        self._build()
-        self._open_session()
-        self._open_saver()
-        self.saver.restore(self.sess, self.check_point_path)
+        self.reset_graph()
+        self._build_graph()
+
+        self.sessionManager.open_if_not()
+        self.sessionManager.init_variable(self.var_list)
+
+        saver = tf.train.Saver(self.var_list)
+        saver.restore(self.sess, self.check_point_path)
+
         return self
 
     def get_tf_values(self, fetches, feet_dict, wrap_dict=False):
-        self._check_build()
-
         if wrap_dict:
             ret = self.sess.run(list(fetches.values()), feet_dict)
             return dict(zip(fetches.keys(), ret))
@@ -250,34 +286,12 @@ class BaseModel(LoggerMixIn, input_shapesMixIN, metadataMixIN, paramsMixIn, loss
         else:
             return self.sess.run(fetches, feet_dict)
 
-    def _check_build(self):
-        if not self.__is_built:
-            self._build()
-
-        if self.sess is None:
-            self._open_session()
-
     @staticmethod
     def to_dummyDataset(**kwargs):
         dataset = DummyDataset()
         for key, item in kwargs.items():
             dataset.add_data(key, item)
         return dataset
-
-    @staticmethod
-    def shape_extract(**kwargs):
-        ret = {}
-        for key, item in kwargs.items():
-            shape = np.array(item).shape
-            if len(shape) == 1:
-                ret[key] = shape
-            else:
-                ret[key] = shape[1:]
-        return ret
-
-    @staticmethod
-    def flatten_shape(x):
-        return reduce(lambda a, b: a * b, x)
 
     def run_ops(self, ops, feed_dict):
         for op in ops:
@@ -299,7 +313,10 @@ class BaseModel(LoggerMixIn, input_shapesMixIN, metadataMixIN, paramsMixIn, loss
               early_stop=False, patience=20, epoch_pbar=True, iter_pbar=False, epoch_callback=None,
               save_top_k=5,
               **kwargs):
-        self._prepare_train(Xs=x, Ys=y)
+
+        if not self.is_built:
+            self.build(Xs=x, Ys=y)
+
         batch_size = getattr(self, 'batch_size') if batch_size is None else batch_size
         dataset = dataset_callback if dataset_callback else BaseDataset(x=x, y=y)
         epoch_callback = epoch_callback if epoch_callback else None
