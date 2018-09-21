@@ -1,9 +1,9 @@
-from script.model.sklearn_like_model.net_structure.Base_net_structure import Base_net_structure
+from script.model.sklearn_like_model.NetModule.BaseNetModule import BaseNetModule
 from script.util.Stacker import Stacker
 from script.util.tensor_ops import *
 
 
-class BaseResNetStructure(Base_net_structure):
+class BaseResNetNetModule(BaseNetModule):
     def __init__(self, x, n_classes, capacity=None, reuse=False, name=None, verbose=0):
         super().__init__(capacity, reuse, name, verbose)
         self.x = x
@@ -91,18 +91,14 @@ class BaseResNetStructure(Base_net_structure):
         stacker.max_pooling(CONV_FILTER_3322)
         return stacker
 
-    @staticmethod
-    def foot(stacker, n_channel, n_classes):
+    def foot(self, stacker, n_channel, n_classes):
         stacker.avg_pooling(CONV_FILTER_7777)
-        stacker.flatten()
-        stacker.linear_block(n_channel * 64, relu)
-        stacker.linear_block(n_channel * 64, relu)
-        stacker.linear(n_classes)
-        logit = stacker.last_layer
-        stacker.softmax()
-        proba = stacker.last_layer
+        self.flatten_layer = stacker.flatten()
 
-        return logit, proba
+        stacker.linear_block(n_channel * 64, relu)
+        stacker.linear_block(n_channel * 64, relu)
+        self.logit = stacker.linear(n_classes)
+        self.proba = stacker.softmax()
 
     def body(self, stacker):
         raise NotImplementedError
@@ -113,4 +109,4 @@ class BaseResNetStructure(Base_net_structure):
             self.stacker.resize_image((224, 224))
             self.stacker = self.head(self.stacker)
             self.stacker = self.body(self.stacker)
-            self.logit, self.proba = self.foot(self.stacker, self.n_channel, self.n_classes)
+            self.foot(self.stacker, self.n_channel, self.n_classes)

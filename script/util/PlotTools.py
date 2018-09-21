@@ -333,7 +333,7 @@ class PlotTools(LoggerMixIn):
         self.teardown_matplot(fig, path=path, **kwargs)
 
     @deco_rollback_plt
-    def scatter_2d(self, *np_arr, labels=None, marker_size=3, path=None, **kwargs):
+    def scatter_2d(self, *np_arr, labels=None, marker_size=3, path=None, x_label=None, y_label=None, **kwargs):
         self.setup_matplot()
         fig = self.figure
 
@@ -346,6 +346,10 @@ class PlotTools(LoggerMixIn):
                 label = str(idx)
             self.plt.scatter(x, y, marker_size, color, marker, label=label)
 
+        if x_label:
+            self.plt.xlabel(x_label)
+        if y_label:
+            self.plt.ylabel(y_label)
         self.plt.legend(loc='center left', bbox_to_anchor=(1, 0.5))
 
         self.teardown_matplot(fig, path=path, **kwargs)

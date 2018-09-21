@@ -1,5 +1,6 @@
 """misc utils
 pickle, import module, zip, etc ..."""
+import shutil
 import traceback
 import webbrowser
 from glob import glob
@@ -253,6 +254,11 @@ def setup_directory(path):
         os.makedirs(path)
 
 
+def teardown_directory(path):
+    if os.path.exists(path):
+        shutil.rmtree(path)
+
+
 def open_chrome(url):
     webbrowser.open(url)
 
@@ -293,3 +299,20 @@ def error_trace(e):
 
 def params_to_dict(**param):
     return param
+
+
+class temp_directory:
+    def __init__(self, path):
+        self.path = path
+
+    def __enter__(self):
+        setup_directory(self.path)
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        if (exc_type, exc_val, exc_tb) == (None, None, None):
+            teardown_directory(self.path)
+            return True
+        else:
+            print(exc_tb)
+            return False
+

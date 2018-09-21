@@ -289,6 +289,7 @@ class paramsMixIn:
         if not hasattr(self, '_params_keys'):
             argspec = inspect.getfullargspec(self.__init__)
             self._params_keys = argspec.args
+            self._params_keys.remove('self')
 
         for key in self._params_keys:
             setattr(self, key, None)

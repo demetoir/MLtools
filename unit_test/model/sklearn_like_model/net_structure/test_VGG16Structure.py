@@ -1,6 +1,6 @@
 from tensorflow.contrib import slim
 
-from script.model.sklearn_like_model.net_structure.VGG16Structure import VGG16Structure
+from script.model.sklearn_like_model.NetModule.VGG16NetModule import VGG16NetModule
 import tensorflow as tf
 import numpy as np
 
@@ -16,7 +16,7 @@ def show_summary():
 def test_VGG16Structure():
     x = tf.placeholder(tf.float32, [None, 300, 300, 3])
     n_classes = 2
-    net = VGG16Structure(x, n_classes)
+    net = VGG16NetModule(x, n_classes)
     net.build()
 
     h = net.h

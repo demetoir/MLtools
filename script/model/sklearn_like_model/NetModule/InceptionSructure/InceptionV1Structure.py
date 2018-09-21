@@ -1,10 +1,10 @@
-from script.model.sklearn_like_model.net_structure.InceptionSructure.BaseInceptionStructure import \
-    BaseInceptionStructure
+from script.model.sklearn_like_model.NetModule.InceptionSructure.BaseInceptionNetModule import \
+    BaseInceptionNetModule
 from script.util.Stacker import Stacker
 from script.util.tensor_ops import *
 
 
-class InceptionV1Structure(BaseInceptionStructure):
+class InceptionV1NetModule(BaseInceptionNetModule):
     @staticmethod
     def inception_dimension_reduction(x, channels, name='inception_dimension_reduction'):
         with tf.variable_scope(name):
@@ -86,109 +86,7 @@ class InceptionV1Structure(BaseInceptionStructure):
 
             return logit, proba
 
-    def structure(self, stacker):
-        self.stacker.resize_image((224, 224))
-        stacker = self.stem(stacker)
-
-        channels_3a = {
-            'a0': self.n_channel * 4,
-            'b0': self.n_channel * 6,
-            'b1': self.n_channel * 8,
-            'c0': self.n_channel * 1,
-            'c1': self.n_channel * 2,
-            'd1': self.n_channel * 2,
-        }
-        stacker.add_layer(self.inception_dimension_reduction, channels_3a)
-        channels_3b = {
-            'a0': self.n_channel * 8,
-            'b0': self.n_channel * 8,
-            'b1': self.n_channel * 12,
-            'c0': self.n_channel * 2,
-            'c1': self.n_channel * 6,
-            'd1': self.n_channel * 4,
-        }
-        stacker.add_layer(self.inception_dimension_reduction, channels_3b)
-        stacker.max_pooling(CONV_FILTER_3322)
-
-        channels_4a = {
-            'a0': self.n_channel * 12,
-            'b0': self.n_channel * 6,
-            'b1': self.n_channel * 13,
-            'c0': self.n_channel * 1,
-            'c1': self.n_channel * 3,
-            'd1': self.n_channel * 4,
-        }
-        stacker.add_layer(self.inception_dimension_reduction, channels_4a)
-        self.aux0_logit, self.aux0_proba = self.aux(stacker.last_layer, self.n_channel * 4, 'aux0')
-        channels_4b = {
-            'a0': self.n_channel * 10,
-            'b0': self.n_channel * 7,
-            'b1': self.n_channel * 15,
-            'c0': self.n_channel * 2,
-            'c1': self.n_channel * 4,
-            'd1': self.n_channel * 4,
-        }
-        stacker.add_layer(self.inception_dimension_reduction, channels_4b)
-        channels_4c = {
-            'a0': self.n_channel * 8,
-            'b0': self.n_channel * 8,
-            'b1': self.n_channel * 16,
-            'c0': int(self.n_channel * 1.5),
-            'c1': self.n_channel * 4,
-            'd1': self.n_channel * 4,
-        }
-        stacker.add_layer(self.inception_dimension_reduction, channels_4c)
-        channels_4d = {
-            'a0': self.n_channel * 7,
-            'b0': self.n_channel * 9,
-            'b1': self.n_channel * 18,
-            'c0': self.n_channel * 2,
-            'c1': self.n_channel * 4,
-            'd1': self.n_channel * 4,
-        }
-        stacker.add_layer(self.inception_dimension_reduction, channels_4d)
-        self.aux1_logit, self.aux1_proba = self.aux(stacker.last_layer, self.n_channel * 4, 'aux1')
-        channels_4e = {
-            'a0': self.n_channel * 16,
-            'b0': self.n_channel * 10,
-            'b1': self.n_channel * 20,
-            'c0': self.n_channel * 2,
-            'c1': self.n_channel * 8,
-            'd1': self.n_channel * 8,
-        }
-        stacker.add_layer(self.inception_dimension_reduction, channels_4e)
-        stacker.max_pooling(CONV_FILTER_3322)
-
-        channels_5a = {
-            'a0': self.n_channel * 16,
-            'b0': self.n_channel * 10,
-            'b1': self.n_channel * 20,
-            'c0': self.n_channel * 2,
-            'c1': self.n_channel * 8,
-            'd1': self.n_channel * 8,
-        }
-        stacker.add_layer(self.inception_dimension_reduction, channels_5a)
-        channels_5b = {
-            'a0': self.n_channel * 24,
-            'b0': self.n_channel * 12,
-            'b1': self.n_channel * 24,
-            'c0': self.n_channel * 3,
-            'c1': self.n_channel * 8,
-            'd1': self.n_channel * 8,
-        }
-        stacker.add_layer(self.inception_dimension_reduction, channels_5b)
-        stacker.max_pooling(CONV_FILTER_7777)
-
-        # dropout
-        stacker.flatten()
-        stacker.linear_block(self.n_channel * 64, relu)
-        stacker.linear(self.n_classes)
-        logit = stacker.last_layer
-        stacker.softmax()
-        proba = stacker.last_layer
-        return logit, proba
-
-    def stem(self,stacker, name='stem'):
+    def stem(self, stacker, name='stem'):
         with tf.variable_scope(name):
             stacker.conv_block(self.n_channel * 4, CONV_FILTER_7722, relu)
             stacker.max_pooling(CONV_FILTER_3322)
@@ -210,4 +108,101 @@ class InceptionV1Structure(BaseInceptionStructure):
         with tf.variable_scope(self.name):
             self.stacker = Stacker(self.x)
 
-            self.logit, self.proba = self.structure(self.stacker)
+            self.stacker.resize_image((224, 224))
+            stacker = self.stem(self.stacker)
+
+            channels_3a = {
+                'a0': self.n_channel * 4,
+                'b0': self.n_channel * 6,
+                'b1': self.n_channel * 8,
+                'c0': self.n_channel * 1,
+                'c1': self.n_channel * 2,
+                'd1': self.n_channel * 2,
+            }
+            stacker.add_layer(self.inception_dimension_reduction, channels_3a)
+            channels_3b = {
+                'a0': self.n_channel * 8,
+                'b0': self.n_channel * 8,
+                'b1': self.n_channel * 12,
+                'c0': self.n_channel * 2,
+                'c1': self.n_channel * 6,
+                'd1': self.n_channel * 4,
+            }
+            stacker.add_layer(self.inception_dimension_reduction, channels_3b)
+            stacker.max_pooling(CONV_FILTER_3322)
+
+            channels_4a = {
+                'a0': self.n_channel * 12,
+                'b0': self.n_channel * 6,
+                'b1': self.n_channel * 13,
+                'c0': self.n_channel * 1,
+                'c1': self.n_channel * 3,
+                'd1': self.n_channel * 4,
+            }
+            stacker.add_layer(self.inception_dimension_reduction, channels_4a)
+            self.aux0_logit, self.aux0_proba = self.aux(stacker.last_layer, self.n_channel * 4, 'aux0')
+
+            channels_4b = {
+                'a0': self.n_channel * 10,
+                'b0': self.n_channel * 7,
+                'b1': self.n_channel * 15,
+                'c0': self.n_channel * 2,
+                'c1': self.n_channel * 4,
+                'd1': self.n_channel * 4,
+            }
+            stacker.add_layer(self.inception_dimension_reduction, channels_4b)
+            channels_4c = {
+                'a0': self.n_channel * 8,
+                'b0': self.n_channel * 8,
+                'b1': self.n_channel * 16,
+                'c0': int(self.n_channel * 1.5),
+                'c1': self.n_channel * 4,
+                'd1': self.n_channel * 4,
+            }
+            stacker.add_layer(self.inception_dimension_reduction, channels_4c)
+            channels_4d = {
+                'a0': self.n_channel * 7,
+                'b0': self.n_channel * 9,
+                'b1': self.n_channel * 18,
+                'c0': self.n_channel * 2,
+                'c1': self.n_channel * 4,
+                'd1': self.n_channel * 4,
+            }
+            stacker.add_layer(self.inception_dimension_reduction, channels_4d)
+            self.aux1_logit, self.aux1_proba = self.aux(stacker.last_layer, self.n_channel * 4, 'aux1')
+
+            channels_4e = {
+                'a0': self.n_channel * 16,
+                'b0': self.n_channel * 10,
+                'b1': self.n_channel * 20,
+                'c0': self.n_channel * 2,
+                'c1': self.n_channel * 8,
+                'd1': self.n_channel * 8,
+            }
+            stacker.add_layer(self.inception_dimension_reduction, channels_4e)
+            stacker.max_pooling(CONV_FILTER_3322)
+
+            channels_5a = {
+                'a0': self.n_channel * 16,
+                'b0': self.n_channel * 10,
+                'b1': self.n_channel * 20,
+                'c0': self.n_channel * 2,
+                'c1': self.n_channel * 8,
+                'd1': self.n_channel * 8,
+            }
+            stacker.add_layer(self.inception_dimension_reduction, channels_5a)
+            channels_5b = {
+                'a0': self.n_channel * 24,
+                'b0': self.n_channel * 12,
+                'b1': self.n_channel * 24,
+                'c0': self.n_channel * 3,
+                'c1': self.n_channel * 8,
+                'd1': self.n_channel * 8,
+            }
+            stacker.add_layer(self.inception_dimension_reduction, channels_5b)
+            stacker.max_pooling(CONV_FILTER_7777)
+
+            self.flatten_layer = stacker.flatten()
+            self.fc_layer = stacker.linear_block(self.n_channel * 64, relu)
+            self.logit = stacker.linear(self.n_classes)
+            self.proba = stacker.softmax()

@@ -6,20 +6,20 @@ from script.model.sklearn_like_model.BaseModel import BaseModel
 from script.model.sklearn_like_model.Mixin import Xs_MixIn, Ys_MixIn, supervised_trainMethodMixIn, predictMethodMixIn, \
     predict_probaMethodMixIn, scoreMethodMixIn, supervised_metricMethodMixIn
 from script.model.sklearn_like_model.TFSummary import TFSummaryScalar
-from script.model.sklearn_like_model.Top_k_save import Top_k_save
-from script.model.sklearn_like_model.net_structure.InceptionSructure.InceptionV1Structure import InceptionV1Structure
-from script.model.sklearn_like_model.net_structure.InceptionSructure.InceptionV2Structure import InceptionV2Structure
-from script.model.sklearn_like_model.net_structure.InceptionSructure.InceptionV4Structure import InceptionV4Structure
-from script.model.sklearn_like_model.net_structure.ResNetStructure.ResNet101Structure import ResNet101Structure
-from script.model.sklearn_like_model.net_structure.ResNetStructure.ResNet152Structure import ResNet152Structure
-from script.model.sklearn_like_model.net_structure.ResNetStructure.ResNet18Structure import ResNet18Structure
-from script.model.sklearn_like_model.net_structure.ResNetStructure.ResNet34Structure import ResNet34Structure
-from script.model.sklearn_like_model.net_structure.ResNetStructure.ResNet50Structure import ResNet50Structure
-from script.model.sklearn_like_model.net_structure.VGG16Structure import VGG16Structure
+from script.model.sklearn_like_model.callback.Top_k_save import Top_k_save
+from script.model.sklearn_like_model.NetModule.InceptionSructure.InceptionV1Structure import InceptionV1NetModule
+from script.model.sklearn_like_model.NetModule.InceptionSructure.InceptionV2Structure import InceptionV2NetModule
+from script.model.sklearn_like_model.NetModule.InceptionSructure.InceptionV4Structure import InceptionV4NetModule
+from script.model.sklearn_like_model.NetModule.ResNetStructure.ResNet101NetModule import ResNet101Structure
+from script.model.sklearn_like_model.NetModule.ResNetStructure.ResNet152NetModule import ResNet152Structure
+from script.model.sklearn_like_model.NetModule.ResNetStructure.ResNet18NetModule import ResNet18NetModule
+from script.model.sklearn_like_model.NetModule.ResNetStructure.ResNet34NetModule import ResNet34NetModule
+from script.model.sklearn_like_model.NetModule.ResNetStructure.ResNet50NetModule import ResNet50Structure
+from script.model.sklearn_like_model.NetModule.VGG16NetModule import VGG16NetModule
 from script.util.misc_util import time_stamp, path_join
 from script.util.numpy_utils import *
 from script.util.tensor_ops import *
-from script.workbench.TGS_salt.TGS_salt_inference import data_helper, plot, to_dict, save_tf_summary_params
+from script.workbench.TGS_salt.TGS_salt_inference import TGS_salt_DataHelper, plot, to_dict, save_tf_summary_params
 
 task_name = 'mask_rate_reg'
 SUMMARY_PATH = f'./tf_summary/TGS_salt/mask_rate_reg'
@@ -37,15 +37,15 @@ class MaskRateReg(
     supervised_metricMethodMixIn,
 ):
     net_structure_class_dict = {
-        'VGG16': VGG16Structure,
-        'ResNet18': ResNet18Structure,
-        'ResNet34': ResNet34Structure,
+        'VGG16': VGG16NetModule,
+        'ResNet18': ResNet18NetModule,
+        'ResNet34': ResNet34NetModule,
         'ResNet50': ResNet50Structure,
         'ResNet101': ResNet101Structure,
         'ResNet152': ResNet152Structure,
-        'InceptionV1': InceptionV1Structure,
-        'InceptionV2': InceptionV2Structure,
-        'InceptionV4': InceptionV4Structure,
+        'InceptionV1': InceptionV1NetModule,
+        'InceptionV2': InceptionV2NetModule,
+        'InceptionV4': InceptionV4NetModule,
     }
     loss_funcs = {
         'MSE': MSE_loss,
@@ -229,7 +229,7 @@ class EpochCallback(BaseEpochCallback):
 
 class mask_rate_reg_pipeline:
     def __init__(self):
-        self.data_helper = data_helper()
+        self.data_helper = TGS_salt_DataHelper()
         self.plot = plot
         self.data_helper.train_set.y_keys = ['mask_rate']
 

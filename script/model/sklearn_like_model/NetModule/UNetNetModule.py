@@ -1,12 +1,12 @@
 import tensorflow as tf
 
 from script.model.sklearn_like_model.DynamicDropoutRate import DynamicDropoutRate
-from script.model.sklearn_like_model.net_structure.Base_net_structure import Base_net_structure
+from script.model.sklearn_like_model.NetModule.BaseNetModule import BaseNetModule
 from script.util.Stacker import Stacker
 from script.util.tensor_ops import CONV_FILTER_3311, relu, CONV_FILTER_2211, CONV_FILTER_2222
 
 
-class UNetStructure(Base_net_structure):
+class UNetNetModule(BaseNetModule):
     def __init__(self, x, n_classes=2, level=4, depth=1, capacity=64, dropout_rate=0.5, reuse=False, name=None,
                  verbose=0):
         super().__init__(capacity=capacity, reuse=reuse, name=name, verbose=verbose)

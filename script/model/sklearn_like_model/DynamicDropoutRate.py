@@ -35,6 +35,8 @@ class DynamicDropoutRate(LoggerMixIn):
             self.is_build = True
             self.log.info(f'build {self.name}')
 
+        return self
+
     def update(self, sess, x):
         return sess.run(self.update_op, feed_dict={self.placeholder: x})
 

@@ -15,26 +15,30 @@ import tensorflow as tf
 plot = PlotTools(save=True, show=False)
 
 
+def iou_metric(true, predict):
+    true = true / 255
+    predict = predict / 255
+
+    intersect = np.logical_and(true, predict)
+    union = np.logical_or(true, predict)
+    iou_score = np.sum(intersect) / np.sum(union)
+    return iou_score
+
+
+def masks_rate(masks):
+    size = masks.shape[0]
+    mask = masks.reshape([size, -1])
+    return np.mean(mask, axis=1)
+
+
 def TGS_salt_metric(mask_true, mask_predict):
-    # TODO
     def _metric(mask_true, mask_predict):
-        if np.sum(mask_true) == 0 and np.sum(mask_predict) > 0:
-            # return 0
-            return 1
-        elif np.sum(mask_true) == 0 and np.sum(mask_predict) == 0:
-            return 1
+        if np.sum(mask_true) == 0:
+            return 0 if np.sum(mask_predict) > 0 else 1
         else:
+            iou_score = iou_metric(mask_true, mask_predict)
+
             threshold = np.arange(0.5, 1, 0.05)
-
-            mask_true = mask_true / 255
-            mask_predict = mask_predict / 255
-
-            upper = np.logical_and(mask_true, mask_predict)
-            lower = np.logical_or(mask_true, mask_predict)
-            iou_score = np.sum(upper) / np.sum(lower)
-            # print(iou_score)
-
-            # print(threshold <= iou_score)
             score = np.sum(threshold <= iou_score) / 10.0
             return score
 
@@ -68,7 +72,7 @@ def param_to_string(params):
     return "_".join([f"{key}={val}" for key, val in params.items()])
 
 
-class data_helper:
+class TGS_salt_DataHelper:
     def __init__(self, data_pack_path='./data/TGS_salt', sample_offset=10, sample_size=10):
         self.data_pack_path = data_pack_path
         self.sample_offset = sample_offset

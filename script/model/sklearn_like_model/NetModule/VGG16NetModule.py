@@ -1,11 +1,11 @@
 import tensorflow as tf
 
-from script.model.sklearn_like_model.net_structure.Base_net_structure import Base_net_structure
+from script.model.sklearn_like_model.NetModule.BaseNetModule import BaseNetModule
 from script.util.Stacker import Stacker
 from script.util.tensor_ops import CONV_FILTER_3311, relu, CONV_FILTER_2222
 
 
-class VGG16Structure(Base_net_structure):
+class VGG16NetModule(BaseNetModule):
 
     def __init__(self, x, n_classes, capacity=None, reuse=False, name='VGG16Structure', verbose=0):
         super().__init__(capacity, reuse, name, verbose)

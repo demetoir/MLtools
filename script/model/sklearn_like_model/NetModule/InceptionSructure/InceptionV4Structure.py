@@ -1,10 +1,10 @@
-from script.model.sklearn_like_model.net_structure.InceptionSructure.BaseInceptionStructure import \
-    BaseInceptionStructure
+from script.model.sklearn_like_model.NetModule.InceptionSructure.BaseInceptionNetModule import \
+    BaseInceptionNetModule
 from script.util.Stacker import Stacker
 from script.util.tensor_ops import *
 
 
-class InceptionV4Structure(BaseInceptionStructure):
+class InceptionV4NetModule(BaseInceptionNetModule):
     def stem(self, stacker, name='stem'):
         with tf.variable_scope(name):
             def mix_0(x, name='mix_0'):
@@ -134,34 +134,30 @@ class InceptionV4Structure(BaseInceptionStructure):
             proba = stack.softmax()
             return logit, proba
 
-    def structure(self, stacker):
-        stacker.resize_image((299, 299))
-        stacker = self.stem(stacker)
-
-        for i in range(4):
-            stacker.add_layer(self.inception_A)
-
-        stacker.add_layer(self.reduction_A)
-        for i in range(7):
-            stacker.add_layer(self.inception_B)
-        self.aux_logit, self.aux_proba = self.aux(stacker.last_layer, self.n_classes)
-
-        stacker.add_layer(self.reduction_B)
-
-        for i in range(3):
-            stacker.add_layer(self.inception_C)
-
-        stacker.max_pooling((8, 8, 8, 8))
-        stacker.flatten()
-        stacker.linear_block(self.n_channel * 64, relu)
-        stacker.linear(self.n_classes)
-        logit = stacker.last_layer
-        stacker.softmax()
-        proba = stacker.last_layer
-        return logit, proba
-
     def build(self):
         with tf.variable_scope(self.name):
             self.stacker = Stacker(self.x)
 
-            self.logit, self.proba = self.structure(self.stacker)
+            self.stacker.resize_image((299, 299))
+            stacker = self.stem(self.stacker)
+
+            for i in range(4):
+                stacker.add_layer(self.inception_A)
+
+            stacker.add_layer(self.reduction_A)
+            for i in range(7):
+                stacker.add_layer(self.inception_B)
+            self.aux_logit, self.aux_proba = self.aux(stacker.last_layer, self.n_classes)
+
+            stacker.add_layer(self.reduction_B)
+
+            for i in range(3):
+                stacker.add_layer(self.inception_C)
+
+            stacker.max_pooling((8, 8, 8, 8))
+
+            # dropout
+            self.flatten_layer = stacker.flatten()
+            stacker.linear_block(self.n_channel * 64, relu)
+            self.logit = stacker.linear(self.n_classes)
+            self.proba = stacker.softmax()
