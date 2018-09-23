@@ -2,6 +2,8 @@ from pprint import pprint
 from imgaug import augmenters as iaa
 from sklearn.decomposition import PCA
 from sklearn.manifold import TSNE
+
+from script.data_handler.Base.BaseDataset import BaseDataset
 from script.data_handler.ImgMaskAug import ActivatorMask, ImgMaskAug
 from script.data_handler.TGS_salt import collect_images, TRAIN_MASK_PATH, TGS_salt, \
     TRAIN_IMAGE_PATH, TEST_IMAGE_PATH, RLE_mask_encoding
@@ -72,6 +74,10 @@ def param_to_string(params):
     return "_".join([f"{key}={val}" for key, val in params.items()])
 
 
+def is_empty_mask(mask):
+    return np.mean(mask) == 0
+
+
 class TGS_salt_DataHelper:
     def __init__(self, data_pack_path='./data/TGS_salt', sample_offset=10, sample_size=10):
         self.data_pack_path = data_pack_path
@@ -83,6 +89,8 @@ class TGS_salt_DataHelper:
         self._test_set = None
         self._sample_xs = None
         self._sample_ys = None
+        self._train_set_non_empty_mask = None
+        self._train_set_empty_mask = None
 
     @property
     def data_pack(self):
@@ -127,6 +135,40 @@ class TGS_salt_DataHelper:
     def valid_set(self):
         # TODO
         return None
+
+    @property
+    def train_set_non_empty_mask(self):
+        if self._train_set_non_empty_mask is None:
+            train_set = self.train_set
+
+            xs, ys = train_set.full_batch()
+
+            idxs = [
+                i
+                for i, y in enumerate(ys)
+                if not is_empty_mask(y)
+            ]
+
+            self._train_set_non_empty_mask = self.train_set.query_by_idxs(idxs)
+
+        return self._train_set_non_empty_mask
+
+    @property
+    def train_set_empty_mask(self):
+        if self._train_set_empty_mask is None:
+            train_set = self.train_set
+
+            xs, ys = train_set.full_batch()
+
+            idxs = [
+                i
+                for i, y in enumerate(ys)
+                if is_empty_mask(y)
+            ]
+
+            self._train_set_empty_mask = self.train_set.query_by_idxs(idxs)
+
+        return self._train_set_empty_mask
 
 
 class TGS_salt_aug_callback(BaseDatasetCallback):
@@ -194,6 +236,20 @@ def masking_images(image, mask, mask_rate=.8):
     image[:, :, 0] = mask * mask_rate
 
     return image
+
+
+def is_white_image(image):
+    if np.mean(image) == 255:
+        return True
+    else:
+        return False
+
+
+def is_black_image(image):
+    if np.mean(image) == 0:
+        return True
+    else:
+        return False
 
 
 class experiment:
