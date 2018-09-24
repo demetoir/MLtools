@@ -231,12 +231,15 @@ class mask_rate_reg_pipeline:
     def __init__(self):
         self.data_helper = TGS_salt_DataHelper()
         self.plot = plot
-        self.data_helper.train_set.y_keys = ['mask_rate']
 
         self.init_dataset()
 
     def init_dataset(self):
-        train_set = self.data_helper.train_set
+        # train_set = self.data_helper.train_set
+        # self.data_helper.train_set.y_keys = ['mask_rate']
+        train_set = self.data_helper.train_set_non_empty_mask
+        train_set.y_keys = ['mask_rate']
+
         train_x, train_y = train_set.full_batch()
         train_x = train_x.reshape([-1, 101, 101, 1])
         train_y = train_y.reshape([-1, 1])
