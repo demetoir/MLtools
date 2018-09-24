@@ -33,11 +33,14 @@ class Epoch_callback(BaseEpochCallback):
                                                              'non_empty_train_score')
         self.summary_non_empty_test_score = TFSummaryScalar(path_join(SUMMARY_PATH, self.run_id, 'test'),
                                                             'non_empty_test_score')
+        self.summary_iou_train_score = TFSummaryScalar(path_join(SUMMARY_PATH, self.run_id, 'train'), 'train_iou')
+        self.summary_iou_test_score = TFSummaryScalar(path_join(SUMMARY_PATH, self.run_id, 'test'), 'test_iou')
 
         self.test_score_top_k_save = Top_k_save(
             path_join(INSTANCE_PATH, self.run_id, 'test_score'),
             k=3,
-            name='test_score'
+            name='test_score',
+            save_model=False
         )
         self.non_empty_mask_test_score_top_k_save = Top_k_save(
             path_join(INSTANCE_PATH, self.run_id, 'non_empty_test_score'),
@@ -51,16 +54,25 @@ class Epoch_callback(BaseEpochCallback):
         msg += f'e:{epoch}, '
         msg += f'TGS_salt_metric train score   = {self.train_score}\n'
         msg += f'TGS_salt_metric test score    = {self.test_score}\n'
+
         msg += f'empty mask score\n'
-        msg += f'\n'
         msg += f'train empty mask score        = {self.train_empty_mask_score},' \
                f' (total = {self.train_empty_mask_size})\n'
         msg += f'test empty mask score         = {self.test_empty_mask_score},' \
                f' (total = {self.test_empty_mask_size})\n'
         msg += f'\n'
+
+        msg += f'non empty mask score\n'
         msg += f'train non empty mask score    = {self.train_non_empty_score}, ' \
-               f'(total = {self.train_non_empty_mask_size}\n'
+               f'(total = {self.train_non_empty_mask_size})\n'
         msg += f'test non empty mask score     = {self.test_non_empty_score}, ' \
+               f'(total = {self.test_non_empty_mask_size})\n'
+        msg += f'\n'
+
+        msg += f'iou score\n'
+        msg += f'train iou score                = {self.train_iou_score}, ' \
+               f'(total = {self.train_non_empty_mask_size}\n'
+        msg += f'test iou score                 = {self.test_iou_score}, ' \
                f'(total = {self.test_non_empty_mask_size})\n'
         msg += f'\n'
 
@@ -113,10 +125,15 @@ class Epoch_callback(BaseEpochCallback):
 
     def update_summary(self, sess, epoch):
         self.summary_train_loss.update(sess, self.train_loss, epoch)
+
         self.summary_train_acc.update(sess, self.train_score, epoch)
+
         self.summary_test_acc.update(sess, self.test_score, epoch)
         self.summary_non_empty_test_score.update(sess, self.test_non_empty_score, epoch)
+
         self.summary_non_empty_train_score.update(sess, self.train_non_empty_score, epoch)
+        self.summary_iou_train_score.update(sess, self.train_iou_score, epoch)
+        self.summary_iou_test_score.update(sess, self.test_iou_score, epoch)
 
     def update_data(self, sess, dataset, epoch):
         train_x, train_y = dataset.next_batch(1000)
@@ -173,6 +190,16 @@ class Epoch_callback(BaseEpochCallback):
         self.test_empty_mask_size = len(self.test_empty_mask_predict)
         self.test_non_empty_mask_size = len(self.test_non_empty_mask_predict)
 
+        iou = []
+        for gt, predict in zip(self.train_y, self.train_predict):
+            iou += [iou_metric(gt, predict)]
+        self.train_iou_score = np.mean(iou)
+
+        iou = []
+        for gt, predict in zip(self.test_y, self.test_predict):
+            iou += [iou_metric(gt, predict)]
+        self.test_iou_score = np.mean(iou)
+
     def __call__(self, sess, dataset, epoch, log=None):
         self.update_data(sess, dataset, epoch)
 
@@ -195,7 +222,8 @@ class SemanticSegmentation_pipeline:
         self.init_dataset()
 
     def init_dataset(self):
-        train_set = self.data_helper.train_set
+        # train_set = self.data_helper.train_set
+        train_set = self.data_helper.train_set_non_empty_mask
 
         x_full, y_full = train_set.full_batch()
         x_full = x_full.reshape([-1, 101, 101, 1])
@@ -203,7 +231,7 @@ class SemanticSegmentation_pipeline:
 
         from sklearn.model_selection import train_test_split
         train_x, test_x, train_y, test_y = train_test_split(
-            x_full, y_full, test_size=0.33)
+            x_full, y_full, test_size=0.30)
 
         train_y_encode = mask_label_encoder.to_label(train_y)
         test_y_encode = mask_label_encoder.to_label(test_y)
@@ -239,7 +267,7 @@ class SemanticSegmentation_pipeline:
             beta1=beta1,
             batch_size=batch_size,
             stage=stage,
-            net_type='FusionNet',
+            net_type=net_type,
             loss_type=loss_type,
             capacity=capacity,
             n_classes=n_classes,
@@ -264,3 +292,20 @@ class SemanticSegmentation_pipeline:
         model.train(self.train_x, self.train_y_encode, epoch=n_epoch, aug_callback=dataset_callback,
                     epoch_callback=epoch_callback, early_stop=early_stop, patience=patience,
                     iter_pbar=True)
+
+        # model.update_learning_rate(0.004)
+        # model.train(self.train_x, self.train_y_encode, epoch=int(n_epoch/3), aug_callback=dataset_callback,
+        #             epoch_callback=epoch_callback, early_stop=early_stop, patience=patience,
+        #             iter_pbar=True)
+        #
+        # model.update_learning_rate(0.001)
+        # model.train(self.train_x, self.train_y_encode, epoch=int(n_epoch / 3), aug_callback=dataset_callback,
+        #             epoch_callback=epoch_callback, early_stop=early_stop, patience=patience,
+        #             iter_pbar=True)
+
+    def build_test(self, params):
+        model = SemanticSegmentation(**params)
+        model.build(Xs=self.train_x, Ys=self.train_y_encode)
+
+        import tensorflow as tf
+        tf.reset_default_graph()
