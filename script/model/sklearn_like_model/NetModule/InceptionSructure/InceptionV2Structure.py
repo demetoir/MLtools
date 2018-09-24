@@ -285,7 +285,6 @@ class InceptionV2NetModule(BaseInceptionNetModule):
             stacker.add_layer(self.module_C, c_channels0)
             stacker.add_layer(self.module_C, c_channels1)
             self.before_last_pooling = stacker.last_layer
-            self.skip_tensors += [stacker.last_layer]
 
             stacker.max_pooling((8, 8, 8, 8))
 
