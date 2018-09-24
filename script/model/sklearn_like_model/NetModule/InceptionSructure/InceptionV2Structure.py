@@ -125,7 +125,7 @@ class InceptionV2NetModule(BaseInceptionNetModule):
         with tf.variable_scope(self.name):
             self.stacker = Stacker(self.x)
 
-            self.stacker.resize_image((299, 299))
+            self.stacker.resize_image(self.resize_shape)
 
             stacker = self.stem(self.stacker)
 
