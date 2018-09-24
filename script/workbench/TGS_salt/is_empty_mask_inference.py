@@ -1,14 +1,16 @@
 from pprint import pprint
 
+from imgaug import augmenters as iaa
+
 from script.data_handler.ImgMaskAug import ActivatorMask, ImgMaskAug
 from script.model.sklearn_like_model.BaseModel import BaseEpochCallback, BaseDatasetCallback
 from script.model.sklearn_like_model.ImageClf import ImageClf
 from script.model.sklearn_like_model.TFSummary import TFSummaryScalar
+from script.model.sklearn_like_model.TransferLearning import TransferLearning
 from script.model.sklearn_like_model.callback.Top_k_save import Top_k_save
 from script.util.misc_util import time_stamp, path_join
 from script.util.numpy_utils import *
 from script.workbench.TGS_salt.TGS_salt_inference import TGS_salt_DataHelper, plot, to_dict, save_tf_summary_params
-from imgaug import augmenters as iaa
 
 SUMMARY_PATH = f'./tf_summary/TGS_salt/empty_mask_clf'
 INSTANCE_PATH = f'./instance/TGS_salt/empty_mask_clf'
@@ -255,17 +257,62 @@ class is_emtpy_mask_clf_pipeline:
         )
 
         if augmentation:
-            clf.train(self.train_x, self.train_y_onehot, epoch=30, epoch_callback=epoch_callback,
-                      iter_pbar=True, dataset_callback=None, early_stop=early_stop, patience=patience)
-
             dataset_callback = aug_callback(
                 self.aug_train_x,
                 self.aug_train_y,
                 params['batch_size'],
                 enc=self.enc
             )
-            clf.train(self.train_x, self.train_y_onehot, epoch=n_epoch - 30, epoch_callback=epoch_callback,
-                      iter_pbar=True, dataset_callback=dataset_callback, early_stop=early_stop, patience=patience)
         else:
-            clf.train(self.train_x, self.train_y_onehot, epoch=n_epoch, epoch_callback=epoch_callback,
-                      iter_pbar=True, dataset_callback=None, early_stop=early_stop, patience=patience)
+            dataset_callback = None
+
+        clf.train(
+            self.train_x, self.train_y_onehot, epoch=n_epoch, epoch_callback=epoch_callback,
+            iter_pbar=True, dataset_callback=dataset_callback, early_stop=early_stop, patience=patience)
+
+    def train_transfer(self, params, n_epoch, augmentation=False, early_stop=True, patience=20, path=None):
+        if path:
+            clf = ImageClf().load(path)
+        else:
+            clf = ImageClf(**params)
+        epoch_callback = cnn_EpochCallback(
+            clf,
+            self.train_x, self.train_y_onehot,
+            self.test_x, self.test_y_onehot,
+            params,
+        )
+        clf.train(self.train_x, self.train_y_onehot, epoch=20, epoch_callback=epoch_callback,
+                  iter_pbar=True, dataset_callback=None, early_stop=early_stop, patience=patience)
+
+        path = './test_transfer/1'
+
+        clf.save(path)
+        del clf
+        del epoch_callback
+
+        import tensorflow as tf
+        tf.reset_default_graph()
+
+        source_path = path
+        source_model = ImageClf().load(source_path)
+        source_scope = source_model.net_module.scope
+
+        target_model = ImageClf(**params)
+        target_model.build(Xs=self.train_x, Ys=self.train_y_onehot)
+        target_scope = target_model.net_module.scope
+
+        target_model = TransferLearning(
+            source_model, source_path, source_scope
+        ).to(
+            target_model, target_scope
+        )
+
+        epoch_callback = cnn_EpochCallback(
+            target_model,
+            self.train_x, self.train_y_onehot,
+            self.test_x, self.test_y_onehot,
+            params,
+        )
+        target_model.train(
+            self.train_x, self.train_y_onehot, epoch=20, epoch_callback=epoch_callback,
+            iter_pbar=True, dataset_callback=None, early_stop=early_stop, patience=patience)
