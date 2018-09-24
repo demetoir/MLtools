@@ -1,6 +1,7 @@
 from script.model.sklearn_like_model.BaseModel import BaseModel
 from script.model.sklearn_like_model.Mixin import Xs_MixIn, Ys_MixIn, supervised_trainMethodMixIn, predictMethodMixIn, \
     predict_probaMethodMixIn, scoreMethodMixIn, supervised_metricMethodMixIn
+from script.model.sklearn_like_model.NetModule.InceptionUNetModule import InceptionUNetModule
 from script.model.sklearn_like_model.TFDynamicLearningRate import TFDynamicLearningRate
 from script.model.sklearn_like_model.NetModule.FusionNetStructure import FusionNetModule
 from script.model.sklearn_like_model.NetModule.UNetNetModule import UNetNetModule
@@ -112,6 +113,7 @@ class SemanticSegmentation(
     net_structure_class_dict = {
         'UNet': UNetNetModule,
         'FusionNet': FusionNetModule,
+        'InceptionUNet': InceptionUNetModule,
     }
 
     def __init__(
