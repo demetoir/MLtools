@@ -1,14 +1,17 @@
 import numpy as np
 
+from script.model.sklearn_like_model.BaseModel import BaseEpochCallback
 
-class EarlyStop:
-    def __init__(self, patience, log_func=print):
+
+class EarlyStop(BaseEpochCallback):
+    def __init__(self, patience, log_func=None):
         self.patience = patience
         self.recent_best = np.Inf
         self.patience_count = 0
+        if log_func is None: log_func = print
         self.log_func = log_func
 
-    def __call__(self, metric, epoch):
+    def __call__(self, model, dataset, metric, epoch):
         self.log_func(f'e = {epoch}, metric = {metric}, recent best = {self.recent_best}')
 
         if self.recent_best > metric:
