@@ -304,7 +304,6 @@ class BaseModel(LoggerMixIn, input_shapesMixIN, metadataMixIN, paramsMixIn, loss
 
     def train(self, x, y=None, *args, epoch=1, batch_size=None, dataset_callback=None,
               early_stop=False, patience=20, epoch_pbar=True, iter_pbar=False, epoch_callback=None,
-              save_top_k=5,
               **kwargs):
 
         if not self.is_built:
