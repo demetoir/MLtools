@@ -39,10 +39,7 @@ class BaseDatasetCallback:
 
 
 class BaseEpochCallback:
-    def __init__(self):
-        pass
-
-    def __call__(self, sess, dataset, epoch, log=None):
+    def __call__(self, model, dataset, metric, epoch):
         raise NotImplementedError
 
 
