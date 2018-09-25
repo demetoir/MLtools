@@ -208,10 +208,12 @@ class BaseModel(LoggerMixIn, input_shapesMixIN, metadataMixIN, paramsMixIn, loss
     def build(self, **inputs):
         if not self._is_input_shape_built:
             try:
+                self.inputs = inputs
                 input_shapes = self._build_input_shapes(inputs)
                 self._apply_input_shapes(input_shapes)
                 self._is_input_shape_built = True
-            except BaseException:
+            except BaseException as e:
+                print(error_trace(e))
                 raise ModelBuildFailError(f'input_shape build fail, {inputs}')
 
         self._build_graph()
