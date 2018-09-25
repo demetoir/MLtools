@@ -7,19 +7,17 @@ from script.util.tensor_ops import *
 
 
 class TransferLearning(LoggerMixIn):
-    def __init__(self, source_model, source_save_path, source_scope, verbose=0):
+    def __init__(self, source_model, source_scope, verbose=0):
         super().__init__(verbose=verbose)
 
         if not source_model.is_built:
             raise RuntimeError(f'transfer fail, source model must be built')
 
         self.source_model = source_model
-        self.source_save_path = source_save_path
         self.source_scope = source_scope
 
-        self.temp_path = f'./temp_transfer_{time_stamp()}'
-        self.transfer_path = path_join(self.temp_path, 'transfer')
-        self.target_path = path_join(self.temp_path, 'target')
+        self.temp_dir = f'./temp_transfer'
+        self.temp_path = path_join(self.temp_dir, time_stamp())
 
     @staticmethod
     def build_transfer_dict(source_var_list, source_scope, target_scope):
@@ -37,8 +35,14 @@ class TransferLearning(LoggerMixIn):
 
         with temp_directory(self.temp_path):
             try:
-                source_var_list = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope=self.source_scope)
-                target_var_list = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope=target_scope)
+                source_var_list = tf.get_collection(
+                    tf.GraphKeys.GLOBAL_VARIABLES,
+                    scope=join_scope(self.source_model.id, self.source_scope)
+                )
+                target_var_list = tf.get_collection(
+                    tf.GraphKeys.GLOBAL_VARIABLES,
+                    scope=join_scope(self.source_model.id, target_scope)
+                )
                 self.log.info(f'collect var_list')
 
                 transfer_dict = self.build_transfer_dict(source_var_list, self.source_scope, target_scope)
@@ -55,6 +59,7 @@ class TransferLearning(LoggerMixIn):
                 self.log.info(f'load transfer')
             except BaseException as e:
                 self.log.error(error_trace(e))
+                raise RuntimeError('TransferLearning Fail')
 
         return target
 
@@ -76,7 +81,7 @@ def test_transfer_weight():
     target_var_list = []
     target.build(x=x, y=y)
 
-    transfer = TransferLearning(source, source_path, source_var_list)
+    transfer = TransferLearning(source, source_var_list)
     target = transfer.to(target, target_var_list)
     target.train(x, y, epoch=1)
 
