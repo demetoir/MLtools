@@ -46,11 +46,15 @@ class BaseDataset(LoggerMixIn, PickleMixIn, metaclass=MetaDataset):
             self._from_np_x(x)
         elif isinstance(x, pd.DataFrame):
             self._from_x_df(x)
+        elif x is None:
+            self.x_keys = None
 
         if isinstance(y, np.ndarray):
             self._from_np_y(y)
         elif isinstance(y, pd.DataFrame):
             self._from_y_df(y)
+        elif y is None:
+            self.y_keys = None
 
         self.cursor = 0
         self._cursor_group_by_class = None
