@@ -120,8 +120,6 @@ class SemanticSegmentation(
             self,
             verbose=10,
             learning_rate=0.01,
-            learning_rate_decay_rate=0.99,
-            learning_rate_decay_method=None,
             beta1=0.9,
             batch_size=100,
             stage=4,
@@ -143,8 +141,6 @@ class SemanticSegmentation(
         supervised_metricMethodMixIn.__init__(self)
 
         self.learning_rate = learning_rate
-        self.learning_rate_decay_rate = learning_rate_decay_rate
-        self.learning_rate_decay_method = learning_rate_decay_method
         self.beta1 = beta1
         self.batch_size = batch_size
         self.stage = stage
