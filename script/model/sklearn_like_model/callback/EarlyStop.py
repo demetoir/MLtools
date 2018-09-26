@@ -18,8 +18,6 @@ class EarlyStop(BaseEpochCallback):
         return self.patience - self.patience_count
 
     def __call__(self, model, dataset, metric, epoch):
-        # self.log_func(f'e = {epoch}, metric = {metric}, recent best = {self.recent_best}')
-
         if self.recent_best > metric:
             self.log_func(f'in {self.name}, metric improve {self.recent_best - metric}')
             self.recent_best = metric
