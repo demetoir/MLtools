@@ -4,28 +4,35 @@ from script.model.sklearn_like_model.BaseModel import BaseEpochCallback
 
 
 class EarlyStop(BaseEpochCallback):
-    def __init__(self, patience, log_func=None):
+    def __init__(self, patience, name='EarlyStop', log_func=None):
         self.patience = patience
-        self.recent_best = np.Inf
-        self.patience_count = 0
+        self.name = name
         if log_func is None: log_func = print
         self.log_func = log_func
 
+        self.recent_best = np.Inf
+        self.patience_count = 0
+
+    @property
+    def patience_count_down(self):
+        return self.patience - self.patience_count
+
     def __call__(self, model, dataset, metric, epoch):
-        self.log_func(f'e = {epoch}, metric = {metric}, recent best = {self.recent_best}')
+        # self.log_func(f'e = {epoch}, metric = {metric}, recent best = {self.recent_best}')
 
         if self.recent_best > metric:
-            self.log_func(f'improve {self.recent_best - metric}')
+            self.log_func(f'in {self.name}, metric improve {self.recent_best - metric}')
             self.recent_best = metric
             self.patience_count = 0
         else:
             self.patience_count += 1
+            self.log_func(f'in {self.name}, metric not improve, patience_count_down={self.patience_count_down}')
 
-        if self.patience_count == self.patience:
+        if self.patience_count >= self.patience:
             self.log_func(f'early stop')
-            return True
+            return {'break_epoch': True}
         else:
-            return False
+            return {}
 
 
 def train_early_stop(self, x, y, n_epoch=200, patience=20, min_best=True):
