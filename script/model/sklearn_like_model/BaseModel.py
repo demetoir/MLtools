@@ -6,7 +6,6 @@ from script.data_handler.Base.BaseDataset import BaseDataset
 from script.data_handler.DummyDataset import DummyDataset
 from script.model.sklearn_like_model.Mixin import input_shapesMixIN, metadataMixIN, paramsMixIn, loss_packMixIn
 from script.model.sklearn_like_model.SessionManager import SessionManager
-from script.model.sklearn_like_model.callback.EarlyStop import EarlyStop
 from script.util.MixIn import LoggerMixIn
 from script.util.misc_util import setup_directory
 from script.util.misc_util import time_stamp, path_join, error_trace
@@ -257,19 +256,25 @@ class BaseModel(LoggerMixIn, input_shapesMixIN, metadataMixIN, paramsMixIn, loss
     def load(self, path):
         self._load_metadata(os.path.join(path, 'meta.json'))
         self._load_params(os.path.join(path, 'params.pkl'))
-        self._load_input_shapes(os.path.join(path, 'input_shapes.pkl'))
-        self._is_input_shape_built = True
+        # self._load_input_shapes(os.path.join(path, 'input_shapes.pkl'))
+        # self._is_input_shape_built = True
+        # self._build_graph()
 
-        self._build_graph()
+        # self.sessionManager.open_if_not()
+        # self.sessionManager.init_variable(self.var_list)
 
-        self.sessionManager.open_if_not()
-        self.sessionManager.init_variable(self.var_list)
+        # saver = tf.train.Saver(self.var_list)
+        # saver.restore(self.sess, self.check_point_path)
+
+        return self
+
+    def restore(self, path):
+        self._load_metadata(os.path.join(path, 'meta.json'))
 
         saver = tf.train.Saver(self.var_list)
         saver.restore(self.sess, self.check_point_path)
 
-        return self
-
+    # TODO del deprecated
     def get_tf_values(self, fetches, feet_dict, wrap_dict=False):
         if wrap_dict:
             ret = self.sess.run(list(fetches.values()), feet_dict)
@@ -278,6 +283,7 @@ class BaseModel(LoggerMixIn, input_shapesMixIN, metadataMixIN, paramsMixIn, loss
         else:
             return self.sess.run(fetches, feet_dict)
 
+    # TODO del deprecated
     @staticmethod
     def to_dummyDataset(**kwargs):
         dataset = DummyDataset()
@@ -285,6 +291,7 @@ class BaseModel(LoggerMixIn, input_shapesMixIN, metadataMixIN, paramsMixIn, loss
             dataset.add_data(key, item)
         return dataset
 
+    # TODO del deprecated
     def run_ops(self, ops, feed_dict):
         for op in ops:
             self.sess.run(op, feed_dict=feed_dict)
@@ -301,49 +308,139 @@ class BaseModel(LoggerMixIn, input_shapesMixIN, metadataMixIN, paramsMixIn, loss
     def _train_iter(self, dataset, batch_size):
         raise NotImplementedError
 
-    def train(self, x, y=None, *args, epoch=1, batch_size=None, dataset_callback=None,
-              early_stop=False, patience=20, epoch_pbar=True, iter_pbar=False, epoch_callback=None,
-              **kwargs):
+    def train(
+            self, x, y=None, epoch=1, batch_size=None,
+            dataset_callback=None,
+            epoch_pbar=True, iter_pbar=True, epoch_callbacks=None,
+            **kwargs):
 
         if not self.is_built:
-            self.build(Xs=x, Ys=y)
+            raise RuntimeError(f'{self} not built')
 
         batch_size = getattr(self, 'batch_size') if batch_size is None else batch_size
         dataset = dataset_callback if dataset_callback else BaseDataset(x=x, y=y)
-        epoch_callback = epoch_callback if epoch_callback else None
-        early_stop = EarlyStop(patience, tqdm.write) if early_stop else None
-        epoch_pbar = tqdm([i for i in range(1, epoch + 1)]) if epoch_pbar else None
-        iter_pbar = trange if iter_pbar else range
+
         metric = None
+        epoch_pbar = tqdm([i for i in range(1, epoch + 1)]) if epoch_pbar else None
         for _ in range(1, epoch + 1):
             dataset.shuffle()
+
+            iter_pbar = trange if iter_pbar else range
             for _ in iter_pbar(int(dataset.size / batch_size)):
                 self._train_iter(dataset, batch_size)
 
             self.sess.run(self.op_inc_global_epoch)
             global_epoch = self.sess.run(self.global_epoch)
-            if epoch_callback:
-                try:
-                    epoch_callback(self.sess, dataset, global_epoch, tqdm.write)
-                except BaseException as error:
-                    tqdm.write(error_trace(error))
-
-            metric = getattr(self, 'metric')(x, y)
-            if metric in (np.nan, np.inf, -np.inf):
-                tqdm.write(f'train fail, e = {global_epoch}, metric = {metric}')
-                break
-
-            if early_stop and early_stop(metric, global_epoch):
-                break
-            else:
-                tqdm.write(f"e:{global_epoch}, metric : {np.mean(metric)}")
-                # self.log.info(f"e:{e}, i:{iter_num}, metric : {np.mean(metric)}")
-
             if epoch_pbar: epoch_pbar.update(1)
 
-        if epoch_pbar: epoch_pbar.close()
+            metric = getattr(self, 'metric', None)(x, y)
+            tqdm.write(f"e:{global_epoch}, metric : {np.mean(metric)}")
+            if metric in (np.nan, np.inf, -np.inf): break
 
-        if dataset_callback:
-            del dataset
+            break_epoch = False
+            if epoch_callbacks:
+                results = [
+                    callback(self, dataset, metric, global_epoch)
+                    for callback in epoch_callbacks
+                ]
+                for result in results:
+                    if result and 'break_epoch' in result:
+                        break_epoch = True
+            if break_epoch: break
+
+        if epoch_pbar: epoch_pbar.close()
+        if dataset_callback: del dataset
+
+        return metric
+
+    def train_supervised(
+            self, x, y, epoch=1, batch_size=None,
+            dataset_callback=None,
+            epoch_pbar=True, iter_pbar=True, epoch_callbacks=None,
+    ):
+
+        if not self.is_built:
+            raise RuntimeError(f'{self} not built')
+
+        batch_size = getattr(self, 'batch_size') if batch_size is None else batch_size
+        dataset = dataset_callback if dataset_callback else BaseDataset(x=x, y=y)
+
+        metric = None
+        epoch_pbar = tqdm([i for i in range(1, epoch + 1)]) if epoch_pbar else None
+        for _ in range(1, epoch + 1):
+            dataset.shuffle()
+
+            iter_pbar = trange if iter_pbar else range
+            for _ in iter_pbar(int(dataset.size / batch_size)):
+                self._train_iter(dataset, batch_size)
+
+            self.sess.run(self.op_inc_global_epoch)
+            global_epoch = self.sess.run(self.global_epoch)
+            if epoch_pbar: epoch_pbar.update(1)
+
+            metric = getattr(self, 'metric', None)(x, y)
+            tqdm.write(f"e:{global_epoch}, metric : {np.mean(metric)}")
+            if metric in (np.nan, np.inf, -np.inf): break
+
+            break_epoch = False
+            if epoch_callbacks:
+                results = [
+                    callback(self, dataset, metric, global_epoch)
+                    for callback in epoch_callbacks
+                ]
+
+                for result in results:
+                    if result and getattr(result, 'break_epoch', False):
+                        break_epoch = True
+            if break_epoch: break
+
+        if epoch_pbar: epoch_pbar.close()
+        if dataset_callback: del dataset
+
+        return metric
+
+    def train_unsupervised(
+            self, x, epoch=1, batch_size=None,
+            dataset_callback=None,
+            epoch_pbar=True, iter_pbar=True, epoch_callbacks=None,
+    ):
+
+        if not self.is_built:
+            raise RuntimeError(f'{self} not built')
+
+        batch_size = getattr(self, 'batch_size') if batch_size is None else batch_size
+        dataset = dataset_callback if dataset_callback else BaseDataset(x=x)
+
+        metric = None
+        epoch_pbar = tqdm([i for i in range(1, epoch + 1)]) if epoch_pbar else None
+        for _ in range(1, epoch + 1):
+            dataset.shuffle()
+
+            iter_pbar = trange if iter_pbar else range
+            for _ in iter_pbar(int(dataset.size / batch_size)):
+                self._train_iter(dataset, batch_size)
+
+            self.sess.run(self.op_inc_global_epoch)
+            global_epoch = self.sess.run(self.global_epoch)
+            if epoch_pbar: epoch_pbar.update(1)
+
+            metric = getattr(self, 'metric', None)(x)
+            tqdm.write(f"global epoch:{global_epoch}, metric : {np.mean(metric)}")
+            if metric in (np.nan, np.inf, -np.inf): break
+
+            break_epoch = False
+            if epoch_callbacks:
+                results = [
+                    callback(self, dataset, metric, global_epoch)
+                    for callback in epoch_callbacks
+                ]
+
+                for result in results:
+                    if result and getattr(result, 'break_epoch', False):
+                        break_epoch = True
+            if break_epoch: break
+
+        if epoch_pbar: epoch_pbar.close()
+        if dataset_callback: del dataset
 
         return metric
