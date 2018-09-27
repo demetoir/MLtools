@@ -139,8 +139,6 @@ def conv2d_transpose(input_, output_shape, filter_, name="conv2d_transpose", std
     with tf.variable_scope(name):
         weight = tf.get_variable('weight', [k_h, k_w, output_shape[-1], input_.get_shape()[-1]],
                                  initializer=tf.contrib.layers.xavier_initializer_conv2d())
-        # initializer=tf.random_normal_initializer(stddev=stddev))
-
         conv_transpose = tf.nn.conv2d_transpose(input_, weight, output_shape=output_shape, strides=[1, d_h, d_w, 1])
 
         bias = tf.get_variable('bias', [output_shape[-1]], initializer=tf.constant_initializer(0.0))
@@ -182,6 +180,50 @@ def conv2d(input_, output_channel, filter_, stddev=0.02, name="conv2d"):
         return conv
 
 
+def atrous_conv2d(input_, output_channel, filter_, rate, name='atrous_conv2d'):
+    k_h, k_w, d_h, d_w = filter_
+    with tf.variable_scope(name):
+        weight = tf.get_variable('weight', [k_h, k_w, input_.get_shape()[-1], output_channel],
+                                 initializer=tf.contrib.layers.xavier_initializer_conv2d())
+        conv = tf.nn.atrous_conv2d(input_, weight, rate, padding='SAME')
+
+        bias = tf.get_variable('bias', [output_channel], initializer=tf.constant_initializer(0.0))
+        conv = tf.nn.bias_add(conv, bias)
+
+        return conv
+
+
+def atrous_conv2d_block(input_, output_channel, filter_, rate, activation, name):
+    with tf.variable_scope(name):
+        net = atrous_conv2d(input_, output_channel, filter_, rate)
+        net = bn(net)
+        net = activation(net)
+    return net
+
+
+def atrous_conv2d_transpose(input_, output_shape, filter_, rate, name='atrous_conv2d_transpose'):
+    k_h, k_w, d_h, d_w = filter_
+    with tf.variable_scope(name):
+        weight = tf.get_variable('weight', [k_h, k_w, output_shape[-1], input_.get_shape()[-1]],
+                                 initializer=tf.contrib.layers.xavier_initializer_conv2d())
+        conv_transpose = tf.nn.atrous_conv2d_transpose(
+            input_, weight, output_shape=output_shape, rate=rate, padding='SAME')
+
+        bias = tf.get_variable('bias', [output_shape[-1]], initializer=tf.constant_initializer(0.0))
+        conv_transpose = tf.nn.bias_add(conv_transpose, bias)
+
+        return conv_transpose
+
+
+def atrous_conv2d_transpose_block(input_, output_shape, filter_, rate, activation,
+                                  name='atrous_conv2d_transpose_block'):
+    with tf.variable_scope(name):
+        net = atrous_conv2d_transpose(input_, output_shape, filter_, rate)
+        net = bn(net)
+        net = activation(net)
+    return net
+
+
 def conv2d_one_by_one(input_, output_channel, name='conv2d_one_by_one'):
     """bottle neck convolution layer
 
@@ -199,6 +241,27 @@ def conv2d_one_by_one(input_, output_channel, name='conv2d_one_by_one'):
     """
     out = conv2d(input_, output_channel, CONV_FILTER_1111, name=name)
     return out
+
+
+def upscale_2x_atrous(input_, output_channel, filter_, rate, name='upscale_2x_atrous'):
+    shape = input_.get_shape()
+    n, h, w, c = list(shape)
+    if n.value is None:
+        n = -1
+    else:
+        n = int(n)
+    output_shape = [n, int(h) * 2, int(w) * 2, int(output_channel)]
+
+    with tf.variable_scope(name):
+        return atrous_conv2d_transpose(input_, output_shape, filter_, rate)
+
+
+def upscale_2x_atrous_block(input_, output_channel, filter_, rate, activation, name='upscale_2x_atrous_block'):
+    with tf.variable_scope(name):
+        net = upscale_2x_atrous(input_, output_channel, filter_, rate)
+        net = bn(net)
+        net = activation(net)
+    return net
 
 
 def upscale_2x(input_, output_channel, filter_, name='upscale_2x'):
