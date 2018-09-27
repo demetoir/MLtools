@@ -103,9 +103,10 @@ class BaseModel(LoggerMixIn, input_shapesMixIN, metadataMixIN, paramsMixIn, loss
 
     @property
     def var_list(self):
-        var_list = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope=self.id)
-
-        return var_list
+        return tf.get_collection(
+            tf.GraphKeys.GLOBAL_VARIABLES,
+            scope=self.id
+        )
 
     @property
     def main_graph_var_list(self):
@@ -115,10 +116,17 @@ class BaseModel(LoggerMixIn, input_shapesMixIN, metadataMixIN, paramsMixIn, loss
         )
 
     @property
-    def train_op_var_list(self):
+    def train_ops_var_list(self):
         return tf.get_collection(
             tf.GraphKeys.GLOBAL_VARIABLES,
-            scope=join_scope(self.id, 'main_graph')
+            scope=join_scope(self.id, 'train_ops')
+        )
+
+    @property
+    def misc_ops_var_list(self):
+        return tf.get_collection(
+            tf.GraphKeys.GLOBAL_VARIABLES,
+            scope=join_scope(self.id, 'misc_ops')
         )
 
     @property
