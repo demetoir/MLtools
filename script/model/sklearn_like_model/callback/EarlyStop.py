@@ -17,16 +17,20 @@ class EarlyStop(BaseEpochCallback):
     def patience_count_down(self):
         return self.patience - self.patience_count
 
+    def reset_count(self):
+        self.patience_count = 0
+
     def __call__(self, model, dataset, metric, epoch):
         if self.recent_best > metric:
             self.log_func(f'in {self.name}, metric improve {self.recent_best - metric}')
             self.recent_best = metric
-            self.patience_count = 0
+            self.reset_count()
         else:
             self.patience_count += 1
             self.log_func(f'in {self.name}, metric not improve, patience_count_down={self.patience_count_down}')
 
         if self.patience_count >= self.patience:
+            self.reset_count()
             self.log_func(f'early stop')
             return {'break_epoch': True}
         else:
