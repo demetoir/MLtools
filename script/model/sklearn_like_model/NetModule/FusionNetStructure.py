@@ -18,18 +18,34 @@ def _residual_block(x, n_channel, filter_, activation, name='residual_block'):
         x = bn(x, name='bn3')
         x = activation(x, 'relu3')
         x = conv2d(x, n_channel, filter_, name='conv3')
+        x = residual_add(x, x_in)
+    return x
 
-        # x = conv_block(x, n_channel, filter_, activation, name='conv_block1')
-        # x = conv_block(x, n_channel, filter_, activation, name='conv_block2')
-        # x = conv_block(x, n_channel, filter_, activation, name='conv_block3')
+
+def _residual_atrous_block(x, n_channel, filter_, activation, name='residual_block'):
+    with tf.variable_scope(name):
+        x_in = x
+        x = atrous_conv2d_block(x, n_channel, filter_, 2, activation, name='atrous_conv2d_block_1')
+        x = atrous_conv2d_block(x, n_channel, filter_, 2, activation, name='atrous_conv2d_block_2')
+        x = atrous_conv2d_block(x, n_channel, filter_, 2, activation, name='atrous_conv2d_block_3')
         x = residual_add(x, x_in)
 
     return x
 
 
 class FusionNetModule(BaseNetModule):
-    def __init__(self, x, level=4, n_classes=2, depth=1, capacity=64, dropout_rate=0.5, reuse=False, name=None,
-                 verbose=0):
+    def __init__(
+            self,
+            x,
+            level=4,
+            n_classes=2,
+            depth=1,
+            capacity=64,
+            dropout_rate=0.5,
+            reuse=False,
+            name=None,
+            verbose=0
+    ):
         super().__init__(capacity, reuse, name, verbose)
 
         self.x = x
@@ -41,17 +57,18 @@ class FusionNetModule(BaseNetModule):
 
     @staticmethod
     def conv_seq(stacker, n_channel, depth, dropout_rate_tensor):
-        stacker.conv_block(n_channel, CONV_FILTER_3311, relu)
+        stacker.conv_block(n_channel, CONV_FILTER_3311, elu)
 
         for i in range(depth):
-            stacker.add_layer(_residual_block, n_channel, CONV_FILTER_3311, relu)
+            stacker.add_layer(_residual_atrous_block, n_channel, CONV_FILTER_3311, elu)
+
             if dropout_rate_tensor:
                 stacker.dropout(dropout_rate_tensor)
 
-        stacker.conv_block(n_channel, CONV_FILTER_3311, relu)
+        stacker.conv_block(n_channel, CONV_FILTER_3311, elu)
         return stacker
 
-    def encoder(self, x, n_channel, depth, level, dropout_rate_tensor):
+    def encoder(self, x, n_channel, depth, max_level, dropout_rate_tensor):
         def recursive(stacker, n_channel, level):
             if level is 0:
                 return []
@@ -63,11 +80,11 @@ class FusionNetModule(BaseNetModule):
             return [skip_tensor] + recursive(stacker, n_channel * 2, level - 1)
 
         self.encoder_stacker = Stacker(x, name='encoder')
-        self.skip_connects = recursive(self.encoder_stacker, n_channel, level)
+        self.skip_connects = recursive(self.encoder_stacker, n_channel, max_level)
 
         return self.encoder_stacker.last_layer, self.skip_connects
 
-    def decoder(self, x, skip_connects, n_channel, depth, level, dropout_rate_tensor):
+    def decoder(self, x, skip_connects, n_channel, depth, max_level, dropout_rate_tensor):
         def recursive(stacker, n_channel, level):
             if level is 0:
                 return []
@@ -88,7 +105,7 @@ class FusionNetModule(BaseNetModule):
 
         skip_connects = skip_connects[::-1]
         self.decoder_stacker = Stacker(x, name='decoder')
-        self.last_convs = recursive(self.decoder_stacker, n_channel, level)
+        self.last_convs = recursive(self.decoder_stacker, n_channel, max_level)
 
         return self.decoder_stacker.last_layer
 
@@ -139,7 +156,7 @@ class FusionNetModule(BaseNetModule):
     def set_train(self, sess):
         self.DynamicDropoutRate.set_train(sess)
 
-    def set_predict(self, sess):
+    def set_non_train(self, sess):
         self.DynamicDropoutRate.set_predict(sess)
 
     def update_dropout_rate(self, sess, x):
