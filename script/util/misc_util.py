@@ -289,7 +289,7 @@ def log_error_trace(log_func, e, head=""):
 def error_trace(e):
     exc_type, exc_value, exc_traceback = sys.exc_info()
 
-    msg = '%s %s : %s' % (
+    msg = '%s %s : %s\n\n' % (
         "".join(traceback.format_tb(exc_traceback)),
         e.__class__.__name__,
         e,

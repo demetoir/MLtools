@@ -5,7 +5,7 @@ from imgaug import augmenters as iaa
 from script.data_handler.ImgMaskAug import ActivatorMask
 from script.data_handler.TGS_salt import load_sample_image, collect_images, TRAIN_MASK_PATH
 from script.util.PlotTools import PlotTools
-from script.workbench.TGS_salt.TGS_salt_inference import TGS_salt_metric
+from script.workbench.TGS_salt.TGS_salt_inference import TGS_salt_metric, TGS_salt_DataHelper
 
 plot = PlotTools(save=True, show=False)
 
@@ -96,3 +96,19 @@ def test_TGS_salt_metric():
             metric_score += [TGS_salt_metric(a, b)]
     metric_score = np.array(metric_score).reshape([size, size])
     print(metric_score)
+
+
+def test_TGS_salt_data_helper():
+    helper = TGS_salt_DataHelper()
+    non_empty_mask_train_set = helper.train_set_non_empty_mask
+    empty_mask_train_set = helper.train_set_empty_mask
+
+    img, mask = non_empty_mask_train_set.next_batch(10)
+    tile = np.concatenate((img, mask), axis=0)
+    tile = tile.reshape([20, 101, 101, 1])
+    plot.plot_image_tile(tile, path='./matplot/non_empty_mask.png')
+
+    img, mask = empty_mask_train_set.next_batch(10)
+    tile = np.concatenate((img, mask), axis=0)
+    tile = tile.reshape([20, 101, 101, 1])
+    plot.plot_image_tile(tile, path='./matplot/empty_mask.png')

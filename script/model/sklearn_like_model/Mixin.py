@@ -496,3 +496,28 @@ class unsupervised_metricMethodMixIn:
             return np.mean(metrics)
         else:
             return self._metric_batch(x)
+
+
+class UnsupervisedMetricCallback:
+    def __init__(self, model, op, x_ph, **kwargs):
+        self.sess = model.sess
+        self.batch_size = model.batch_size
+        self.op = op
+        self.x_ph = x_ph
+        self.kwargs = kwargs
+
+    def _metric_batch(self, x):
+        return self.sess.run(self.op, feed_dict={self.x_ph: x})
+
+    def __call__(self, x):
+        size = len(x)
+        if size > self.batch_size:
+            tqdm.write('batch metric')
+            xs = slice_np_arr(x, self.batch_size)
+            metrics = [
+                np.mean(self._metric_batch(x))
+                for x in tqdm(xs)
+            ]
+            return np.mean(metrics)
+        else:
+            return self._metric_batch(x)

@@ -93,12 +93,13 @@ def make_data_pkl():
     train_depths = df_merge[df_merge['rle_mask'].notna()]
     train_depths = pd.DataFrame(train_depths).sort_values('id')
     train_depths = train_depths.reset_index(drop=True)
-    # pprint(train_depths)
+    train_depths = train_depths['z']
 
     print(f'collect test depth')
     test_depths = df_merge[df_merge['rle_mask'].isna()]
     test_depths = pd.DataFrame(test_depths).sort_values('id')
     test_depths = test_depths.reset_index(drop=True)
+    test_depths = test_depths['z']
 
     print(f'collect train mask rate')
     train_mask_rate = get_feature_mask_rate(train_mask)

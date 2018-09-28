@@ -107,8 +107,7 @@ class InceptionV1NetModule(BaseInceptionNetModule):
     def build(self):
         with tf.variable_scope(self.name):
             self.stacker = Stacker(self.x)
-
-            self.stacker.resize_image((224, 224))
+            self.stacker.resize_image(self.resize_shape)
             stacker = self.stem(self.stacker)
 
             channels_3a = {

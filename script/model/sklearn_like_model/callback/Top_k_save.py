@@ -1,17 +1,19 @@
 import os
-import numpy as np
 import shutil
-from pprint import pprint
+import numpy as np
+from pprint import pformat
+from script.model.sklearn_like_model.BaseModel import BaseEpochCallback
 from script.util.misc_util import path_join, load_json, setup_directory, dump_json, error_trace
 
 
-class Top_k_save:
-    def __init__(self, path, k=5, max_best=True, save_model=True, name='top_k_save'):
+class Top_k_save(BaseEpochCallback):
+    def __init__(self, path, k=5, max_best=True, save_model=True, name='top_k_save', log=print):
         self.path = path
         self.k = k
         self.max_best = max_best
         self.save_model = save_model
         self.name = name
+        self.log = log
 
         self.top_k_json_path = path_join(self.path, 'top_k.json')
         if os.path.exists(self.top_k_json_path):
@@ -26,14 +28,15 @@ class Top_k_save:
             for i in range(1, self.k + 1):
                 setup_directory(path_join(self.path, f'top_{i}'))
 
-    def __call__(self, metric, model):
+    def __call__(self, model, dataset, metric, epoch):
         metric = float(metric)
         sign = 1 if self.max_best else -1
 
-
-        print()
-        print(f'{self.name} current top_k')
-        pprint(self.top_k[1:])
+        self.log(
+            f'\n'
+            f'{self.name} current top_k\n'
+            f'{pformat(self.top_k[1:])}\n'
+        )
 
         try:
             for i in reversed(range(1, self.k + 1)):
@@ -44,8 +47,10 @@ class Top_k_save:
 
                     # dump top_k json
                     dump_json(self.top_k, path_join(self.path, 'top_k.json'))
-                    print(f'update top_k at {i}th, metric = {metric}')
-                    pprint(self.top_k[1:])
+                    self.log(
+                        f'update top_k at {i}th, metric = {metric}\n'
+                        f'{pformat(self.top_k[1:])}'
+                    )
 
                     if self.save_model:
                         # del worst dir

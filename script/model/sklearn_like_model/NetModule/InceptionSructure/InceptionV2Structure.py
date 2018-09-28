@@ -4,6 +4,14 @@ from script.util.Stacker import Stacker
 from script.util.tensor_ops import *
 
 
+def as_variable_scope(func):
+    def wrapper(*args, **kwargs):
+        with tf.variable_scope(func.__name__):
+            return func(*args, **kwargs)
+
+    return wrapper
+
+
 class InceptionV2NetModule(BaseInceptionNetModule):
     @staticmethod
     def module_A(x, channels, name='module_A'):
@@ -58,7 +66,7 @@ class InceptionV2NetModule(BaseInceptionNetModule):
             return concat([a, b, c, d], axis=3)
 
     @staticmethod
-    def multipool_B(x, channels, name='multipool_B'):
+    def multi_pool_B(x, channels, name='multi_pool_B'):
         with tf.variable_scope(name):
             a = conv_block(x, channels['a0'], CONV_FILTER_1111, relu, name='branch_a0')
             a = conv_block(a, channels['a1'], CONV_FILTER_3322, relu, name='branch_a1')
@@ -106,8 +114,6 @@ class InceptionV2NetModule(BaseInceptionNetModule):
             return logit, proba
 
     def stem(self, stacker, name='stem'):
-        Stacker()
-        # stacker = Stacker(x)
         with tf.variable_scope(name):
             stacker.conv_block(self.n_channel * 2, CONV_FILTER_3322, relu)
             stacker.conv_block(self.n_channel * 2, CONV_FILTER_3311, relu)
@@ -125,7 +131,7 @@ class InceptionV2NetModule(BaseInceptionNetModule):
         with tf.variable_scope(self.name):
             self.stacker = Stacker(self.x)
 
-            self.stacker.resize_image((299, 299))
+            self.stacker.resize_image(self.resize_shape)
 
             stacker = self.stem(self.stacker)
 
@@ -237,7 +243,7 @@ class InceptionV2NetModule(BaseInceptionNetModule):
             stacker.add_layer(self.module_B, b_channels3)
             self.aux_logit, self.aux_proba = self.aux(stacker.last_layer, self.n_classes)
 
-            b_c_multipool_channels = {
+            b_c_multi_pool_channels = {
                 'a0': self.n_channel * 12,
                 'a1': self.n_channel * 20,
 
@@ -246,7 +252,7 @@ class InceptionV2NetModule(BaseInceptionNetModule):
                 'b2': self.n_channel * 12,
                 'b3': self.n_channel * 12,
             }
-            stacker.add_layer(self.multipool_B, b_c_multipool_channels)
+            stacker.add_layer(self.multi_pool_B, b_c_multi_pool_channels)
 
             c_channels0 = {
                 'a0': self.n_channel * 20,
@@ -278,10 +284,7 @@ class InceptionV2NetModule(BaseInceptionNetModule):
             }
             stacker.add_layer(self.module_C, c_channels0)
             stacker.add_layer(self.module_C, c_channels1)
-
-            # inception refactorize * 3
-            # inception refactorize asymetric 6 * 5
-            # inception 7 * 2
+            self.before_last_pooling = stacker.last_layer
 
             stacker.max_pooling((8, 8, 8, 8))
 

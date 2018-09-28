@@ -1,6 +1,7 @@
 from script.model.sklearn_like_model.BaseModel import BaseModel
 from script.model.sklearn_like_model.Mixin import Xs_MixIn, Ys_MixIn, supervised_trainMethodMixIn, predictMethodMixIn, \
     predict_probaMethodMixIn, scoreMethodMixIn, supervised_metricMethodMixIn
+from script.model.sklearn_like_model.NetModule.InceptionUNetModule import InceptionUNetModule
 from script.model.sklearn_like_model.TFDynamicLearningRate import TFDynamicLearningRate
 from script.model.sklearn_like_model.NetModule.FusionNetStructure import FusionNetModule
 from script.model.sklearn_like_model.NetModule.UNetNetModule import UNetNetModule
@@ -112,14 +113,13 @@ class SemanticSegmentation(
     net_structure_class_dict = {
         'UNet': UNetNetModule,
         'FusionNet': FusionNetModule,
+        'InceptionUNet': InceptionUNetModule,
     }
 
     def __init__(
             self,
             verbose=10,
             learning_rate=0.01,
-            learning_rate_decay_rate=0.99,
-            learning_rate_decay_method=None,
             beta1=0.9,
             batch_size=100,
             stage=4,
@@ -141,8 +141,6 @@ class SemanticSegmentation(
         supervised_metricMethodMixIn.__init__(self)
 
         self.learning_rate = learning_rate
-        self.learning_rate_decay_rate = learning_rate_decay_rate
-        self.learning_rate_decay_method = learning_rate_decay_method
         self.beta1 = beta1
         self.batch_size = batch_size
         self.stage = stage
@@ -171,7 +169,8 @@ class SemanticSegmentation(
 
         net_class = self.net_structure_class_dict[self.net_type]
         self.net_module = net_class(
-            self.Xs, capacity=self.capacity, depth=self.depth, level=self.stage,
+            self.Xs,
+            capacity=self.capacity, depth=self.depth, level=self.stage,
             n_classes=self.n_classes
         )
         self.net_module.build()
@@ -238,8 +237,11 @@ class SemanticSegmentation(
         self.drl = TFDynamicLearningRate(self.learning_rate)
         self.drl.build()
 
-        self._train_ops = tf.train.AdamOptimizer(self.drl.learning_rate, beta1=self.beta1) \
-            .minimize(self.loss, var_list=self.vars)
+        self._train_ops = tf.train.AdamOptimizer(
+            self.drl.learning_rate, beta1=self.beta1
+        ).minimize(
+            self.loss, var_list=self.vars
+        )
 
     @property
     def train_ops(self):

@@ -81,8 +81,8 @@ class TFSummaryScalar(TFSummary):
 class TFSummaryParams(TFSummary):
     @staticmethod
     def dict_to_np(d):
-        k = list(d.keys())
-        v = list(d.values())
+        k = list(map(str, d.keys()))
+        v = list(map(str, d.values()))
         return np.stack([np.array(k), np.array(v)]).transpose()
 
     def update(self, sess, x, epoch=None):

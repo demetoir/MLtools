@@ -46,11 +46,15 @@ class BaseDataset(LoggerMixIn, PickleMixIn, metaclass=MetaDataset):
             self._from_np_x(x)
         elif isinstance(x, pd.DataFrame):
             self._from_x_df(x)
+        elif x is None:
+            self.x_keys = None
 
         if isinstance(y, np.ndarray):
             self._from_np_y(y)
         elif isinstance(y, pd.DataFrame):
             self._from_y_df(y)
+        elif y is None:
+            self.y_keys = None
 
         self.cursor = 0
         self._cursor_group_by_class = None
@@ -88,6 +92,9 @@ class BaseDataset(LoggerMixIn, PickleMixIn, metaclass=MetaDataset):
 
     def __setitem__(self, key, value):
         return self._data.__setitem__(key, np.array(value))
+
+    def __len__(self):
+        return self.size
 
     @property
     def data(self):
@@ -557,3 +564,18 @@ class BaseDataset(LoggerMixIn, PickleMixIn, metaclass=MetaDataset):
         if y_np is not None:
             obj._from_np_y(y_np)
         return obj
+
+    def query_by_idxs(self, idxs):
+        np_dict = self.full_batch(list(self.keys), out_type='np_dict')
+        new_dict = {
+            key: np_dict[key][idxs]
+            for key in np_dict.keys()
+        }
+
+        dataset = self.__class__()
+        for key in new_dict.keys():
+            dataset.add_data(key, new_dict[key])
+        dataset.x_keys = self.x_keys
+        dataset.y_keys = self.y_keys
+
+        return dataset

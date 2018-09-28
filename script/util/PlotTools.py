@@ -210,6 +210,8 @@ class PlotTools(LoggerMixIn):
         if show:
             self.plt.show()
 
+        # TODO check bug fix
+        self.plt.cla()
         self.plt.close(fig)
 
     def setup_matplot(self):

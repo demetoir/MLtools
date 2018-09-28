@@ -2,6 +2,7 @@ from pprint import pprint
 from imgaug import augmenters as iaa
 from sklearn.decomposition import PCA
 from sklearn.manifold import TSNE
+
 from script.data_handler.ImgMaskAug import ActivatorMask, ImgMaskAug
 from script.data_handler.TGS_salt import collect_images, TRAIN_MASK_PATH, TGS_salt, \
     TRAIN_IMAGE_PATH, TEST_IMAGE_PATH, RLE_mask_encoding
@@ -72,6 +73,41 @@ def param_to_string(params):
     return "_".join([f"{key}={val}" for key, val in params.items()])
 
 
+def is_empty_mask(mask):
+    return np.mean(mask) == 0
+
+
+def depth_to_image(depths):
+    # normalize
+    max_val = np.max(depths)
+    min_val = np.min(depths)
+    depths = (depths - min_val) / (max_val - min_val)
+
+    # gen depth images
+    base = [
+        np.ones([1, 101, 101]) * depth * 255
+        for depth in depths
+    ]
+    base = np.concatenate(base, axis=0)
+    base = base.astype(np.uint8)
+    return base
+
+
+def lazy_property(fn):
+    '''
+    Decorator that makes a property lazy-evaluated.
+    '''
+    attr_name = '_lazy_' + fn.__name__
+
+    @property
+    def _lazy_property(self):
+        if not hasattr(self, attr_name):
+            setattr(self, attr_name, fn(self))
+        return getattr(self, attr_name)
+
+    return _lazy_property
+
+
 class TGS_salt_DataHelper:
     def __init__(self, data_pack_path='./data/TGS_salt', sample_offset=10, sample_size=10):
         self.data_pack_path = data_pack_path
@@ -83,6 +119,9 @@ class TGS_salt_DataHelper:
         self._test_set = None
         self._sample_xs = None
         self._sample_ys = None
+        self._train_set_non_empty_mask = None
+        self._train_set_empty_mask = None
+        self._train_depth_image = None
 
     @property
     def data_pack(self):
@@ -127,6 +166,89 @@ class TGS_salt_DataHelper:
     def valid_set(self):
         # TODO
         return None
+
+    @lazy_property
+    def train_set_non_empty_mask_idxs(self):
+        xs, ys = self.train_set.full_batch()
+        idxs = [
+            i
+            for i, y in enumerate(ys)
+            if not is_empty_mask(y)
+        ]
+        return idxs
+
+    @property
+    def train_set_non_empty_mask(self):
+        if self._train_set_non_empty_mask is None:
+            idxs = self.train_set_non_empty_mask_idxs
+
+            self._train_set_non_empty_mask = self.train_set.query_by_idxs(idxs)
+
+        return self._train_set_non_empty_mask
+
+    @lazy_property
+    def train_set_empty_mask_idxs(self):
+        xs, ys = self.train_set.full_batch()
+
+        idxs = [
+            i
+            for i, y in enumerate(ys)
+            if is_empty_mask(y)
+        ]
+        return idxs
+
+    @property
+    def train_set_empty_mask(self):
+        if self._train_set_empty_mask is None:
+            idxs = self.train_set_empty_mask_idxs
+
+            self._train_set_empty_mask = self.train_set.query_by_idxs(idxs)
+
+        return self._train_set_empty_mask
+
+    @property
+    def train_depth_image(self):
+        if self._train_depth_image is None:
+            depths = self.train_set.full_batch(['depth'])['depth']
+            self._train_depth_image = depth_to_image(depths)
+
+        return self._train_depth_image
+
+    @property
+    def test_depth_image(self):
+        if self._test_depth_image is None:
+            depths = self.test_set.full_batch(['depth'])['depth']
+            self._test_depth_image = depth_to_image(depths)
+
+        return self._test_depth_image
+
+    @lazy_property
+    def train_set_with_depth_image(self):
+        x, y = self.train_set.full_batch()
+        x = x.reshape([-1, 101, 101, 1])
+        y = y.reshape([-1, 101, 101, 1])
+        depth_image = self.train_depth_image.reshape([-1, 101, 101, 1])
+        x = np.concatenate((x, depth_image), axis=3)
+        self.train_set.add_data('x_with_depth', x)
+
+        return self.train_set
+
+    @lazy_property
+    def test_set_with_depth_image(self):
+        x = self.test_set.full_batch()
+        x = x.reshape([-1, 101, 101, 1])
+        depth_image = self.test_depth_image.reshape([-1, 101, 101, 1])
+        x = np.concatenate((x, depth_image), axis=3)
+        self.test_set.add_data('x_with_depth', x)
+
+        return self.test_set
+
+    @lazy_property
+    def train_set_non_empty_mask_with_depth_image(self):
+        dataset = self.train_set_with_depth_image
+        idxs = self.train_set_non_empty_mask_idxs
+
+        return dataset.query_by_idxs(idxs)
 
 
 class TGS_salt_aug_callback(BaseDatasetCallback):
@@ -194,6 +316,20 @@ def masking_images(image, mask, mask_rate=.8):
     image[:, :, 0] = mask * mask_rate
 
     return image
+
+
+def is_white_image(image):
+    if np.mean(image) == 255:
+        return True
+    else:
+        return False
+
+
+def is_black_image(image):
+    if np.mean(image) == 0:
+        return True
+    else:
+        return False
 
 
 class experiment:
