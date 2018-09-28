@@ -3,7 +3,6 @@ from imgaug import augmenters as iaa
 from sklearn.decomposition import PCA
 from sklearn.manifold import TSNE
 
-from script.data_handler.Base.BaseDataset import BaseDataset
 from script.data_handler.ImgMaskAug import ActivatorMask, ImgMaskAug
 from script.data_handler.TGS_salt import collect_images, TRAIN_MASK_PATH, TGS_salt, \
     TRAIN_IMAGE_PATH, TEST_IMAGE_PATH, RLE_mask_encoding
@@ -218,7 +217,7 @@ class TGS_salt_DataHelper:
     @property
     def test_depth_image(self):
         if self._test_depth_image is None:
-            depths = self.train_set.full_batch(['depth'])['depth']
+            depths = self.test_set.full_batch(['depth'])['depth']
             self._test_depth_image = depth_to_image(depths)
 
         return self._test_depth_image
@@ -230,18 +229,19 @@ class TGS_salt_DataHelper:
         y = y.reshape([-1, 101, 101, 1])
         depth_image = self.train_depth_image.reshape([-1, 101, 101, 1])
         x = np.concatenate((x, depth_image), axis=3)
+        self.train_set.add_data('x_with_depth', x)
 
-        return BaseDataset(x=x, y=y)
+        return self.train_set
 
     @lazy_property
     def test_set_with_depth_image(self):
         x = self.test_set.full_batch()
         x = x.reshape([-1, 101, 101, 1])
         depth_image = self.test_depth_image.reshape([-1, 101, 101, 1])
-
         x = np.concatenate((x, depth_image), axis=3)
+        self.test_set.add_data('x_with_depth', x)
 
-        return BaseDataset(x=x)
+        return self.test_set
 
     @lazy_property
     def train_set_non_empty_mask_with_depth_image(self):
