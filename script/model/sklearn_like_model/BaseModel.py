@@ -86,7 +86,8 @@ class BaseModel(LoggerMixIn, input_shapesMixIN, metadataMixIN, paramsMixIn, loss
         self.verbose = verbose
 
         # gen instance id
-        self.id = "_".join([self.__str__(), time_stamp()])
+        self.run_id = time_stamp()
+        self.id = "_".join([self.__str__(), self.run_id])
 
     def __str__(self):
         return "%s_%s" % (self.AUTHOR, self.__class__.__name__)
@@ -347,10 +348,14 @@ class BaseModel(LoggerMixIn, input_shapesMixIN, metadataMixIN, paramsMixIn, loss
 
             break_epoch = False
             if epoch_callbacks:
-                results = [
-                    callback(self, dataset, metric, global_epoch)
-                    for callback in epoch_callbacks
-                ]
+                try:
+                    results = [
+                        callback(self, dataset, metric, global_epoch)
+                        for callback in epoch_callbacks
+                    ]
+                except BaseException as e:
+                    print(error_trace(e))
+                    raise RuntimeError
                 for result in results:
                     if result and 'break_epoch' in result:
                         break_epoch = True
