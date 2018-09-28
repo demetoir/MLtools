@@ -169,7 +169,8 @@ class SemanticSegmentation(
 
         net_class = self.net_structure_class_dict[self.net_type]
         self.net_module = net_class(
-            self.Xs, capacity=self.capacity, depth=self.depth, level=self.stage,
+            self.Xs,
+            capacity=self.capacity, depth=self.depth, level=self.stage,
             n_classes=self.n_classes
         )
         self.net_module.build()
@@ -236,8 +237,11 @@ class SemanticSegmentation(
         self.drl = TFDynamicLearningRate(self.learning_rate)
         self.drl.build()
 
-        self._train_ops = tf.train.AdamOptimizer(self.drl.learning_rate, beta1=self.beta1) \
-            .minimize(self.loss, var_list=self.vars)
+        self._train_ops = tf.train.AdamOptimizer(
+            self.drl.learning_rate, beta1=self.beta1
+        ).minimize(
+            self.loss, var_list=self.vars
+        )
 
     @property
     def train_ops(self):
