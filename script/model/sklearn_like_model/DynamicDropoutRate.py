@@ -43,7 +43,7 @@ class DynamicDropoutRate(LoggerMixIn):
     def set_train(self, sess):
         self.update(sess, self.keep_prob)
 
-    def set_predict(self, sess):
+    def set_non_train(self, sess):
         self.update(sess, 1)
 
     def eval(self, sess):

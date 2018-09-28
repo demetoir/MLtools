@@ -35,4 +35,4 @@ class MLPNetModule(BaseNetModule):
         self.DDR.set_train(sess)
 
     def set_predict(self, sess):
-        self.DDR.set_predict(sess)
+        self.DDR.set_non_train(sess)
