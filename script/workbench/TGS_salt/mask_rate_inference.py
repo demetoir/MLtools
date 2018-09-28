@@ -305,7 +305,7 @@ class mask_rate_reg_pipeline:
             params,
         )
 
-        clf.train(self.train_x, self.train_y, epoch=n_epoch, epoch_callback=epoch_callback,
+        clf.train(self.train_x, self.train_y, epoch=n_epoch, epoch_callbacks=epoch_callback,
                   iter_pbar=True, dataset_callback=None, early_stop=early_stop, patience=patience)
 
         score = clf.score(self.sample_x, self.sample_y)

@@ -267,7 +267,7 @@ class is_emtpy_mask_clf_pipeline:
             dataset_callback = None
 
         clf.train(
-            self.train_x, self.train_y_onehot, epoch=n_epoch, epoch_callback=epoch_callback,
+            self.train_x, self.train_y_onehot, epoch=n_epoch, epoch_callbacks=epoch_callback,
             iter_pbar=True, dataset_callback=dataset_callback, early_stop=early_stop, patience=patience)
 
     def train_transfer(self, params, n_epoch, augmentation=False, early_stop=True, patience=20, path=None):
@@ -281,7 +281,7 @@ class is_emtpy_mask_clf_pipeline:
             self.test_x, self.test_y_onehot,
             params,
         )
-        clf.train(self.train_x, self.train_y_onehot, epoch=20, epoch_callback=epoch_callback,
+        clf.train(self.train_x, self.train_y_onehot, epoch=20, epoch_callbacks=epoch_callback,
                   iter_pbar=True, dataset_callback=None, early_stop=early_stop, patience=patience)
 
         path = './test_transfer/1'
@@ -314,5 +314,5 @@ class is_emtpy_mask_clf_pipeline:
             params,
         )
         target_model.train(
-            self.train_x, self.train_y_onehot, epoch=20, epoch_callback=epoch_callback,
+            self.train_x, self.train_y_onehot, epoch=20, epoch_callbacks=epoch_callback,
             iter_pbar=True, dataset_callback=None, early_stop=early_stop, patience=patience)
