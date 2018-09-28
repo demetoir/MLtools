@@ -7,7 +7,9 @@ from script.util.Logger import pprint_logger, Logger
 from script.util.PlotTools import PlotTools
 from script.util.deco import deco_timeit
 # print(built-in function) is not good for logging
-from script.workbench.TGS_salt_inference import cnn_pipeline, Unet_pipeline
+from script.workbench.TGS_salt.SS_Inference import SemanticSegmentation_pipeline
+from script.workbench.TGS_salt.is_empty_mask_inference import is_emtpy_mask_clf_pipeline
+from script.workbench.TGS_salt.mask_rate_inference import mask_rate_reg_pipeline
 from slackbot.SlackBot import deco_slackbot
 
 bprint = print
@@ -21,40 +23,6 @@ plot = PlotTools(save=True, show=False)
 
 
 # plot = PlotTools(save=False, show=True)
-
-
-def is_white_image(image):
-    if np.mean(image) == 255:
-        return True
-    else:
-        return False
-
-
-def is_black_image(image):
-    if np.mean(image) == 0:
-        return True
-    else:
-        return False
-
-
-class ExperimentResult:
-    def __init__(self):
-        self.elapse_time = None
-        self.start_time = None
-        self.finish_time = None
-        self.id = None
-        self.model_name = None
-        self.epoch = None
-        self.dataset = None
-        self.git_version = None
-        self.machine_info = None
-
-    def __str__(self):
-        pass
-
-    def _param_dict(self, **kwargs):
-        return kwargs
-
 
 def get_platform_info():
     import platform
@@ -91,9 +59,63 @@ def deco_sigint_catch():
     pass
 
 
+def SS():
+    params = {
+        'depth': [1, 2, 3, 4],
+        'capacity': [8, 16, 24, 32, 64],
+        'batch_size': [8, 16, 32, 64, 128],
+        'loss_type': ['iou', 'dice_soft', 'pixel_wise_softmax', 'combine'],
+        'net_type': ['FusionNet', 'UNet', 'InceptionUNet'],
+    }
+
+    pipe = SemanticSegmentation_pipeline()
+    param = pipe.params(
+        depth=2,
+        batch_size=32,
+        # net_type='InceptionUNet',
+        net_type='FusionNet',
+        capacity=64,
+        learning_rate=0.01,
+        loss_type='BCE+dice_soft',
+        dropout_rate=0.5,
+        comment='depth =2 and atrous conv and dropout, double capacity',
+    )
+    pipe.train(param, n_epoch=100, augmentation=False, early_stop=True, patience=20, )
+
+
+def is_empty_mask():
+    pipe = is_emtpy_mask_clf_pipeline()
+    params = pipe.params(
+        capacity=4,
+        # net_type='InceptionV2',
+        net_type='ResNet18',
+        # batch_size=32,
+        batch_size=256,
+        learning_rate=0.002,
+        dropout_rate=0.5,
+        fc_capacity=1024,
+        fc_depth=2,
+        comment='testing',
+    )
+    pipe.train(params, n_epoch=30, augmentation=False, early_stop=True)
+
+
+def mask_reg():
+    pipe = mask_rate_reg_pipeline()
+    params = pipe.params(
+        capacity=8,
+        net_type='InceptionV1',
+        loss_type='MSE',
+        learning_rate=0.01,
+        batch_size=32,
+        comment='non_empty_mask_only_train'
+    )
+    pipe.train(params, n_epoch=100)
+
+
 @deco_timeit
 @deco_slackbot('./slackbot/tokens/ml_bot_token', 'mltool_bot')
 def main():
-    # cnn_pipeline().train(100)
-    Unet_pipeline().train(100, augmentation=False, early_stop=True, patience=20)
-    pass
+    SS()
+    # mask_reg()
+    # is_empty_mask()
