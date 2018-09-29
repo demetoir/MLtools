@@ -2,7 +2,7 @@ from sklearn import preprocessing
 from pandas import Series
 import pandas as pd
 import numpy as np
-from script.util.MixIn import PickleMixIn
+from script.util.MixIn import PickleSelfMixIn
 
 np_number_types = (
     np.int, np.int8, np.int16, np.int32, np.int64,
@@ -12,7 +12,7 @@ np_number_types = (
 DF = pd.DataFrame
 
 
-class DFEncoder(PickleMixIn):
+class DFEncoder(PickleSelfMixIn):
     scale_method_class = {
         'minmax': preprocessing.MinMaxScaler,
         'maxabs': preprocessing.MaxAbsScaler,

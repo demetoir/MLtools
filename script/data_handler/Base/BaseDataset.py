@@ -4,7 +4,7 @@ import sys
 import numpy as np
 import sklearn.utils
 import pandas as pd
-from script.util.MixIn import LoggerMixIn, PickleMixIn
+from script.util.MixIn import LoggerMixIn, PickleSelfMixIn
 from script.util.numpy_utils import reformat_np_arr
 
 
@@ -32,7 +32,7 @@ class MetaDataset(type):
         setattr(cls, 'load', new_load)
 
 
-class BaseDataset(LoggerMixIn, PickleMixIn, metaclass=MetaDataset):
+class BaseDataset(LoggerMixIn, PickleSelfMixIn, metaclass=MetaDataset):
 
     def __init__(self, x=None, y=None, base='DataFrame', verbose=20, caching=True, with_id=True, **kwargs):
         LoggerMixIn.__init__(self, verbose)

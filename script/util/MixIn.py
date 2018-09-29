@@ -13,7 +13,7 @@ class LoggerMixIn:
         return Logger(self.__class__.__name__, level=level)
 
 
-class PickleMixIn:
+class PickleSelfMixIn:
     def dump(self, path):
         dump_pickle(self, path)
 
@@ -44,6 +44,16 @@ class PickleMixIn:
                 self.__dict__[key] = val
 
         return new_obj
+
+
+class PickleMixIn:
+    @staticmethod
+    def to_pickle(obj, path):
+        dump_pickle(obj, path)
+
+    @staticmethod
+    def from_pickle(path):
+        return load_pickle(path)
 
 
 class JsonMixIn:

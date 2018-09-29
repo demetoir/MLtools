@@ -6,7 +6,7 @@ from sklearn.feature_selection import SelectKBest
 from sklearn.feature_selection import VarianceThreshold
 from sklearn.feature_selection import chi2
 from sklearn.preprocessing import Imputer, LabelEncoder
-from script.util.MixIn import PickleMixIn
+from script.util.MixIn import PickleSelfMixIn
 from script.util.pandas_util import df_binning
 
 DF = pd.DataFrame
@@ -141,9 +141,9 @@ class typecast_method:
         return df
 
 
-class DF_binning_encoder(PickleMixIn):
+class DF_binning_encoder(PickleSelfMixIn):
     def __init__(self):
-        PickleMixIn.__init__(self)
+        PickleSelfMixIn.__init__(self)
 
         self.is_fit = False
 
