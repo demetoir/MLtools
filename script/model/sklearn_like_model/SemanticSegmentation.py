@@ -269,4 +269,4 @@ class SemanticSegmentation(
         Xs, Ys = dataset.next_batch(batch_size, balanced_class=False)
         self.sess.run(self.train_ops, feed_dict={self._Xs: Xs, self._Ys: Ys})
 
-        self.net_module.set_predict(self.sess)
+        self.net_module.set_non_train(self.sess)
