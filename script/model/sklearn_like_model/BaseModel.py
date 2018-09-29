@@ -1,9 +1,9 @@
 import numpy as np
 import tensorflow as tf
+from pprint import pformat
 from tqdm import trange, tqdm
 from env_settting import *
 from script.data_handler.Base.BaseDataset import BaseDataset
-from script.data_handler.DummyDataset import DummyDataset
 from script.model.sklearn_like_model.Mixin import input_shapesMixIN, metadataMixIN, paramsMixIn, loss_packMixIn
 from script.model.sklearn_like_model.SessionManager import SessionManager
 from script.util.MixIn import LoggerMixIn
@@ -87,13 +87,19 @@ class BaseModel(LoggerMixIn, input_shapesMixIN, metadataMixIN, paramsMixIn, loss
 
         # gen instance id
         self.run_id = time_stamp()
-        self.id = "_".join([self.__str__(), self.run_id])
+        self.id = "_".join(["%s_%s" % (self.AUTHOR, self.__class__.__name__), self.run_id])
 
     def __str__(self):
-        return "%s_%s" % (self.AUTHOR, self.__class__.__name__)
+        s = ""
+        s += "%s_%s\n" % (self.AUTHOR, self.__class__.__name__)
+        s += pformat(self.params)
+        return s
 
     def __repr__(self):
-        return "%s_%s" % (self.AUTHOR, self.__class__.__name__)
+        s = ""
+        s += "%s_%s" % (self.AUTHOR, self.__class__.__name__)
+        s += pformat(self.params)
+        return s
 
     def __del__(self):
         del self.sessionManager
@@ -242,6 +248,7 @@ class BaseModel(LoggerMixIn, input_shapesMixIN, metadataMixIN, paramsMixIn, loss
 
         self.instance_path = path
         setup_directory(self.instance_path)
+        self.log.info("saved at {}".format(self.instance_path))
 
         self.save_folder_path = path_join(self.instance_path, 'check_point')
         setup_directory(self.save_folder_path)
@@ -249,7 +256,6 @@ class BaseModel(LoggerMixIn, input_shapesMixIN, metadataMixIN, paramsMixIn, loss
         self.check_point_path = path_join(self.save_folder_path, 'instance.ckpt')
         saver = tf.train.Saver(self.var_list)
         saver.save(self.sess, self.check_point_path)
-        self.log.info("saved at {}".format(self.instance_path))
 
         self.metadata_path = path_join(self.instance_path, 'meta.json')
         self._save_metadata(self.metadata_path)
@@ -263,17 +269,9 @@ class BaseModel(LoggerMixIn, input_shapesMixIN, metadataMixIN, paramsMixIn, loss
         return self.instance_path
 
     def load(self, path):
+        self.log.info(f'load from {path}')
         self._load_metadata(os.path.join(path, 'meta.json'))
         self._load_params(os.path.join(path, 'params.pkl'))
-        # self._load_input_shapes(os.path.join(path, 'input_shapes.pkl'))
-        # self._is_input_shape_built = True
-        # self._build_graph()
-
-        # self.sessionManager.open_if_not()
-        # self.sessionManager.init_variable(self.var_list)
-
-        # saver = tf.train.Saver(self.var_list)
-        # saver.restore(self.sess, self.check_point_path)
 
         return self
 
@@ -282,28 +280,6 @@ class BaseModel(LoggerMixIn, input_shapesMixIN, metadataMixIN, paramsMixIn, loss
 
         saver = tf.train.Saver(self.var_list)
         saver.restore(self.sess, self.check_point_path)
-
-    # TODO del deprecated
-    def get_tf_values(self, fetches, feet_dict, wrap_dict=False):
-        if wrap_dict:
-            ret = self.sess.run(list(fetches.values()), feet_dict)
-            return dict(zip(fetches.keys(), ret))
-
-        else:
-            return self.sess.run(fetches, feet_dict)
-
-    # TODO del deprecated
-    @staticmethod
-    def to_dummyDataset(**kwargs):
-        dataset = DummyDataset()
-        for key, item in kwargs.items():
-            dataset.add_data(key, item)
-        return dataset
-
-    # TODO del deprecated
-    def run_ops(self, ops, feed_dict):
-        for op in ops:
-            self.sess.run(op, feed_dict=feed_dict)
 
     def _loss_check(self, loss_pack):
         for key, item, in loss_pack.items():
