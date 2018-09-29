@@ -1,9 +1,5 @@
-import numpy as np
-from tqdm import tqdm, trange
-
-from script.data_handler.Base.BaseDataset import BaseDataset
 from script.model.sklearn_like_model.BaseModel import BaseModel
-from script.model.sklearn_like_model.Mixin import UnsupervisedMetricCallback
+from script.model.sklearn_like_model.Mixin import SupervisedMetricCallback
 from script.model.sklearn_like_model.NetModule.BaseNetModule import BaseNetModule
 from script.model.sklearn_like_model.PlaceHolderModule import PlaceHolderModule
 from script.model.sklearn_like_model.TFDynamicLearningRate import TFDynamicLearningRate
@@ -98,14 +94,17 @@ class post_process_AE(BaseModel):
 
     def _build_input_shapes(self, shapes):
         self.x_ph_module = PlaceHolderModule(shapes['x'], tf.float32, name='x')
+        self.y_ph_module = PlaceHolderModule(shapes['y'], tf.float32, name='y')
 
         ret = {}
         ret.update(self.x_ph_module.shape_dict)
+        ret.update(self.y_ph_module.shape_dict)
 
         return ret
 
     def _build_main_graph(self):
         self.Xs_ph = self.x_ph_module.build().placeholder
+        self.Ys_ph = self.y_ph_module.build().placeholder
 
         self.encoder_module = conv_encoder_module(self.Xs_ph)
         self.encoder_module.build()
@@ -119,7 +118,7 @@ class post_process_AE(BaseModel):
         self.vars += self.decoder_module.vars
 
     def _build_loss_function(self):
-        self.loss = tf.squared_difference(self.Xs_ph, self._recon, name='loss')
+        self.loss = tf.squared_difference(self.Ys_ph, self._recon, name='loss')
         self.loss_mean = tf.reduce_mean(self.loss, name='loss_mean')
 
     def _build_train_ops(self):
@@ -133,61 +132,16 @@ class post_process_AE(BaseModel):
         )
 
     def _train_iter(self, dataset, batch_size):
-        x = dataset.next_batch(self.batch_size)
-        self.sess.run(self.train_op, {self.Xs_ph: x})
+        x, y = dataset.next_batch(self.batch_size)
+        self.sess.run(self.train_op, {self.Xs_ph: x, self.Ys_ph: y})
 
-    def train_AE(
-            self, x, epoch=1, batch_size=None, dataset_callback=None,
-            epoch_pbar=True, iter_pbar=True, epoch_callbacks=None,
-    ):
-        if not self.is_built:
-            raise RuntimeError(f'{self} not built')
-
-        batch_size = getattr(self, 'batch_size') if batch_size is None else batch_size
-        dataset = dataset_callback if dataset_callback else BaseDataset(x=x)
-
-        metric = None
-        epoch_pbar = tqdm([i for i in range(1, epoch + 1)]) if epoch_pbar else None
-        for _ in range(1, epoch + 1):
-            dataset.shuffle()
-
-            iter_pbar = trange if iter_pbar else range
-            for _ in iter_pbar(int(dataset.size / batch_size)):
-                self._train_iter(dataset, batch_size)
-
-            self.sess.run(self.op_inc_global_epoch)
-            global_epoch = self.sess.run(self.global_epoch)
-            if epoch_pbar: epoch_pbar.update(1)
-
-            metric = getattr(self, 'metric', None)(x)
-            if metric in (np.nan, np.inf, -np.inf):
-                tqdm.write(f'train fail, e = {global_epoch}, metric = {metric}')
-                break
-
-            results = []
-            if epoch_callbacks:
-                for callback in epoch_callbacks:
-                    result = callback(self, dataset, metric, global_epoch)
-                    results += [result]
-
-            break_epoch = False
-            for result in results:
-                if result and getattr(result, 'break_epoch', False):
-                    break_epoch = True
-            if break_epoch: break
-
-        if epoch_pbar: epoch_pbar.close()
-        if dataset_callback: del dataset
-
-        return metric
-
-    def metric(self, x):
+    def metric(self, x, y):
         if not getattr(self, '_metric_callback', None):
-            self._metric_callback = UnsupervisedMetricCallback(
-                self, self.loss_mean, self.Xs_ph,
+            self._metric_callback = SupervisedMetricCallback(
+                self, self.loss_mean, self.Xs_ph, self.Ys_ph
             )
 
-        return self._metric_callback(x)
+        return self._metric_callback(x, y)
 
     def update_learning_rate(self, lr):
         self.learning_rate = lr
