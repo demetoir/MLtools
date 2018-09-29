@@ -257,6 +257,7 @@ class metadataMixIN:
         'metadata_path',
         'check_point_path',
         'save_folder_path',
+        'run_id'
     ]
 
     def __init__(self):
