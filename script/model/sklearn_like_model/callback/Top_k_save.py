@@ -7,7 +7,9 @@ from script.util.misc_util import path_join, load_json, setup_directory, dump_js
 
 
 class Top_k_save(BaseEpochCallback):
-    def __init__(self, path, k=5, max_best=True, save_model=True, name='top_k_save', log=print):
+    def __init__(self, path, k=5, max_best=True, save_model=True, name='top_k_save', log=print, dc=None, key=None):
+        self.key = key
+        self.dc = dc
         self.path = path
         self.k = k
         self.max_best = max_best
@@ -29,7 +31,8 @@ class Top_k_save(BaseEpochCallback):
                 setup_directory(path_join(self.path, f'top_{i}'))
 
     def __call__(self, model, dataset, metric, epoch):
-        metric = float(metric)
+        if self.dc is not None:
+            metric = getattr(self.dc, self.key)
         sign = 1 if self.max_best else -1
 
         self.log(
