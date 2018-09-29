@@ -12,7 +12,7 @@ from script.util.tensor_ops import *
 
 
 class conv_encoder_module(BaseNetModule):
-    def __init__(self, x, capacity=None, reuse=False, name=None, verbose=0):
+    def __init__(self, x, capacity=64, reuse=False, name=None, verbose=0):
         super().__init__(capacity, reuse, name, verbose)
 
         self.x = x
@@ -20,6 +20,7 @@ class conv_encoder_module(BaseNetModule):
     def build(self):
         with tf.variable_scope(self.name, reuse=self.reuse):
             self.stacker = Stacker(self.x)
+
             self.stacker.conv_block(self.capacity, CONV_FILTER_3311, relu)
             self.stacker.conv_block(self.capacity, CONV_FILTER_3311, relu)
             self.stacker.max_pooling(CONV_FILTER_2222)
@@ -42,7 +43,7 @@ class conv_encoder_module(BaseNetModule):
 
 
 class conv_decoder_module(BaseNetModule):
-    def __init__(self, x, output_shape, capacity=None, reuse=False, name=None, verbose=0):
+    def __init__(self, x, output_shape, capacity=64, reuse=False, name=None, verbose=0):
         super().__init__(capacity, reuse, name, verbose)
         self.x = x
         self.output_shape = output_shape
@@ -54,21 +55,21 @@ class conv_decoder_module(BaseNetModule):
 
             self.stacker.conv_block(self.capacity * 8, CONV_FILTER_3311, relu)
             self.stacker.conv_block(self.capacity * 8, CONV_FILTER_3311, relu)
-            self.stacker.upscale_2x_block(self.capacity, CONV_FILTER_3322, relu)
+            self.stacker.upscale_2x_block(self.capacity * 8, CONV_FILTER_3322, relu)
 
             self.stacker.conv_block(self.capacity * 4, CONV_FILTER_3311, relu)
             self.stacker.conv_block(self.capacity * 4, CONV_FILTER_3311, relu)
-            self.stacker.upscale_2x_block(self.capacity, CONV_FILTER_3322, relu)
+            self.stacker.upscale_2x_block(self.capacity * 4, CONV_FILTER_3322, relu)
 
             self.stacker.conv_block(self.capacity * 2, CONV_FILTER_3311, relu)
             self.stacker.conv_block(self.capacity * 2, CONV_FILTER_3311, relu)
-            self.stacker.upscale_2x_block(self.capacity, CONV_FILTER_3322, relu)
+            self.stacker.upscale_2x_block(self.capacity * 2, CONV_FILTER_3322, relu)
 
             self.stacker.conv_block(self.capacity, CONV_FILTER_3311, relu)
             self.stacker.conv_block(self.capacity, CONV_FILTER_3311, relu)
             self.stacker.conv_block(self.capacity, CONV_FILTER_3311, relu)
             self.stacker.conv_block(self.capacity, CONV_FILTER_3311, relu)
-            self.stacker.conv2d(self.capacity, CONV_FILTER_3311)
+            self.stacker.conv2d(self.output_channel, CONV_FILTER_3311)
             self.stacker.relu()
 
             self.decode = self.stacker.last_layer
@@ -79,12 +80,12 @@ class conv_decoder_module(BaseNetModule):
 class post_process_AE(BaseModel):
     def __init__(
             self,
-            verbose=10,
             learning_rate=0.01,
             beta1=0.9,
             capacity=64,
             batch_size=100,
             dropout_rate=0.5,
+            verbose=10,
             **kwargs
     ):
         BaseModel.__init__(self, verbose, **kwargs)
