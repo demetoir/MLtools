@@ -41,6 +41,27 @@ class BaseEpochCallback:
     def __call__(self, model, dataset, metric, epoch):
         raise NotImplementedError
 
+    def trace_on(self, dc, key):
+        self.dc = dc
+        self.dc_key = key
+
+    def hook_metric(self, metric):
+        if hasattr(self, 'dc') and hasattr(self, 'dc_key'):
+            metric = getattr(self.dc, self.dc_key)
+        return metric
+
+    def on_start_epoch(self, model, dataset, metric, epoch):
+        pass
+
+    def on_end_epoch(self, model, dataset, metric, epoch):
+        pass
+
+    def on_start_train(self, model, dataset, metric, epoch):
+        pass
+
+    def on_end_train(self, model, dataset, metric, epoch):
+        pass
+
 
 META_DATA_FILE_NAME = 'instance.meta'
 meta_json = 'meta.json'
@@ -296,9 +317,8 @@ class BaseModel(LoggerMixIn, input_shapesMixIN, metadataMixIN, paramsMixIn, loss
 
     def train(
             self, x, y=None, epoch=1, batch_size=None,
-            dataset_callback=None,
-            epoch_pbar=True, iter_pbar=True, epoch_callbacks=None,
-            **kwargs):
+            dataset_callback=None, epoch_pbar=True, iter_pbar=True, epoch_callbacks=None,
+    ):
 
         if not self.is_built:
             raise RuntimeError(f'{self} not built')
