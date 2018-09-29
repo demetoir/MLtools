@@ -522,3 +522,30 @@ class UnsupervisedMetricCallback:
             return np.mean(metrics)
         else:
             return self._metric_batch(x)
+
+
+class SupervisedMetricCallback:
+    def __init__(self, model, op, x_ph, y_ph, **kwargs):
+        self.sess = model.sess
+        self.batch_size = model.batch_size
+        self.op = op
+        self.x_ph = x_ph
+        self.y_ph = y_ph
+        self.kwargs = kwargs
+
+    def _metric_batch(self, x, y):
+        return self.sess.run(self.op, feed_dict={self.x_ph: x, self.y_ph: y})
+
+    def __call__(self, x, y):
+        size = len(x)
+        if size > self.batch_size:
+            tqdm.write('batch metric')
+            xs = slice_np_arr(x, self.batch_size)
+            ys = slice_np_arr(y, self.batch_size)
+            metrics = [
+                np.mean(self._metric_batch(x, y))
+                for x, y in tqdm(zip(xs, ys), total=len(xs))
+            ]
+            return np.mean(metrics)
+        else:
+            return self._metric_batch(x, y)
