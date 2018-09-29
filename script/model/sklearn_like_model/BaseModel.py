@@ -276,6 +276,7 @@ class BaseModel(LoggerMixIn, input_shapesMixIN, metadataMixIN, paramsMixIn, loss
         return self
 
     def restore(self, path):
+        self.log.info(f'restore from {path}')
         self._load_metadata(os.path.join(path, 'meta.json'))
 
         saver = tf.train.Saver(self.var_list)
