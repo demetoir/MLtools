@@ -1,13 +1,16 @@
 from pprint import pprint
 
 from imgaug import augmenters as iaa
+from sklearn.metrics import accuracy_score
+from sklearn.metrics import confusion_matrix
 
 from script.data_handler.ImgMaskAug import ActivatorMask, ImgMaskAug
 from script.model.sklearn_like_model.BaseModel import BaseEpochCallback, BaseDatasetCallback
 from script.model.sklearn_like_model.ImageClf import ImageClf
 from script.model.sklearn_like_model.TFSummary import TFSummaryScalar
-from script.model.sklearn_like_model.TransferLearning import TransferLearning
+from script.model.sklearn_like_model.callback.EarlyStop import EarlyStop
 from script.model.sklearn_like_model.callback.Top_k_save import Top_k_save
+from script.model.sklearn_like_model.callback.TriangleLRScheduler import TriangleLRScheduler
 from script.util.misc_util import time_stamp, path_join
 from script.util.numpy_utils import *
 from script.workbench.TGS_salt.TGS_salt_inference import TGS_salt_DataHelper, plot, to_dict, save_tf_summary_params
@@ -17,54 +20,58 @@ INSTANCE_PATH = f'./instance/TGS_salt/empty_mask_clf'
 PLOT_PATH = f'./matplot/TGS_salt/empty_mask_clf'
 
 
-class cnn_EpochCallback(BaseEpochCallback):
-    def __init__(self, model, train_x, train_y, test_x, test_y, params):
-        super().__init__()
+class collect_data_callback(BaseEpochCallback):
+    def __init__(self, train_x, train_y, test_x, test_y):
         self.train_x = train_x
         self.train_y = train_y
-        self.model = model
         self.test_x = test_x
         self.test_y = test_y
-        self.params = params
 
-        self.run_id = self.params['run_id']
+    def __call__(self, model, dataset, metric, epoch):
+        self.train_loss = model.metric(self.train_x, self.train_y)
+        self.test_predict = model.predict(self.test_x)
+        self.train_predict = model.predict(self.train_x)
 
+        test_y_decode = np_onehot_to_index(self.test_y)
+        self.test_score = accuracy_score(test_y_decode, self.test_predict)
+        self.test_confusion = confusion_matrix(test_y_decode, self.test_predict)
+
+        train_y_decode = np_onehot_to_index(self.train_y)
+        self.train_score = accuracy_score(train_y_decode, self.train_predict)
+        self.train_confusion = confusion_matrix(train_y_decode, self.train_predict)
+
+
+class summary_callback(BaseEpochCallback):
+    def __init__(self, data_collection, run_id):
+        self.data_collection = data_collection
+        self.dc = data_collection
+
+        self.run_id = run_id
         self.summary_train_loss = TFSummaryScalar(path_join(SUMMARY_PATH, self.run_id, 'train'), 'train_loss')
         self.summary_train_acc = TFSummaryScalar(path_join(SUMMARY_PATH, self.run_id, 'train'), 'train_acc')
         self.summary_test_acc = TFSummaryScalar(path_join(SUMMARY_PATH, self.run_id, 'test'), 'test_acc')
 
-        self.top_k_save = Top_k_save(path_join(INSTANCE_PATH, self.run_id, 'top_k'), k=1)
+    def __call__(self, model, dataset, metric, epoch):
+        sess = model.sess
+        self.summary_train_loss.update(sess, self.dc.train_loss, epoch)
+        self.summary_train_acc.update(sess, self.dc.train_score, epoch)
+        self.summary_test_acc.update(sess, self.dc.test_score, epoch)
 
-    def log_score(self, epoch, log):
-        from sklearn.metrics import confusion_matrix
-        from sklearn.metrics import accuracy_score
-        self.train_loss = self.model.metric(self.train_x, self.train_y)
 
-        test_predict = self.model.predict(self.test_x)
-        test_y_decode = np_onehot_to_index(self.test_y)
-        self.test_score = accuracy_score(test_y_decode, test_predict)
-        test_confusion = confusion_matrix(test_y_decode, test_predict)
+class log_callback(BaseEpochCallback):
+    def __init__(self, data_collection, log=print):
+        self.data_collection = data_collection
+        self.dc = data_collection
+        self.log = log
 
-        train_predict = self.model.predict(self.train_x)
-        train_y_decode = np_onehot_to_index(self.train_y)
-        self.train_score = accuracy_score(train_y_decode, train_predict)
-        train_confusion = confusion_matrix(train_y_decode, train_predict)
-
-        log(f'e={epoch}, '
-            f'train_score = {self.train_score},\n'
-            f'train_confusion = {train_confusion},\n'
-            f'test_score = {self.test_score},\n'
-            f'test_confusion ={test_confusion}\n')
-
-    def update_summary(self, sess, epoch):
-        self.summary_train_loss.update(sess, self.train_loss, epoch)
-        self.summary_train_acc.update(sess, self.train_score, epoch)
-        self.summary_test_acc.update(sess, self.test_score, epoch)
-
-    def __call__(self, sess, dataset, epoch, log=None):
-        self.log_score(epoch, log)
-        self.update_summary(sess, epoch)
-        self.top_k_save(self.test_score, self.model)
+    def __call__(self, model, dataset, metric, epoch):
+        self.log(
+            f'e={epoch}, '
+            f'train_score = {self.dc.train_score},\n'
+            f'train_confusion = {self.dc.train_confusion},\n'
+            f'test_score = {self.dc.test_score},\n'
+            f'test_confusion ={self.dc.test_confusion}\n'
+        )
 
 
 class aug_callback(BaseDatasetCallback):
@@ -144,8 +151,10 @@ class is_emtpy_mask_clf_pipeline:
 
     def init_dataset(self):
         self.data_helper = TGS_salt_DataHelper()
-        self.data_helper.train_set.y_keys = ['empty_mask']
-        train_set = self.data_helper.train_set
+        # self.data_helper.train_set.y_keys = ['empty_mask']
+
+        train_set = self.data_helper.train_set_with_depth_image
+        train_set.y_keys = ['empty_mask']
 
         train_x, train_y = train_set.full_batch()
         train_x = train_x.reshape([-1, 101, 101, 1])
@@ -241,20 +250,31 @@ class is_emtpy_mask_clf_pipeline:
             comment=comment,
         )
 
-    def train(self, params, n_epoch, augmentation=False, early_stop=True, patience=20, path=None):
+    def train(self, params, n_epoch, augmentation=False, path=None, callbacks=None):
         save_tf_summary_params(SUMMARY_PATH, params)
         pprint(f'train {params}')
 
         if path:
-            clf = ImageClf(**params).load(path)
+            clf = ImageClf().load(path)
+            clf.build(Xs=self.train_x, Ys=self.train_y_onehot)
+            clf.restore(path)
         else:
             clf = ImageClf(**params)
-        epoch_callback = cnn_EpochCallback(
-            clf,
+            clf.build(Xs=self.train_x, Ys=self.train_y_onehot)
+
+        print('build callback')
+        dc = collect_data_callback(
             self.train_x, self.train_y_onehot,
-            self.test_x, self.test_y_onehot,
-            params,
+            self.test_x, self.test_y_onehot
         )
+        callbacks = [
+            dc,
+            log_callback(dc),
+            summary_callback(dc, clf.run_id),
+            Top_k_save(path_join(INSTANCE_PATH, clf.run_id, 'top_k'), k=1, dc=dc, key='test_score'),
+            TriangleLRScheduler(7, 0.001, 0.0005),
+            EarlyStop(16),
+        ]
 
         if augmentation:
             dataset_callback = aug_callback(
@@ -265,54 +285,8 @@ class is_emtpy_mask_clf_pipeline:
             )
         else:
             dataset_callback = None
-
+        clf.update_learning_rate(0.001)
         clf.train(
-            self.train_x, self.train_y_onehot, epoch=n_epoch, epoch_callbacks=epoch_callback,
-            iter_pbar=True, dataset_callback=dataset_callback, early_stop=early_stop, patience=patience)
-
-    def train_transfer(self, params, n_epoch, augmentation=False, early_stop=True, patience=20, path=None):
-        if path:
-            clf = ImageClf().load(path)
-        else:
-            clf = ImageClf(**params)
-        epoch_callback = cnn_EpochCallback(
-            clf,
-            self.train_x, self.train_y_onehot,
-            self.test_x, self.test_y_onehot,
-            params,
+            self.train_x, self.train_y_onehot, epoch=n_epoch, epoch_callbacks=callbacks,
+            dataset_callback=dataset_callback
         )
-        clf.train(self.train_x, self.train_y_onehot, epoch=20, epoch_callbacks=epoch_callback,
-                  iter_pbar=True, dataset_callback=None, early_stop=early_stop, patience=patience)
-
-        path = './test_transfer/1'
-
-        clf.save(path)
-        del clf
-        del epoch_callback
-
-        import tensorflow as tf
-        tf.reset_default_graph()
-
-        source_path = path
-        source_model = ImageClf().load(source_path)
-        source_scope = source_model.net_module.scope
-
-        target_model = ImageClf(**params)
-        target_model.build(Xs=self.train_x, Ys=self.train_y_onehot)
-        target_scope = target_model.net_module.scope
-
-        target_model = TransferLearning(
-            source_model, source_path, source_scope
-        ).to(
-            target_model, target_scope
-        )
-
-        epoch_callback = cnn_EpochCallback(
-            target_model,
-            self.train_x, self.train_y_onehot,
-            self.test_x, self.test_y_onehot,
-            params,
-        )
-        target_model.train(
-            self.train_x, self.train_y_onehot, epoch=20, epoch_callbacks=epoch_callback,
-            iter_pbar=True, dataset_callback=None, early_stop=early_stop, patience=patience)
