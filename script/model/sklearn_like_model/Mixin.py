@@ -1,8 +1,10 @@
-from functools import reduce
-from tqdm import tqdm
-from script.util.misc_util import load_json, dump_json, load_pickle, dump_pickle
-import numpy as np
 import inspect
+from functools import reduce
+
+import numpy as np
+from tqdm import tqdm
+
+from script.util.misc_util import load_pickle, dump_pickle
 
 
 class input_shapesMixIn:
@@ -232,37 +234,6 @@ class cs_MixIn:
     @staticmethod
     def get_c_rand_normal(shape):
         return np.random.normal(size=shape)
-
-
-class metadataMixIn:
-    _metadata_keys = [
-        'id',
-        'run_id'
-    ]
-
-    def __init__(self):
-        for key in self._metadata_keys:
-            setattr(self, key, None)
-
-    @property
-    def metadata(self):
-        return self._collect_metadata()
-
-    def _collect_metadata(self):
-        metadata = {}
-        for key in self._metadata_keys:
-            metadata[key] = getattr(self, key, None)
-        return metadata
-
-    def _apply_metadata(self, metadata):
-        for key in self._metadata_keys:
-            setattr(self, key, metadata[key])
-
-    def _load_metadata(self, path):
-        self._apply_metadata(load_json(path))
-
-    def _save_metadata(self, path):
-        dump_json(self.metadata, path)
 
 
 class paramsMixIn:
