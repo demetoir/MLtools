@@ -1,11 +1,12 @@
 from functools import reduce
-
+from script.util.MixIn import LoggerMixIn
 from script.util.tensor_ops import placeholder
 import tensorflow as tf
 
 
-class PlaceHolderModule:
-    def __init__(self, x, dtype=tf.float32, name='placeHolderModule'):
+class PlaceHolderModule(LoggerMixIn):
+    def __init__(self, x, dtype=tf.float32, name='placeHolderModule', verbose=0):
+        super().__init__(verbose=verbose)
         self.dtype = dtype
         self.name = name
         self.single_shape = x.shape[1:]
@@ -26,5 +27,6 @@ class PlaceHolderModule:
 
     def build(self):
         self._ph = placeholder(self.dtype, self.batch_shape, self.name)
+        self.log.info(f'build placeholder {self.name}, {self._ph.shape}')
 
         return self

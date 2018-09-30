@@ -1,12 +1,13 @@
-from functools import reduce
-from tqdm import tqdm
-from script.util.misc_util import load_json, dump_json, load_pickle, dump_pickle
-import numpy as np
 import inspect
+from functools import reduce
+
+import numpy as np
+from tqdm import tqdm
+
+from script.util.misc_util import load_pickle, dump_pickle
 
 
-class input_shapesMixIN:
-
+class input_shapesMixIn:
     def __init__(self):
         if not hasattr(self, '_input_shape_keys'):
             self._input_shape_keys = []
@@ -20,25 +21,10 @@ class input_shapesMixIN:
             setattr(self, key, input_shapes[key])
 
     def _collect_input_shapes(self):
-        input_shapes = {}
-        for key in self._input_shape_keys:
-            input_shapes[key] = getattr(self, key, None)
-        return input_shapes
-
-    @staticmethod
-    def _check_input_shapes(a, b):
-        return True if dict(a) == dict(b) else False
-
-    def _load_input_shapes(self, path):
-        self._apply_input_shapes(load_pickle(path))
-
-    def _save_input_shapes(self, path):
-        dump_pickle(self.input_shapes, path)
-
-
-class BaseInputMixIn:
-    # TODO
-    pass
+        return {
+            key: getattr(self, key, None)
+            for key in self._input_shape_keys
+        }
 
 
 class Xs_MixIn:
@@ -248,40 +234,6 @@ class cs_MixIn:
     @staticmethod
     def get_c_rand_normal(shape):
         return np.random.normal(size=shape)
-
-
-class metadataMixIN:
-    _metadata_keys = [
-        'id',
-        'instance_path',
-        'metadata_path',
-        'check_point_path',
-        'save_folder_path',
-    ]
-
-    def __init__(self):
-        for key in self._metadata_keys:
-            setattr(self, key, None)
-
-    @property
-    def metadata(self):
-        return self._collect_metadata()
-
-    def _collect_metadata(self):
-        metadata = {}
-        for key in self._metadata_keys:
-            metadata[key] = getattr(self, key, None)
-        return metadata
-
-    def _apply_metadata(self, metadata):
-        for key in self._metadata_keys:
-            setattr(self, key, metadata[key])
-
-    def _load_metadata(self, path):
-        self._apply_metadata(load_json(path))
-
-    def _save_metadata(self, path):
-        dump_json(self.metadata, path)
 
 
 class paramsMixIn:
@@ -521,3 +473,30 @@ class UnsupervisedMetricCallback:
             return np.mean(metrics)
         else:
             return self._metric_batch(x)
+
+
+class SupervisedMetricCallback:
+    def __init__(self, model, op, x_ph, y_ph, **kwargs):
+        self.sess = model.sess
+        self.batch_size = model.batch_size
+        self.op = op
+        self.x_ph = x_ph
+        self.y_ph = y_ph
+        self.kwargs = kwargs
+
+    def _metric_batch(self, x, y):
+        return self.sess.run(self.op, feed_dict={self.x_ph: x, self.y_ph: y})
+
+    def __call__(self, x, y):
+        size = len(x)
+        if size > self.batch_size:
+            tqdm.write('batch metric')
+            xs = slice_np_arr(x, self.batch_size)
+            ys = slice_np_arr(y, self.batch_size)
+            metrics = [
+                np.mean(self._metric_batch(x, y))
+                for x, y in tqdm(zip(xs, ys), total=len(xs))
+            ]
+            return np.mean(metrics)
+        else:
+            return self._metric_batch(x, y)

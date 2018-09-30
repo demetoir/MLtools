@@ -186,4 +186,4 @@ class ImageClf(
         self.mlp_net_module.set_train(sess)
 
     def set_predict(self, sess):
-        self.mlp_net_module.set_predict(sess)
+        self.mlp_net_module.set_non_train(sess)

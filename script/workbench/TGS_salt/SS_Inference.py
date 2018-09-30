@@ -12,6 +12,7 @@ from script.model.sklearn_like_model.callback.TriangleLRScheduler import Triangl
 from script.util.misc_util import time_stamp, path_join
 from script.workbench.TGS_salt.TGS_salt_inference import plot, TGS_salt_metric, TGS_salt_DataHelper, to_dict, \
     TGS_salt_aug_callback, save_tf_summary_params, iou_metric, masks_rate
+from script.workbench.TGS_salt.post_process_AE import post_process_AE
 from script.workbench.TGS_salt.pretrain_Unet import pre_train_Unet
 
 SUMMARY_PATH = f'./tf_summary/TGS_salt/SS'
@@ -19,12 +20,24 @@ INSTANCE_PATH = f'./instance/TGS_salt/SS'
 PLOT_PATH = f'./matplot/TGS_salt/SS'
 
 
-class CollectDataCallback(BaseEpochCallback):
-    def __init__(self, test_x, test_y, **kwargs):
+class BaseDataCollector(BaseEpochCallback):
+    def __init__(self, **kwargs):
+        self.kwargs = kwargs
+        for key, val in kwargs.items():
+            setattr(self, key, val)
 
+    def update_data(self, model, dataset, metric, epoch):
+        raise NotImplementedError
+
+    def __call__(self, model, dataset, metric, epoch):
+        self.update_data(model, dataset, metric, epoch)
+
+
+class CollectDataCallback(BaseDataCollector):
+    def __init__(self, test_x, test_y, **kwargs):
+        super().__init__(**kwargs)
         self.test_x = test_x
         self.test_y = test_y
-        self.kwargs = kwargs
 
     def update_data(self, model, dataset, metric, epoch):
         self.train_loss = metric
@@ -92,9 +105,6 @@ class CollectDataCallback(BaseEpochCallback):
         for gt, predict in zip(self.test_y, self.test_predict):
             iou += [iou_metric(gt, predict)]
         self.test_iou_score = np.mean(iou)
-
-    def __call__(self, model, dataset, metric, epoch):
-        self.update_data(model, dataset, metric, epoch)
 
 
 class LoggingCallback(BaseEpochCallback):
@@ -188,12 +198,13 @@ class PlotToolsCallback(BaseEpochCallback):
         x, y = dataset.next_batch(20)
         # x = x.reshape([-1, 101, 101, 1])
         x = x[:, :, :, 0]
-
         y = y.reshape([-1, 101, 101, 1]) * 254
+
         predict = model.predict(x)
+        predict = mask_label_encoder.from_label(predict)
+
         proba = model.predict_proba(x)
         proba = proba[:, :, :, 1].reshape([-1, 101, 101, 1]) * 255
-        predict = mask_label_encoder.from_label(predict)
 
         def scramble_column(*args, size=10):
             ret = []
@@ -252,7 +263,7 @@ class Top_k_saveCallback(BaseEpochCallback):
         )
         self.non_empty_mask_test_score_top_k_save = Top_k_save(
             path_join(INSTANCE_PATH, self.run_id, 'non_empty_test_score'),
-            k=3,
+            k=1,
             name='non_empty_mask_test_score',
             save_model=False
         )
@@ -346,10 +357,7 @@ class SemanticSegmentation_pipeline:
         )
         return params
 
-    def train(self, params, n_epoch=10, augmentation=False, early_stop=True, patience=20, path=None):
-
-        path = './instance/TGS_salt/SS/baseline'
-        # path = ".\\instance\\TGS_salt\\SS\\2018-09-27_14-18-36\\test_score\\top_1"
+    def train(self, params, n_epoch=10, augmentation=False, path=None, callbacks=None):
         if path:
             model = SemanticSegmentation().load(path)
             model.build(Xs=self.train_x, Ys=self.train_y_encode)
@@ -359,26 +367,31 @@ class SemanticSegmentation_pipeline:
             model.build(Xs=self.train_x, Ys=self.train_y_encode)
 
         run_id = model.run_id
-        dc_callback = CollectDataCallback(self.valid_x, self.valid_y)
-        epoch_callbacks = [
-            dc_callback,
-            LoggingCallback(dc_callback),
-            TFSummaryCallback(dc_callback, run_id),
-            # PlotToolsCallback(dc_callback),
-            Top_k_saveCallback(dc_callback, run_id),
-            # ReduceLrOnPlateau(0.9, 5, 0.0005),
-            TriangleLRScheduler(7, 0.005, 0.0005),
-            EarlyStop(21),
-        ]
+        if callbacks is None:
+            dc_callback = CollectDataCallback(self.valid_x, self.valid_y)
+            callbacks = [
+                dc_callback,
+                LoggingCallback(dc_callback),
+                TFSummaryCallback(dc_callback, run_id),
+                # PlotToolsCallback(dc_callback),
+                Top_k_saveCallback(dc_callback, run_id),
+                # ReduceLrOnPlateau(0.9, 5, 0.0005),
+                # TriangleLRScheduler(7, 0.001, 0.0005),
+                EarlyStop(21),
+            ]
+
         aug_callback = TGS_salt_aug_callback(self.train_x, self.train_y_encode, params['batch_size']) \
             if augmentation else None
 
-        save_tf_summary_params(SUMMARY_PATH, params)
+        if params:
+            save_tf_summary_params(SUMMARY_PATH, params)
+
         for i in range(8):
-            # model.update_learning_rate(0.01)
-            model.train(self.train_x, self.train_y_encode, epoch=n_epoch,
-                        aug_callback=aug_callback, epoch_callbacks=epoch_callbacks)
-            model.save('./instance/TGS_salt/SS/baseline')
+            model.update_learning_rate(0.002)
+            model.train(
+                self.train_x, self.train_y_encode, epoch=n_epoch,
+                epoch_callbacks=callbacks
+            )
 
     def pre_train(self, params, n_epoch, path=None):
         path = './instance/pretrain_AE_Unet'
@@ -411,3 +424,24 @@ class SemanticSegmentation_pipeline:
         path = './instance/transfered_model'
         model.save(path)
         del model
+
+    def load_baseline(self, path=None):
+        path = './instance/TGS_salt/SS/baseline'
+        # path = ".\\instance\\TGS_salt\\SS\\2018-09-27_14-18-36\\test_score\\top_1"
+        model = None
+        if path:
+            model = SemanticSegmentation().load(path)
+            model.build(Xs=self.train_x, Ys=self.train_y_encode)
+            model.restore(path)
+
+        return model
+
+    def train_post_processing(self):
+        ae = post_process_AE()
+
+        predict = None
+        x = predict
+        y = None
+
+        ae.build(x=x, y=y)
+        ae.train(x, y, epoch=100)

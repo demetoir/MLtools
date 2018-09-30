@@ -285,9 +285,9 @@ def upscale_2x(input_, output_channel, filter_, name='upscale_2x'):
     n, h, w, c = list(shape)
     if n.value is None:
         n = -1
-    else:
-        n = int(n)
-    output_shape = [n, int(h) * 2, int(w) * 2, int(output_channel)]
+
+    output_shape = [n, h * 2, w * 2, output_channel]
+    output_shape = list(map(int, output_shape))
     return conv2d_transpose(input_, output_shape, filter_, name=name)
 
 

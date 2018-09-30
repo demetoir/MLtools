@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 from sklearn.metrics import accuracy_score, confusion_matrix, roc_auc_score, recall_score, precision_score
 from script.data_handler.DFEncoder import DFEncoder
-from script.util.MixIn import PickleMixIn, LoggerMixIn
+from script.util.MixIn import PickleSelfMixIn, LoggerMixIn
 from script.util.numpy_utils import reformat_np_arr, NP_ARRAY_TYPE_INDEX, NP_ARRAY_TYPE_ONEHOT
 from sklearn.metrics.regression import r2_score
 from sklearn.metrics.regression import explained_variance_score
@@ -167,7 +167,7 @@ class ClfPredictConfidenceMixIn:
 
 class ClfWrapperMixIn(
     ClfScorePackMixIn,
-    PickleMixIn,
+    PickleSelfMixIn,
     LoggerMixIn,
     ClfPredictConfidenceMixIn,
     EtcMixIn,
@@ -177,7 +177,7 @@ class ClfWrapperMixIn(
 
     def __init__(self, x_df_encoder=None, y_df_encoder=None):
         ClfScorePackMixIn.__init__(self)
-        PickleMixIn.__init__(self)
+        PickleSelfMixIn.__init__(self)
         LoggerMixIn.__init__(self)
         ClfPredictConfidenceMixIn.__init__(self)
         EtcMixIn.__init__(self)
@@ -247,7 +247,7 @@ class RegScorePackMixIn(YLabelOneHotConvertMixIn):
 
 class RegWrapperMixIn(
     RegScorePackMixIn,
-    PickleMixIn,
+    PickleSelfMixIn,
     LoggerMixIn,
     EtcMixIn
 ):
@@ -255,7 +255,7 @@ class RegWrapperMixIn(
 
     def __init__(self):
         RegScorePackMixIn.__init__(self)
-        PickleMixIn.__init__(self)
+        PickleSelfMixIn.__init__(self)
         LoggerMixIn.__init__(self)
         EtcMixIn.__init__(self)
 

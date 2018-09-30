@@ -71,7 +71,7 @@ class UNetNetModule(BaseNetModule):
         self.DynamicDropoutRate.set_train(sess)
 
     def set_predict(self, sess):
-        self.DynamicDropoutRate.set_predict(sess)
+        self.DynamicDropoutRate.set_non_train(sess)
 
     def update_dropout_rate(self, sess, x):
         self.dropout_rate = x
