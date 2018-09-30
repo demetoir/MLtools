@@ -5,8 +5,7 @@ import numpy as np
 import inspect
 
 
-class input_shapesMixIN:
-
+class input_shapesMixIn:
     def __init__(self):
         if not hasattr(self, '_input_shape_keys'):
             self._input_shape_keys = []
@@ -20,25 +19,10 @@ class input_shapesMixIN:
             setattr(self, key, input_shapes[key])
 
     def _collect_input_shapes(self):
-        input_shapes = {}
-        for key in self._input_shape_keys:
-            input_shapes[key] = getattr(self, key, None)
-        return input_shapes
-
-    @staticmethod
-    def _check_input_shapes(a, b):
-        return True if dict(a) == dict(b) else False
-
-    def _load_input_shapes(self, path):
-        self._apply_input_shapes(load_pickle(path))
-
-    def _save_input_shapes(self, path):
-        dump_pickle(self.input_shapes, path)
-
-
-class BaseInputMixIn:
-    # TODO
-    pass
+        return {
+            key: getattr(self, key, None)
+            for key in self._input_shape_keys
+        }
 
 
 class Xs_MixIn:
@@ -250,7 +234,7 @@ class cs_MixIn:
         return np.random.normal(size=shape)
 
 
-class metadataMixIN:
+class metadataMixIn:
     _metadata_keys = [
         'id',
         'instance_path',
