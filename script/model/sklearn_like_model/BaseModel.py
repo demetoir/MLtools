@@ -135,6 +135,14 @@ class BaseModel(
             run_id=run_id
         )
 
+    @property
+    def id(self):
+        return self.metadata.id
+
+    @property
+    def run_id(self):
+        return self.metadata.run_id
+
     def __str__(self):
         s = ""
         s += "%s_%s\n" % (self.AUTHOR, self.__class__.__name__)
