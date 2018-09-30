@@ -42,7 +42,7 @@ class CollectDataCallback(BaseDataCollector):
     def update_data(self, model, dataset, metric, epoch):
         self.train_loss = metric
 
-        train_x, train_y = dataset.next_batch(1000)
+        train_x, train_y = dataset.next_batch(1000, update_cursor=False)
         self.train_x = train_x
         self.train_y = train_y
         # self.train_x = train_x.reshape([-1, 101, 101, 1])
@@ -105,6 +105,8 @@ class CollectDataCallback(BaseDataCollector):
         for gt, predict in zip(self.test_y, self.test_predict):
             iou += [iou_metric(gt, predict)]
         self.test_iou_score = np.mean(iou)
+
+        self.train_predict_sample = self.train_predict[:20]
 
 
 class LoggingCallback(BaseEpochCallback):
@@ -195,16 +197,16 @@ class PlotToolsCallback(BaseEpochCallback):
     def plot_mask_image(self, model, dataset, metric, epoch):
         run_id = model.run_id
 
-        x, y = dataset.next_batch(20)
-        # x = x.reshape([-1, 101, 101, 1])
-        x = x[:, :, :, 0]
+        x, y = dataset.next_batch(20, update_cursor=False)
+        x_image = x[:, :, :, 0]
         y = y.reshape([-1, 101, 101, 1]) * 254
 
         predict = model.predict(x)
         predict = mask_label_encoder.from_label(predict)
-
         proba = model.predict_proba(x)
         proba = proba[:, :, :, 1].reshape([-1, 101, 101, 1]) * 255
+        x_image = x_image.reshape([-1, 101, 101, 1])
+        predict = predict.reshape([-1, 101, 101, 1])
 
         def scramble_column(*args, size=10):
             ret = []
@@ -214,7 +216,7 @@ class PlotToolsCallback(BaseEpochCallback):
 
             return np.concatenate(ret, axis=0)
 
-        np_tile = scramble_column(x, y, predict, proba)
+        np_tile = scramble_column(x_image, y, predict, proba)
         self.plot.plot_image_tile(
             np_tile,
             title=f'predict_epoch({epoch})',
@@ -373,7 +375,7 @@ class SemanticSegmentation_pipeline:
                 dc_callback,
                 LoggingCallback(dc_callback),
                 TFSummaryCallback(dc_callback, run_id),
-                # PlotToolsCallback(dc_callback),
+                PlotToolsCallback(dc_callback),
                 Top_k_saveCallback(dc_callback, run_id),
                 # ReduceLrOnPlateau(0.9, 5, 0.0005),
                 # TriangleLRScheduler(7, 0.001, 0.0005),
