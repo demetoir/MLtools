@@ -1,13 +1,15 @@
+from pprint import pformat
+
 import numpy as np
 import tensorflow as tf
-from pprint import pformat
 from tqdm import trange, tqdm
+
 from env_settting import *
 from script.data_handler.Base.BaseDataset import BaseDataset
-from script.model.sklearn_like_model.Mixin import input_shapesMixIn, metadataMixIn, paramsMixIn, loss_packMixIn
+from script.model.sklearn_like_model.Mixin import input_shapesMixIn, paramsMixIn, loss_packMixIn
 from script.model.sklearn_like_model.SessionManager import SessionManager
 from script.util.MixIn import LoggerMixIn
-from script.util.misc_util import setup_directory
+from script.util.misc_util import setup_directory, setup_file, dump_json, load_json
 from script.util.misc_util import time_stamp, path_join, error_trace
 from script.util.tensor_ops import join_scope
 
@@ -70,7 +72,36 @@ input_shapes_json = 'input_shapes.json'
 INSTANCE_FOLDER = 'instance'
 
 
-class BaseModel(LoggerMixIn, input_shapesMixIn, metadataMixIn, paramsMixIn, loss_packMixIn):
+class ModelMetadata:
+    def __init__(self, id_, run_id, **kwargs):
+        self.id = id_
+        self.run_id = run_id
+        for key, val in kwargs.items():
+            setattr(self, key, val)
+        self.keys = ['id', 'run_id'] + list(kwargs.keys())
+
+    @property
+    def metadata(self):
+        return {
+            key: getattr(self, key, None)
+            for key in self.keys
+        }
+
+    def load(self, path):
+        obj = load_json(path)
+        for key, val in obj.items():
+            setattr(self, key, val)
+
+    def save(self, path):
+        dump_json(self.metadata, path)
+
+
+class BaseModel(
+    LoggerMixIn,
+    input_shapesMixIn,
+    paramsMixIn,
+    loss_packMixIn
+):
     """Abstract class of model for tensorflow graph"""
     AUTHOR = 'demetoir'
 
@@ -84,31 +115,25 @@ class BaseModel(LoggerMixIn, input_shapesMixIn, metadataMixIn, paramsMixIn, loss
         """
         LoggerMixIn.__init__(self, verbose=verbose)
         input_shapesMixIn.__init__(self)
-        metadataMixIn.__init__(self)
         paramsMixIn.__init__(self)
         loss_packMixIn.__init__(self)
 
-        if 'sess' in kwargs:
-            sess = kwargs['sess']
-        else:
-            sess = None
-        if 'config' in kwargs:
-            config = kwargs['config']
-        else:
-            config = None
-
         self.sessionManager = SessionManager(
-            sess=sess,
-            config=config,
+            sess=kwargs['sess'] if 'sess' in kwargs else None,
+            config=kwargs['config'] if 'config' in kwargs else None,
         )
 
         self._is_input_shape_built = False
         self._is_graph_built = False
-        self.verbose = verbose
 
+        self.verbose = verbose
         # gen instance id
-        self.run_id = time_stamp()
-        self.id = "_".join(["%s_%s" % (self.AUTHOR, self.__class__.__name__), self.run_id])
+        run_id = kwargs['run_id'] if 'run_id' in kwargs else time_stamp()
+        id_ = "_".join(["%s_%s" % (self.AUTHOR, self.__class__.__name__), run_id])
+        self.metadata = ModelMetadata(
+            id_=id_,
+            run_id=run_id
+        )
 
     def __str__(self):
         s = ""
@@ -133,33 +158,33 @@ class BaseModel(LoggerMixIn, input_shapesMixIn, metadataMixIn, paramsMixIn, loss
     def var_list(self):
         return tf.get_collection(
             tf.GraphKeys.GLOBAL_VARIABLES,
-            scope=self.id
+            scope=self.metadata.id
         )
 
     @property
     def main_graph_var_list(self):
         return tf.get_collection(
             tf.GraphKeys.GLOBAL_VARIABLES,
-            scope=join_scope(self.id, 'main_graph')
+            scope=join_scope(self.metadata.id, 'main_graph')
         )
 
     @property
     def train_ops_var_list(self):
         return tf.get_collection(
             tf.GraphKeys.GLOBAL_VARIABLES,
-            scope=join_scope(self.id, 'train_ops')
+            scope=join_scope(self.metadata.id, 'train_ops')
         )
 
     @property
     def misc_ops_var_list(self):
         return tf.get_collection(
             tf.GraphKeys.GLOBAL_VARIABLES,
-            scope=join_scope(self.id, 'misc_ops')
+            scope=join_scope(self.metadata.id, 'misc_ops')
         )
 
     @property
     def trainable_var_list(self):
-        return tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope=self.id)
+        return tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope=self.metadata.id)
 
     @property
     def is_built(self):
@@ -167,7 +192,7 @@ class BaseModel(LoggerMixIn, input_shapesMixIn, metadataMixIn, paramsMixIn, loss
 
     def _build_graph(self):
         try:
-            with tf.variable_scope(str(self.id)):
+            with tf.variable_scope(str(self.metadata.id)):
                 with tf.variable_scope("misc_ops"):
                     self.log.debug("build_misc_ops")
                     self._build_misc_ops()
@@ -265,40 +290,36 @@ class BaseModel(LoggerMixIn, input_shapesMixIn, metadataMixIn, paramsMixIn, loss
 
         if path is None:
             self.log.info('save directory not specified, use default directory')
-            path = os.path.join(ROOT_PATH, 'instance', self.id)
+            path = path_join(ROOT_PATH, 'instance', self.metadata.id)
 
-        self.instance_path = path
-        setup_directory(self.instance_path)
-        self.log.info("saved at {}".format(self.instance_path))
+        self.log.info("saved at {}".format(path))
+        setup_directory(path)
 
-        self.save_folder_path = path_join(self.instance_path, 'check_point')
-        setup_directory(self.save_folder_path)
-
-        self.check_point_path = path_join(self.save_folder_path, 'instance.ckpt')
+        check_point_path = path_join(path, 'check_point', 'instance.ckpt')
+        setup_file(check_point_path)
         saver = tf.train.Saver(self.var_list)
-        saver.save(self.sess, self.check_point_path)
+        saver.save(self.sess, check_point_path)
 
-        self.metadata_path = path_join(self.instance_path, 'meta.json')
-        self._save_metadata(self.metadata_path)
+        self.metadata.save(path_join(path, 'meta.pkl'))
+        self.metadata.save(path_join(path, 'meta.json'))
 
-        self.params_path = path_join(self.instance_path, 'params.pkl')
+        self.params_path = path_join(path, 'params.pkl')
         self._save_params(self.params_path)
 
-        return self.instance_path
+        return path
 
     def load(self, path):
         self.log.info(f'load from {path}')
-        self._load_metadata(os.path.join(path, 'meta.json'))
-        self._load_params(os.path.join(path, 'params.pkl'))
+        self.metadata.load(path_join(path, 'meta.json'))
+        self._load_params(path_join(path, 'params.pkl'))
 
         return self
 
     def restore(self, path):
         self.log.info(f'restore from {path}')
-        self._load_metadata(os.path.join(path, 'meta.json'))
 
         saver = tf.train.Saver(self.var_list)
-        saver.restore(self.sess, self.check_point_path)
+        saver.restore(self.sess, path_join(path, 'check_point', 'instance.ckpt'))
 
     def _loss_check(self, loss_pack):
         for key, item, in loss_pack.items():
