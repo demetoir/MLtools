@@ -237,10 +237,6 @@ class cs_MixIn:
 class metadataMixIn:
     _metadata_keys = [
         'id',
-        'instance_path',
-        'metadata_path',
-        'check_point_path',
-        'save_folder_path',
         'run_id'
     ]
 
