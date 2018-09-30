@@ -4,7 +4,7 @@ from pprint import pformat
 from tqdm import trange, tqdm
 from env_settting import *
 from script.data_handler.Base.BaseDataset import BaseDataset
-from script.model.sklearn_like_model.Mixin import input_shapesMixIN, metadataMixIN, paramsMixIn, loss_packMixIn
+from script.model.sklearn_like_model.Mixin import input_shapesMixIn, metadataMixIn, paramsMixIn, loss_packMixIn
 from script.model.sklearn_like_model.SessionManager import SessionManager
 from script.util.MixIn import LoggerMixIn
 from script.util.misc_util import setup_directory
@@ -70,7 +70,7 @@ input_shapes_json = 'input_shapes.json'
 INSTANCE_FOLDER = 'instance'
 
 
-class BaseModel(LoggerMixIn, input_shapesMixIN, metadataMixIN, paramsMixIn, loss_packMixIn):
+class BaseModel(LoggerMixIn, input_shapesMixIn, metadataMixIn, paramsMixIn, loss_packMixIn):
     """Abstract class of model for tensorflow graph"""
     AUTHOR = 'demetoir'
 
@@ -83,8 +83,8 @@ class BaseModel(LoggerMixIn, input_shapesMixIN, metadataMixIN, paramsMixIn, loss
         if logger_path is None, log ony stdout
         """
         LoggerMixIn.__init__(self, verbose=verbose)
-        input_shapesMixIN.__init__(self)
-        metadataMixIN.__init__(self)
+        input_shapesMixIn.__init__(self)
+        metadataMixIn.__init__(self)
         paramsMixIn.__init__(self)
         loss_packMixIn.__init__(self)
 
@@ -280,9 +280,6 @@ class BaseModel(LoggerMixIn, input_shapesMixIN, metadataMixIN, paramsMixIn, loss
 
         self.metadata_path = path_join(self.instance_path, 'meta.json')
         self._save_metadata(self.metadata_path)
-
-        self.input_shapes_path = path_join(self.instance_path, 'input_shapes.pkl')
-        self._save_input_shapes(self.input_shapes_path)
 
         self.params_path = path_join(self.instance_path, 'params.pkl')
         self._save_params(self.params_path)
