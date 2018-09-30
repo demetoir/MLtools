@@ -177,7 +177,7 @@ class TFSummaryCallback(BaseEpochCallback):
         train_non_empty_score = self.data_collection.train_non_empty_score
 
         train_iou_score = self.data_collection.train_iou_score
-        test_iou_score = self.data_collection.train_non_empty_score
+        test_iou_score = self.data_collection.test_iou_score
 
         self.summary_train_loss.update(sess, train_loss, epoch)
         self.summary_train_acc.update(sess, train_score, epoch)
