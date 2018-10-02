@@ -206,40 +206,23 @@ class TGS_salt_DataHelper:
 
         return self._train_set_empty_mask
 
-    @property
-    def train_depth_image(self):
-        if self._train_depth_image is None:
-            depths = self.train_set.full_batch(['depth'])['depth']
-            self._train_depth_image = depth_to_image(depths)
-
-        return self._train_depth_image
-
-    @property
-    def test_depth_image(self):
-        if self._test_depth_image is None:
-            depths = self.test_set.full_batch(['depth'])['depth']
-            self._test_depth_image = depth_to_image(depths)
-
-        return self._test_depth_image
-
     @lazy_property
     def train_set_with_depth_image(self):
-        x, y = self.train_set.full_batch()
-        x = x.reshape([-1, 101, 101, 1])
-        y = y.reshape([-1, 101, 101, 1])
-        depth_image = self.train_depth_image.reshape([-1, 101, 101, 1])
-        x = np.concatenate((x, depth_image), axis=3)
-        self.train_set.add_data('x_with_depth', x)
+        np_dict = self.train_set.full_batch(['image', 'depth_image'])
+        x = np_dict['image']
+        depth_image = np_dict['depth_image']
+        x_with_depth = np.concatenate((x, depth_image), axis=3)
+        self.train_set.add_data('x_with_depth', x_with_depth)
 
         return self.train_set
 
     @lazy_property
     def test_set_with_depth_image(self):
-        x = self.test_set.full_batch()
-        x = x.reshape([-1, 101, 101, 1])
-        depth_image = self.test_depth_image.reshape([-1, 101, 101, 1])
-        x = np.concatenate((x, depth_image), axis=3)
-        self.test_set.add_data('x_with_depth', x)
+        np_dict = self.test_set.full_batch(['image', 'depth_image'])
+        x = np_dict['image']
+        depth_image = np_dict['depth_image']
+        x_with_depth = np.concatenate((x, depth_image), axis=3)
+        self.test_set.add_data('x_with_depth', x_with_depth)
 
         return self.test_set
 
@@ -249,6 +232,51 @@ class TGS_salt_DataHelper:
         idxs = self.train_set_non_empty_mask_idxs
 
         return dataset.query_by_idxs(idxs)
+
+    @staticmethod
+    def mask_rate_under_n_percent(dataset, n):
+        mask_rate = dataset.full_batch(['mask_rate'])['mask_rate']
+
+        idx = mask_rate < n
+        return dataset.query_by_idxs(idx)
+
+    @staticmethod
+    def mask_rate_upper_n_percent(dataset, n):
+        mask_rate = dataset.full_batch(['mask_rate'])['mask_rate']
+        idx = mask_rate > n
+        return dataset.query_by_idxs(idx)
+
+    @lazy_property
+    def train_set_non_empty_mask_with_depth_image_under_1p(self):
+        return self.mask_rate_under_n_percent(self.train_set_non_empty_mask_with_depth_image, 0.01)
+
+    @lazy_property
+    def train_set_non_empty_mask_with_depth_image_under_5p(self):
+        return self.mask_rate_under_n_percent(self.train_set_non_empty_mask_with_depth_image, 0.05)
+
+    @lazy_property
+    def train_set_non_empty_mask_with_depth_image_under_10p(self):
+        return self.mask_rate_under_n_percent(self.train_set_non_empty_mask_with_depth_image, 0.10)
+
+    @lazy_property
+    def train_set_non_empty_mask_with_depth_image_under_20p(self):
+        return self.mask_rate_under_n_percent(self.train_set_non_empty_mask_with_depth_image, 0.20)
+
+    @lazy_property
+    def train_set_non_empty_mask_with_depth_image_upper_1p(self):
+        return self.mask_rate_upper_n_percent(self.train_set_non_empty_mask_with_depth_image, 0.01)
+
+    @lazy_property
+    def train_set_non_empty_mask_with_depth_image_upper_5p(self):
+        return self.mask_rate_upper_n_percent(self.train_set_non_empty_mask_with_depth_image, 0.05)
+
+    @lazy_property
+    def train_set_non_empty_mask_with_depth_image_upper_10p(self):
+        return self.mask_rate_upper_n_percent(self.train_set_non_empty_mask_with_depth_image, 0.10)
+
+    @lazy_property
+    def train_set_non_empty_mask_with_depth_image_upper_20p(self):
+        return self.mask_rate_upper_n_percent(self.train_set_non_empty_mask_with_depth_image, 0.20)
 
 
 class TGS_salt_aug_callback(BaseDatasetCallback):
