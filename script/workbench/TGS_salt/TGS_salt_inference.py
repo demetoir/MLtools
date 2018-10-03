@@ -9,11 +9,9 @@ from script.data_handler.TGS_salt import collect_images, TRAIN_MASK_PATH, TGS_sa
 from script.model.sklearn_like_model.BaseModel import BaseDatasetCallback
 from script.model.sklearn_like_model.TFSummary import TFSummaryParams
 from script.util.PlotTools import PlotTools
-from script.util.misc_util import path_join
+from script.util.misc_util import path_join, lazy_property
 from script.util.numpy_utils import *
 import tensorflow as tf
-
-plot = PlotTools(save=True, show=False)
 
 
 def iou_metric(true, predict):
@@ -24,12 +22,6 @@ def iou_metric(true, predict):
     union = np.logical_or(true, predict)
     iou_score = np.sum(intersect) / np.sum(union)
     return iou_score
-
-
-def masks_rate(masks):
-    size = masks.shape[0]
-    mask = masks.reshape([size, -1])
-    return np.mean(mask, axis=1)
 
 
 def TGS_salt_metric(mask_true, mask_predict):
@@ -54,8 +46,10 @@ def TGS_salt_metric(mask_true, mask_predict):
     return ret
 
 
-def to_dict(**kwargs):
-    return kwargs
+def masks_rate(masks):
+    size = masks.shape[0]
+    mask = masks.reshape([size, -1])
+    return np.mean(mask, axis=1)
 
 
 def save_tf_summary_params(path, params):
@@ -67,10 +61,6 @@ def save_tf_summary_params(path, params):
         summary_params.flush()
         summary_params.close()
         print(f'TFSummaryParams save at {path}')
-
-
-def param_to_string(params):
-    return "_".join([f"{key}={val}" for key, val in params.items()])
 
 
 def is_empty_mask(mask):
@@ -91,21 +81,6 @@ def depth_to_image(depths):
     base = np.concatenate(base, axis=0)
     base = base.astype(np.uint8)
     return base
-
-
-def lazy_property(fn):
-    '''
-    Decorator that makes a property lazy-evaluated.
-    '''
-    attr_name = '_lazy_' + fn.__name__
-
-    @property
-    def _lazy_property(self):
-        if not hasattr(self, attr_name):
-            setattr(self, attr_name, fn(self))
-        return getattr(self, attr_name)
-
-    return _lazy_property
 
 
 class TGS_salt_DataHelper:
@@ -336,28 +311,43 @@ class TGS_salt_aug_callback(BaseDatasetCallback):
         return x[:batch_size], y[:batch_size]
 
 
-def masking_images(image, mask, mask_rate=.8):
-    image = np.array(image)
-    if image.ndim != 3:
-        raise ValueError('image ndim must 3')
+class data_helper:
+    @staticmethod
+    def is_empty_mask(mask):
+        return np.mean(mask) == 0
 
-    image[:, :, 0] = mask * mask_rate
+    @staticmethod
+    def is_white_image(image):
+        if np.mean(image) == 255:
+            return True
+        else:
+            return False
 
-    return image
+    @staticmethod
+    def is_black_image(image):
+        if np.mean(image) == 0:
+            return True
+        else:
+            return False
+
+    @staticmethod
+    def masking_images(image, mask, mask_rate=.8):
+        image = np.array(image)
+        if image.ndim != 3:
+            raise ValueError('image ndim must 3')
+
+        image[:, :, 0] = mask * mask_rate
+
+        return image
+
+    @staticmethod
+    def masks_rate(masks):
+        size = masks.shape[0]
+        mask = masks.reshape([size, -1])
+        return np.mean(mask, axis=1)
 
 
-def is_white_image(image):
-    if np.mean(image) == 255:
-        return True
-    else:
-        return False
-
-
-def is_black_image(image):
-    if np.mean(image) == 0:
-        return True
-    else:
-        return False
+plot = PlotTools(save=True, show=False)
 
 
 class experiment:
@@ -429,7 +419,7 @@ class experiment:
 
         masked_images = []
         for image, mask in zip(train_images, train_mask_images):
-            masked_images += [masking_images(image, mask)]
+            masked_images += [data_helper.masking_images(image, mask)]
         masked_images = np.array(masked_images)
 
         plot.plot_image_tile(masked_images[:500], title='masked_0', column=20)
@@ -462,7 +452,7 @@ class experiment:
             a = np.sum(mask) / (101 * 101 * 1 * 255)
             print(id_, a)
             if a > 0.6:
-                masked += [masking_images(image, mask)]
+                masked += [data_helper.masking_images(image, mask)]
                 mean += [a]
 
         print(len(masked))
@@ -487,7 +477,7 @@ class experiment:
             a = np.sum(image) / (101 * 101 * 3 * 255)
             print(id_, a)
             if a > 0.85:
-                masked += [masking_images(image, mask)]
+                masked += [data_helper.masking_images(image, mask)]
                 mean += [a]
 
         print(len(masked))
@@ -513,7 +503,7 @@ class experiment:
             a = np.sum(image) / (101 * 101 * 3 * 255)
             print(id_, a)
             if a < 0.20:
-                masked += [masking_images(image, mask)]
+                masked += [data_helper.masking_images(image, mask)]
                 mean += [a]
 
         print(len(masked))
@@ -541,7 +531,7 @@ class experiment:
 
             if 0 < a / 2 < 8 and 0.1 < mask_area < 0.99:
                 print(id_, a, rle_mask)
-                masked += [masking_images(image, mask)]
+                masked += [data_helper.masking_images(image, mask)]
 
         masked = np.array(masked)
         print(len(masked))
