@@ -35,12 +35,19 @@ class EarlyStop(BaseEpochCallback):
 
     def __call__(self, model, dataset, metric, epoch):
         if self.is_improved(metric):
-            self.log_func(f'in {self.name}, metric improve {abs(self.recent_best - metric)}')
+            self.log_func(
+                f'in {self.name}, '
+                f'{getattr(self, "dc_key", "metric")} improve {abs(self.recent_best - metric)}'
+            )
             self.recent_best = metric
             self.reset_count()
         else:
             self.patience_count += 1
-            self.log_func(f'in {self.name}, metric not improve, patience_count_down={self.patience_count_down}')
+            self.log_func(
+                f'in {self.name}, '
+                f'{getattr(self, "dc_key", "metric")} not improve, '
+                f'patience_count_down={self.patience_count_down}'
+            )
 
         if self.patience_count >= self.patience:
             self.reset_count()
