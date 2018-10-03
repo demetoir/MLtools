@@ -157,6 +157,10 @@ class SemanticSegmentation(
         if self.sess is not None:
             self.drl.update(self.sess, self.learning_rate)
 
+    def update_dropout_rate(self, rate):
+        self.net_module.update_dropout_rate(self.sess, rate)
+        self.dropout_rate = rate
+
     def _build_input_shapes(self, shapes):
         ret = {}
         ret.update(self._build_Xs_input_shape(shapes))
