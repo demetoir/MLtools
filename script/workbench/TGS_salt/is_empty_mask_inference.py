@@ -11,9 +11,9 @@ from script.model.sklearn_like_model.TFSummary import TFSummaryScalar
 from script.model.sklearn_like_model.callback.EarlyStop import EarlyStop
 from script.model.sklearn_like_model.callback.Top_k_save import Top_k_save
 from script.model.sklearn_like_model.callback.TriangleLRScheduler import TriangleLRScheduler
-from script.util.misc_util import time_stamp, path_join
+from script.util.misc_util import time_stamp, path_join, to_dict
 from script.util.numpy_utils import *
-from script.workbench.TGS_salt.TGS_salt_inference import TGS_salt_DataHelper, plot, to_dict, save_tf_summary_params
+from script.workbench.TGS_salt.TGS_salt_inference import TGS_salt_DataHelper, plot, save_tf_summary_params
 
 SUMMARY_PATH = f'./tf_summary/TGS_salt/empty_mask_clf'
 INSTANCE_PATH = f'./instance/TGS_salt/empty_mask_clf'
@@ -108,7 +108,6 @@ class aug_callback(BaseDatasetCallback):
             #         # iaa.MedianBlur((1, 7), name='MedianBlur'),
             #     ], name='blur')
             # ),
-
             # scale to  128 * 128
             # iaa.Scale((128, 128), name='to 128 * 128'),
         ])
