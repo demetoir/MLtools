@@ -237,6 +237,13 @@ class BaseModel(
         )
 
     @property
+    def loss_ops_var_list(self):
+        return tf.get_collection(
+            tf.GraphKeys.GLOBAL_VARIABLES,
+            scope=join_scope(self.metadata.id, 'loss_ops')
+        )
+
+    @property
     def trainable_var_list(self):
         return tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope=self.metadata.id)
 
@@ -369,11 +376,17 @@ class BaseModel(
 
         return self
 
-    def restore(self, path):
+    def restore(self, path, var_list=None):
         self.log.info(f'restore from {path}')
 
-        saver = tf.train.Saver(self.var_list)
+        if var_list is None:
+            var_list = self.var_list
+
+        saver = tf.train.Saver(var_list)
         saver.restore(self.sess, path_join(path, 'check_point', 'instance.ckpt'))
+
+    def reset_global_epoch(self):
+        self.sess.run(tf.initialize_variables([self.global_step]))
 
     def _loss_check(self, loss_pack):
         for key, item, in loss_pack.items():
