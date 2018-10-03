@@ -1,3 +1,4 @@
+from pprint import pformat
 from script.util.misc_util import *
 import traceback
 import sys
@@ -66,26 +67,18 @@ class BaseDataset(LoggerMixIn, PickleSelfMixIn, metaclass=MetaDataset):
         self.kwargs = kwargs
 
     def __str__(self):
-        __str__ = f"{self.__class__.__name__}\n" \
-                  f"size = {self.size}\n" \
-                  f"keys = {self.keys}\n" \
-                  f"x_keys = {self.x_keys}\n"
+        s = ""
+        s += f"{self.__class__.__name__}\n" \
+             f"size = {self.size}\n" \
+             f"keys = {pformat(self.keys)}\n" \
+             f"x_keys = {pformat(self.x_keys)}\n"
         if self.y_keys:
-            __str__ += f"y_keys = {self.y_keys}\n" \
-                       f"classes = {self.classes}\n" \
-                       f"size group by class = {self.size_group_by_class}\n"
-        return __str__
+            s += f"y_keys = {pformat(self.y_keys)}\n"
+
+        return s
 
     def __repr__(self):
-        __str__ = f"{self.__class__.__name__}\n" \
-                  f"size = {self.size}\n" \
-                  f"keys = {self.keys}\n" \
-                  f"x_keys = {self.x_keys}\n"
-        if self.y_keys:
-            __str__ += f"y_keys = {self.y_keys}\n" \
-                       f"classes = {self.classes}\n" \
-                       f"size group by class = {self.size_group_by_class}\n"
-        return __str__
+        return self.__str__()
 
     def __getitem__(self, item):
         return self._data.__getitem__(item)
@@ -195,7 +188,7 @@ class BaseDataset(LoggerMixIn, PickleSelfMixIn, metaclass=MetaDataset):
 
     @property
     def keys(self):
-        return self._data.keys()
+        return list(self._data.keys())
 
     @property
     def cursor_group_by_class(self):
