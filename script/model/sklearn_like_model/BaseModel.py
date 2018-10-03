@@ -98,6 +98,19 @@ class BaseEpochCallback(metaclass=metaEpochCallback):
         self.is_trance_on = False
 
 
+class BaseDataCollector(BaseEpochCallback):
+    def __init__(self, **kwargs):
+        self.kwargs = kwargs
+        for key, val in kwargs.items():
+            setattr(self, key, val)
+
+    def update_data(self, model, dataset, metric, epoch):
+        raise NotImplementedError
+
+    def __call__(self, model, dataset, metric, epoch):
+        self.update_data(model, dataset, metric, epoch)
+
+
 META_DATA_FILE_NAME = 'instance.meta'
 meta_json = 'meta.json'
 params_json = 'params.json'
