@@ -14,18 +14,18 @@ from script.util.numpy_utils import *
 import tensorflow as tf
 
 
-class metrics:
+class Metrics:
     @staticmethod
-    def miou_metric(trues, predicts):
+    def miou(trues, predicts):
         return np.mean(
             [
-                iou_metric(gt, predict)
+                Metrics.ious(gt, predict)
                 for gt, predict in zip(trues, predicts)
             ]
         )
 
     @staticmethod
-    def iou_metric(true, predict):
+    def ious(true, predict):
         true = true / 255
         predict = predict / 255
 
@@ -35,12 +35,12 @@ class metrics:
         return iou_score
 
     @staticmethod
-    def TGS_salt_metric(mask_true, mask_predict):
+    def TGS_salt_score(mask_true, mask_predict):
         def _metric(mask_true, mask_predict):
             if np.sum(mask_true) == 0:
                 return 0 if np.sum(mask_predict) > 0 else 1
             else:
-                iou_score = iou_metric(mask_true, mask_predict)
+                iou_score = Metrics.ious(mask_true, mask_predict)
 
                 threshold = np.arange(0.5, 1, 0.05)
                 score = np.sum(threshold <= iou_score) / 10.0
@@ -55,47 +55,6 @@ class metrics:
             ret = _metric(mask_true, mask_predict)
 
         return ret
-
-
-def miou_metric(trues, predicts):
-    return np.mean(
-        [
-            iou_metric(gt, predict)
-            for gt, predict in zip(trues, predicts)
-        ]
-    )
-
-
-def iou_metric(true, predict):
-    true = true / 255
-    predict = predict / 255
-
-    intersect = np.logical_and(true, predict)
-    union = np.logical_or(true, predict)
-    iou_score = np.sum(intersect) / np.sum(union)
-    return iou_score
-
-
-def TGS_salt_metric(mask_true, mask_predict):
-    def _metric(mask_true, mask_predict):
-        if np.sum(mask_true) == 0:
-            return 0 if np.sum(mask_predict) > 0 else 1
-        else:
-            iou_score = iou_metric(mask_true, mask_predict)
-
-            threshold = np.arange(0.5, 1, 0.05)
-            score = np.sum(threshold <= iou_score) / 10.0
-            return score
-
-    if mask_true.shape != mask_predict.shape:
-        raise ValueError(f'mask shape does not match, true={mask_true.shape}, predict={mask_predict}')
-
-    if mask_true.ndim in (3, 4):
-        ret = np.mean([_metric(m_true, m_predict) for m_true, m_predict in zip(mask_true, mask_predict)])
-    else:
-        ret = _metric(mask_true, mask_predict)
-
-    return ret
 
 
 def masks_rate(masks):
