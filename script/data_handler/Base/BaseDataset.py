@@ -1,3 +1,4 @@
+from pprint import pformat
 from script.util.misc_util import *
 import traceback
 import sys
@@ -66,26 +67,18 @@ class BaseDataset(LoggerMixIn, PickleSelfMixIn, metaclass=MetaDataset):
         self.kwargs = kwargs
 
     def __str__(self):
-        __str__ = f"{self.__class__.__name__}\n" \
-                  f"size = {self.size}\n" \
-                  f"keys = {self.keys}\n" \
-                  f"x_keys = {self.x_keys}\n"
+        s = ""
+        s += f"{self.__class__.__name__}\n" \
+             f"size = {self.size}\n" \
+             f"keys = {pformat(self.keys)}\n" \
+             f"x_keys = {pformat(self.x_keys)}\n"
         if self.y_keys:
-            __str__ += f"y_keys = {self.y_keys}\n" \
-                       f"classes = {self.classes}\n" \
-                       f"size group by class = {self.size_group_by_class}\n"
-        return __str__
+            s += f"y_keys = {pformat(self.y_keys)}\n"
+
+        return s
 
     def __repr__(self):
-        __str__ = f"{self.__class__.__name__}\n" \
-                  f"size = {self.size}\n" \
-                  f"keys = {self.keys}\n" \
-                  f"x_keys = {self.x_keys}\n"
-        if self.y_keys:
-            __str__ += f"y_keys = {self.y_keys}\n" \
-                       f"classes = {self.classes}\n" \
-                       f"size group by class = {self.size_group_by_class}\n"
-        return __str__
+        return self.__str__()
 
     def __getitem__(self, item):
         return self._data.__getitem__(item)
@@ -195,7 +188,7 @@ class BaseDataset(LoggerMixIn, PickleSelfMixIn, metaclass=MetaDataset):
 
     @property
     def keys(self):
-        return self._data.keys()
+        return list(self._data.keys())
 
     @property
     def cursor_group_by_class(self):
@@ -410,7 +403,7 @@ class BaseDataset(LoggerMixIn, PickleSelfMixIn, metaclass=MetaDataset):
     def full_batch(self, batch_keys=None, out_type='concat'):
         return self.next_batch(self.size, batch_keys, out_type=out_type)
 
-    def split(self, ratio=(7, 3), shuffle=False, random_state=None, balanced_class=True):
+    def split(self, ratio=(7, 3), shuffle=False, random_state=None, balanced_class=False):
         if shuffle:
             self.shuffle(random_state)
 
@@ -431,10 +424,12 @@ class BaseDataset(LoggerMixIn, PickleSelfMixIn, metaclass=MetaDataset):
                     a_size = int(self.size_group_by_class[class_] * a_ratio)
                     b_size = int(self.size_group_by_class[class_] * b_ratio)
                     if a_size <= 0 or b_size <= 0:
-                        raise ValueError(f'{class_} can not balanece class split, '
-                                         f'total_size = {self.size_group_by_class[class_]}, '
-                                         f'a_size = {a_size}, '
-                                         f'b_size = {b_size}')
+                        raise ValueError(
+                            f'{class_} can not balanece class split, '
+                            f'total_size = {self.size_group_by_class[class_]}, '
+                            f'a_size = {a_size}, '
+                            f'b_size = {b_size}'
+                        )
 
                     a_idxs = idxs[:a_size]
                     b_idxs = idxs[a_size:]
@@ -465,18 +460,68 @@ class BaseDataset(LoggerMixIn, PickleSelfMixIn, metaclass=MetaDataset):
 
         return a_set, b_set
 
+    def k_split(self, k=5, shuffle=False, random_state=None):
+        if k < 2:
+            raise ValueError(f'can not k fold split, k = {k}')
+
+        def recursive(k, dataset):
+            if k == 1:
+                return [dataset]
+            else:
+                one, other = dataset.split((1, k - 1))
+                return [one] + recursive(k - 1, other)
+
+        if shuffle:
+            self.shuffle(random_state)
+
+        k_splits = recursive(k, self)
+
+        if shuffle:
+            self.sort()
+
+        return k_splits
+
+    def k_fold_split(self, k=5, shuffle=False, random_sate=None):
+        k_split = self.k_split(k, shuffle, random_sate)
+
+        k_fold_set = []
+        for i in range(k):
+            test_set = k_split[i]
+            train_sets = k_split[:i] + k_split[i + 1:]
+            train_set = self.k_merge(*train_sets)
+            k_fold_set += [(train_set, test_set)]
+
+        return k_fold_set
+
     def merge(self, a_set, b_set):
-        if set(a_set.data.key()) is set(b_set.data.keys()):
+        if set(a_set.keys) is set(b_set.keys):
             raise KeyError("dataset can not merge, key does not match")
 
+        if set(a_set.x_keys) is set(b_set.x_keys):
+            raise KeyError(f'dataset can not merge, x_keys does not match')
+
+        if set(a_set.y_keys) is set(b_set.y_keys):
+            raise KeyError(f'dataset can not merge, y_keys does not match')
+
         new_set = self._clone()
-        for key in a_set.batch_keys:
+        for key in a_set.keys:
             concat = np.concatenate((a_set.data[key], b_set.data[key]), axis=0)
             new_set.add_data(key, concat)
 
         new_set._invalidate()
+        new_set.x_keys = a_set.x_keys
+        new_set.y_keys = a_set.y_keys
 
         return new_set
+
+    def k_merge(self, *dataset):
+        def recursive(dataset):
+            if len(dataset) == 1:
+                return dataset[0]
+            else:
+                return self.merge(dataset[0], recursive(dataset[1:]))
+
+        return recursive(dataset)
 
     def shuffle(self, random_state=None):
         if random_state is None:

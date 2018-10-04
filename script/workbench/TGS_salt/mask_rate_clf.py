@@ -1,5 +1,3 @@
-from pprint import pprint
-
 from imgaug import augmenters as iaa
 from sklearn.metrics import accuracy_score
 from sklearn.metrics import confusion_matrix
@@ -13,11 +11,11 @@ from script.model.sklearn_like_model.callback.Top_k_save import Top_k_save
 from script.model.sklearn_like_model.callback.TriangleLRScheduler import TriangleLRScheduler
 from script.util.misc_util import time_stamp, path_join, to_dict
 from script.util.numpy_utils import *
-from script.workbench.TGS_salt.TGS_salt_inference import TGS_salt_DataHelper, plot, save_tf_summary_params
+from script.workbench.TGS_salt.TGS_salt_inference import plot, save_tf_summary_params
 
-SUMMARY_PATH = f'./tf_summary/TGS_salt/empty_mask_clf'
-INSTANCE_PATH = f'./instance/TGS_salt/empty_mask_clf'
-PLOT_PATH = f'./matplot/TGS_salt/empty_mask_clf'
+SUMMARY_PATH = f'./tf_summary/TGS_salt/mask_rate_clf'
+INSTANCE_PATH = f'./instance/TGS_salt/mask_rate_clf'
+PLOT_PATH = f'./matplot/TGS_salt/mask_rate_clf'
 
 
 class collect_data_callback(BaseEpochCallback):
@@ -108,6 +106,7 @@ class aug_callback(BaseDatasetCallback):
             #         # iaa.MedianBlur((1, 7), name='MedianBlur'),
             #     ], name='blur')
             # ),
+
             # scale to  128 * 128
             # iaa.Scale((128, 128), name='to 128 * 128'),
         ])
@@ -140,76 +139,34 @@ class aug_callback(BaseDatasetCallback):
         return x[:batch_size], y[:batch_size]
 
 
-class is_emtpy_mask_clf_pipeline:
+class mask_rate_pipe:
     def __init__(self):
         self.plot = plot
         import random
         self.random_sate = random.randint(1, 1234567)
-        self.init_dataset()
-        self.init_aug_set()
+        self.random_sate = 1234
 
-    def init_dataset(self):
-        self.data_helper = TGS_salt_DataHelper()
-        # self.data_helper.train_set.y_keys = ['empty_mask']
+    def set_dict(self, set_dict):
+        self.train_set = None
+        self.train_x = None
+        self.train_y = None
+        self.test_x = None
+        self.test_y = None
+        self.test_y_onehot = None
+        self.train_y_onehot = None
 
-        train_set = self.data_helper.train_set_with_depth_image
-        train_set.y_keys = ['empty_mask']
-
-        train_x, train_y = train_set.full_batch()
-        train_x = train_x.reshape([-1, 101, 101, 1])
-        train_y = train_y.reshape([-1, 1])
-        from sklearn.preprocessing import OneHotEncoder
-        enc = OneHotEncoder()
-        enc.fit(train_y)
-
-        from sklearn.model_selection import train_test_split
-        train_x, test_x, train_y, test_y = train_test_split(
-            train_x, train_y, test_size=0.33, random_state=self.random_sate)
-        self.enc = enc
-        train_y_onehot = enc.transform(train_y).toarray()
-        test_y_onehot = enc.transform(test_y).toarray()
-
-        sample_size = 100
-        sample_x = train_x[:sample_size]
-        sample_y = train_y[:sample_size]
-        sample_y_onehot = train_y_onehot[:sample_size]
-
-        self.train_set = train_set
-        self.train_x = train_x
-        self.train_y = train_y
-        self.test_x = test_x
-        self.test_y = test_y
-        self.test_y_onehot = test_y_onehot
-        self.train_y_onehot = train_y_onehot
-        self.sample_x = sample_x
-        self.sample_y = sample_y
-        self.sample_y_onehot = sample_y_onehot
-
-    def init_aug_set(self):
-        self.data_helper.train_set.y_keys = ['mask']
-        train_set = self.data_helper.train_set
-        x_full, y_full = train_set.full_batch()
-        x_full = x_full.reshape([-1, 101, 101, 1])
-        y_full = y_full.reshape([-1, 101, 101, 1])
-
-        from sklearn.model_selection import train_test_split
-        train_x, test_x, train_y, test_y = train_test_split(
-            x_full, y_full, test_size=0.33, random_state=self.random_sate)
-
-        self.aug_train_x = train_x
-        self.aug_test_x = test_x
-        self.aug_train_y = train_y
-        self.aug_test_y = test_y
+        for key, val in set_dict.items():
+            setattr(self, key, val)
 
     def params(
             self,
             run_id=None,
             learning_rate=0.01,
             beta1=0.9,
-            batch_size=100,
-            net_type='VGG16',
+            batch_size=32,
+            net_type='InceptionV1',
             n_classes=2,
-            capacity=64,
+            capacity=32,
             use_l1_norm=False,
             l1_norm_rate=0.01,
             use_l2_norm=False,
@@ -249,19 +206,18 @@ class is_emtpy_mask_clf_pipeline:
             comment=comment,
         )
 
-    def train(self, params, n_epoch, augmentation=False, path=None, callbacks=None):
+    def load_model(self, path):
+        self.model = ImageClf().load(path)
+        self.model.build(Xs=self.train_x, Ys=self.train_y_onehot)
+        self.model.restore(path)
+
+    def new_model(self, params):
+        self.model = ImageClf(**params)
+        self.model.build(Xs=self.train_x, Ys=self.train_y_onehot)
         save_tf_summary_params(SUMMARY_PATH, params)
-        pprint(f'train {params}')
 
-        if path:
-            clf = ImageClf().load(path)
-            clf.build(Xs=self.train_x, Ys=self.train_y_onehot)
-            clf.restore(path)
-        else:
-            clf = ImageClf(**params)
-            clf.build(Xs=self.train_x, Ys=self.train_y_onehot)
-
-        print('build callback')
+    def train(self, n_epoch, callbacks=None):
+        model = self.model
         dc = collect_data_callback(
             self.train_x, self.train_y_onehot,
             self.test_x, self.test_y_onehot
@@ -269,23 +225,13 @@ class is_emtpy_mask_clf_pipeline:
         callbacks = [
             dc,
             log_callback(dc),
-            summary_callback(dc, clf.run_id),
-            Top_k_save(path_join(INSTANCE_PATH, clf.run_id, 'top_k'), k=1, dc=dc, key='test_score'),
-            TriangleLRScheduler(7, 0.001, 0.0005),
-            EarlyStop(16),
+            summary_callback(dc, model.run_id),
+            Top_k_save(path_join(INSTANCE_PATH, model.run_id, 'top_k'), k=1, dc=dc, key='test_score'),
+            # TriangleLRScheduler(7, 0.001, 0.0005),
+            EarlyStop(16, min_best=False).trace_on(dc, 'test_score'),
         ]
 
-        if augmentation:
-            dataset_callback = aug_callback(
-                self.aug_train_x,
-                self.aug_train_y,
-                params['batch_size'],
-                enc=self.enc
-            )
-        else:
-            dataset_callback = None
-        clf.update_learning_rate(0.001)
-        clf.train(
+        model.update_learning_rate(0.01)
+        model.train(
             self.train_x, self.train_y_onehot, epoch=n_epoch, epoch_callbacks=callbacks,
-            dataset_callback=dataset_callback
         )

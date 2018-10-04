@@ -37,7 +37,7 @@ def collect_images(path, limit=None):
     size = len(img_paths)
     images = np.array(images).reshape([size, size_h, size_w, -1])
     images = images[:, :, :, 0]
-    images = np.reshape(images, [size, 101, 101])
+    images = np.reshape(images, [size, 101, 101, 1])
 
     names = np.array(images_names)
     ids = np.array(ids)
@@ -69,6 +69,22 @@ def get_feature_weired_mask(masks):
             return 0
 
     return np.array([f(mask) for mask in masks])
+
+
+def depth_to_image(depths):
+    # normalize
+    max_val = np.max(depths)
+    min_val = np.min(depths)
+    depths = (depths - min_val) / (max_val - min_val)
+
+    # gen depth images
+    base = [
+        np.ones([1, 101, 101, 1]) * depth * 255
+        for depth in depths
+    ]
+    base = np.concatenate(base, axis=0)
+    base = base.astype(np.uint8)
+    return base
 
 
 def make_data_pkl():
@@ -110,6 +126,12 @@ def make_data_pkl():
     print(f'collect train weired mask')
     train_weired_mask = get_feature_weired_mask(train_mask)
 
+    print(f'collect train depth_image')
+    train_depths_image = depth_to_image(train_depths)
+
+    print(f'collect test depth_image')
+    test_depths_image = depth_to_image(test_depths)
+
     print('dump train pickle')
     train_pkl = {
         'image': train_images,
@@ -119,11 +141,17 @@ def make_data_pkl():
         'mask_rate': train_mask_rate,
         'empty_mask': train_empty_mask,
         'is_weired_mask': train_weired_mask,
+        'depth_image': train_depths_image,
     }
     dump_pickle(train_pkl, TRAIN_PKL_PATH)
 
     print('dump test pickle')
-    test_pkl = {'image': test_images, 'id': test_ids, 'depths': test_depths}
+    test_pkl = {
+        'image': test_images,
+        'id': test_ids,
+        'depths': test_depths,
+        'depth_image': test_depths_image
+    }
     dump_pickle(test_pkl, TEST_PKL_PATH)
 
 
@@ -219,6 +247,7 @@ class train_set(BaseDataset):
         self.add_data('mask_rate', pkl['mask_rate'])
         self.add_data('empty_mask', pkl['empty_mask'])
         self.add_data('is_weired_mask', pkl['is_weired_mask'])
+        self.add_data('depth_image', pkl['depth_image'])
 
         # self.x_keys = ['image', 'depth']
         self.x_keys = ['image']
@@ -236,6 +265,7 @@ class test_set(BaseDataset):
         self.add_data('image', pkl['image'])
         self.add_data('id', pkl['id'])
         self.add_data('depth', pkl['depths'])
+        self.add_data('depth_image', pkl['depth_image'])
         # self.x_keys = ['image', 'depth']
         self.x_keys = ['image']
 

@@ -16,10 +16,10 @@ from script.model.sklearn_like_model.NetModule.ResNetStructure.ResNet18NetModule
 from script.model.sklearn_like_model.NetModule.ResNetStructure.ResNet34NetModule import ResNet34NetModule
 from script.model.sklearn_like_model.NetModule.ResNetStructure.ResNet50NetModule import ResNet50Structure
 from script.model.sklearn_like_model.NetModule.VGG16NetModule import VGG16NetModule
-from script.util.misc_util import time_stamp, path_join
+from script.util.misc_util import time_stamp, path_join, to_dict
 from script.util.numpy_utils import *
 from script.util.tensor_ops import *
-from script.workbench.TGS_salt.TGS_salt_inference import TGS_salt_DataHelper, plot, to_dict, save_tf_summary_params
+from script.workbench.TGS_salt.TGS_salt_inference import TGS_salt_DataHelper, plot, save_tf_summary_params
 
 task_name = 'mask_rate_reg'
 SUMMARY_PATH = f'./tf_summary/TGS_salt/mask_rate_reg'

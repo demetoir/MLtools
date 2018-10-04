@@ -9,53 +9,58 @@ from script.data_handler.TGS_salt import collect_images, TRAIN_MASK_PATH, TGS_sa
 from script.model.sklearn_like_model.BaseModel import BaseDatasetCallback
 from script.model.sklearn_like_model.TFSummary import TFSummaryParams
 from script.util.PlotTools import PlotTools
-from script.util.misc_util import path_join
+from script.util.misc_util import path_join, lazy_property
 from script.util.numpy_utils import *
 import tensorflow as tf
 
-plot = PlotTools(save=True, show=False)
 
+class Metrics:
+    @staticmethod
+    def miou(trues, predicts):
+        return np.mean(
+            [
+                Metrics.ious(gt, predict)
+                for gt, predict in zip(trues, predicts)
+            ]
+        )
 
-def iou_metric(true, predict):
-    true = true / 255
-    predict = predict / 255
+    @staticmethod
+    def ious(true, predict):
+        true = true / 255
+        predict = predict / 255
 
-    intersect = np.logical_and(true, predict)
-    union = np.logical_or(true, predict)
-    iou_score = np.sum(intersect) / np.sum(union)
-    return iou_score
+        intersect = np.logical_and(true, predict)
+        union = np.logical_or(true, predict)
+        iou_score = np.sum(intersect) / np.sum(union)
+        return iou_score
+
+    @staticmethod
+    def TGS_salt_score(mask_true, mask_predict):
+        def _metric(mask_true, mask_predict):
+            if np.sum(mask_true) == 0:
+                return 0 if np.sum(mask_predict) > 0 else 1
+            else:
+                iou_score = Metrics.ious(mask_true, mask_predict)
+
+                threshold = np.arange(0.5, 1, 0.05)
+                score = np.sum(threshold <= iou_score) / 10.0
+                return score
+
+        if mask_true.shape != mask_predict.shape:
+            raise ValueError(f'mask shape does not match, true={mask_true.shape}, predict={mask_predict}')
+
+        if mask_true.ndim in (3, 4):
+            ret = np.mean([_metric(m_true, m_predict) for m_true, m_predict in zip(mask_true, mask_predict)])
+        else:
+            ret = _metric(mask_true, mask_predict)
+
+        return ret
 
 
 def masks_rate(masks):
     size = masks.shape[0]
     mask = masks.reshape([size, -1])
     return np.mean(mask, axis=1)
-
-
-def TGS_salt_metric(mask_true, mask_predict):
-    def _metric(mask_true, mask_predict):
-        if np.sum(mask_true) == 0:
-            return 0 if np.sum(mask_predict) > 0 else 1
-        else:
-            iou_score = iou_metric(mask_true, mask_predict)
-
-            threshold = np.arange(0.5, 1, 0.05)
-            score = np.sum(threshold <= iou_score) / 10.0
-            return score
-
-    if mask_true.shape != mask_predict.shape:
-        raise ValueError(f'mask shape does not match, true={mask_true.shape}, predict={mask_predict}')
-
-    if mask_true.ndim in (3, 4):
-        ret = np.mean([_metric(m_true, m_predict) for m_true, m_predict in zip(mask_true, mask_predict)])
-    else:
-        ret = _metric(mask_true, mask_predict)
-
-    return ret
-
-
-def to_dict(**kwargs):
-    return kwargs
 
 
 def save_tf_summary_params(path, params):
@@ -67,10 +72,6 @@ def save_tf_summary_params(path, params):
         summary_params.flush()
         summary_params.close()
         print(f'TFSummaryParams save at {path}')
-
-
-def param_to_string(params):
-    return "_".join([f"{key}={val}" for key, val in params.items()])
 
 
 def is_empty_mask(mask):
@@ -91,21 +92,6 @@ def depth_to_image(depths):
     base = np.concatenate(base, axis=0)
     base = base.astype(np.uint8)
     return base
-
-
-def lazy_property(fn):
-    '''
-    Decorator that makes a property lazy-evaluated.
-    '''
-    attr_name = '_lazy_' + fn.__name__
-
-    @property
-    def _lazy_property(self):
-        if not hasattr(self, attr_name):
-            setattr(self, attr_name, fn(self))
-        return getattr(self, attr_name)
-
-    return _lazy_property
 
 
 class TGS_salt_DataHelper:
@@ -206,40 +192,23 @@ class TGS_salt_DataHelper:
 
         return self._train_set_empty_mask
 
-    @property
-    def train_depth_image(self):
-        if self._train_depth_image is None:
-            depths = self.train_set.full_batch(['depth'])['depth']
-            self._train_depth_image = depth_to_image(depths)
-
-        return self._train_depth_image
-
-    @property
-    def test_depth_image(self):
-        if self._test_depth_image is None:
-            depths = self.test_set.full_batch(['depth'])['depth']
-            self._test_depth_image = depth_to_image(depths)
-
-        return self._test_depth_image
-
     @lazy_property
     def train_set_with_depth_image(self):
-        x, y = self.train_set.full_batch()
-        x = x.reshape([-1, 101, 101, 1])
-        y = y.reshape([-1, 101, 101, 1])
-        depth_image = self.train_depth_image.reshape([-1, 101, 101, 1])
-        x = np.concatenate((x, depth_image), axis=3)
-        self.train_set.add_data('x_with_depth', x)
+        np_dict = self.train_set.full_batch(['image', 'depth_image'])
+        x = np_dict['image']
+        depth_image = np_dict['depth_image']
+        x_with_depth = np.concatenate((x, depth_image), axis=3)
+        self.train_set.add_data('x_with_depth', x_with_depth)
 
         return self.train_set
 
     @lazy_property
     def test_set_with_depth_image(self):
-        x = self.test_set.full_batch()
-        x = x.reshape([-1, 101, 101, 1])
-        depth_image = self.test_depth_image.reshape([-1, 101, 101, 1])
-        x = np.concatenate((x, depth_image), axis=3)
-        self.test_set.add_data('x_with_depth', x)
+        np_dict = self.test_set.full_batch(['image', 'depth_image'])
+        x = np_dict['image']
+        depth_image = np_dict['depth_image']
+        x_with_depth = np.concatenate((x, depth_image), axis=3)
+        self.test_set.add_data('x_with_depth', x_with_depth)
 
         return self.test_set
 
@@ -249,6 +218,51 @@ class TGS_salt_DataHelper:
         idxs = self.train_set_non_empty_mask_idxs
 
         return dataset.query_by_idxs(idxs)
+
+    @staticmethod
+    def mask_rate_under_n_percent(dataset, n):
+        mask_rate = dataset.full_batch(['mask_rate'])['mask_rate']
+
+        idx = mask_rate < n
+        return dataset.query_by_idxs(idx)
+
+    @staticmethod
+    def mask_rate_upper_n_percent(dataset, n):
+        mask_rate = dataset.full_batch(['mask_rate'])['mask_rate']
+        idx = mask_rate > n
+        return dataset.query_by_idxs(idx)
+
+    @lazy_property
+    def train_set_non_empty_mask_with_depth_image_under_1p(self):
+        return self.mask_rate_under_n_percent(self.train_set_non_empty_mask_with_depth_image, 0.01)
+
+    @lazy_property
+    def train_set_non_empty_mask_with_depth_image_under_5p(self):
+        return self.mask_rate_under_n_percent(self.train_set_non_empty_mask_with_depth_image, 0.05)
+
+    @lazy_property
+    def train_set_non_empty_mask_with_depth_image_under_10p(self):
+        return self.mask_rate_under_n_percent(self.train_set_non_empty_mask_with_depth_image, 0.10)
+
+    @lazy_property
+    def train_set_non_empty_mask_with_depth_image_under_20p(self):
+        return self.mask_rate_under_n_percent(self.train_set_non_empty_mask_with_depth_image, 0.20)
+
+    @lazy_property
+    def train_set_non_empty_mask_with_depth_image_upper_1p(self):
+        return self.mask_rate_upper_n_percent(self.train_set_non_empty_mask_with_depth_image, 0.01)
+
+    @lazy_property
+    def train_set_non_empty_mask_with_depth_image_upper_5p(self):
+        return self.mask_rate_upper_n_percent(self.train_set_non_empty_mask_with_depth_image, 0.05)
+
+    @lazy_property
+    def train_set_non_empty_mask_with_depth_image_upper_10p(self):
+        return self.mask_rate_upper_n_percent(self.train_set_non_empty_mask_with_depth_image, 0.10)
+
+    @lazy_property
+    def train_set_non_empty_mask_with_depth_image_upper_20p(self):
+        return self.mask_rate_upper_n_percent(self.train_set_non_empty_mask_with_depth_image, 0.20)
 
 
 class TGS_salt_aug_callback(BaseDatasetCallback):
@@ -308,28 +322,43 @@ class TGS_salt_aug_callback(BaseDatasetCallback):
         return x[:batch_size], y[:batch_size]
 
 
-def masking_images(image, mask, mask_rate=.8):
-    image = np.array(image)
-    if image.ndim != 3:
-        raise ValueError('image ndim must 3')
+class data_helper:
+    @staticmethod
+    def is_empty_mask(mask):
+        return np.mean(mask) == 0
 
-    image[:, :, 0] = mask * mask_rate
+    @staticmethod
+    def is_white_image(image):
+        if np.mean(image) == 255:
+            return True
+        else:
+            return False
 
-    return image
+    @staticmethod
+    def is_black_image(image):
+        if np.mean(image) == 0:
+            return True
+        else:
+            return False
+
+    @staticmethod
+    def masking_images(image, mask, mask_rate=.8):
+        image = np.array(image)
+        if image.ndim != 3:
+            raise ValueError('image ndim must 3')
+
+        image[:, :, 0] = mask * mask_rate
+
+        return image
+
+    @staticmethod
+    def masks_rate(masks):
+        size = masks.shape[0]
+        mask = masks.reshape([size, -1])
+        return np.mean(mask, axis=1)
 
 
-def is_white_image(image):
-    if np.mean(image) == 255:
-        return True
-    else:
-        return False
-
-
-def is_black_image(image):
-    if np.mean(image) == 0:
-        return True
-    else:
-        return False
+plot = PlotTools(save=True, show=False)
 
 
 class experiment:
@@ -401,7 +430,7 @@ class experiment:
 
         masked_images = []
         for image, mask in zip(train_images, train_mask_images):
-            masked_images += [masking_images(image, mask)]
+            masked_images += [data_helper.masking_images(image, mask)]
         masked_images = np.array(masked_images)
 
         plot.plot_image_tile(masked_images[:500], title='masked_0', column=20)
@@ -434,7 +463,7 @@ class experiment:
             a = np.sum(mask) / (101 * 101 * 1 * 255)
             print(id_, a)
             if a > 0.6:
-                masked += [masking_images(image, mask)]
+                masked += [data_helper.masking_images(image, mask)]
                 mean += [a]
 
         print(len(masked))
@@ -459,7 +488,7 @@ class experiment:
             a = np.sum(image) / (101 * 101 * 3 * 255)
             print(id_, a)
             if a > 0.85:
-                masked += [masking_images(image, mask)]
+                masked += [data_helper.masking_images(image, mask)]
                 mean += [a]
 
         print(len(masked))
@@ -485,7 +514,7 @@ class experiment:
             a = np.sum(image) / (101 * 101 * 3 * 255)
             print(id_, a)
             if a < 0.20:
-                masked += [masking_images(image, mask)]
+                masked += [data_helper.masking_images(image, mask)]
                 mean += [a]
 
         print(len(masked))
@@ -513,7 +542,7 @@ class experiment:
 
             if 0 < a / 2 < 8 and 0.1 < mask_area < 0.99:
                 print(id_, a, rle_mask)
-                masked += [masking_images(image, mask)]
+                masked += [data_helper.masking_images(image, mask)]
 
         masked = np.array(masked)
         print(len(masked))

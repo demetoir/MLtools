@@ -1,5 +1,6 @@
 """misc utils
 pickle, import module, zip, etc ..."""
+import inspect
 import shutil
 import traceback
 import webbrowser
@@ -316,3 +317,51 @@ class temp_directory:
             print(exc_tb)
             return False
 
+
+def var_info(var, full=False, limit_lines=5):
+    previous_frame = inspect.currentframe().f_back
+    (filename, line_number, function_name, lines, index) = inspect.getframeinfo(previous_frame)
+
+    s = "\n"
+
+    var_str = str(var)
+    split = var_str.split('\n')
+    if not full and len(split) > limit_lines:
+        var_str = "\n".join(split[:limit_lines])
+        s += f'{var_str}\n'
+        s += f'...\n'
+        s += f'line exceed {limit_lines} \n'
+    else:
+        s += f'{var_str}\n'
+
+    s += f'type = {type(var)}\n'
+
+    if hasattr(var, '__len__'):
+        s += f'len = {len(var)}\n'
+
+    if hasattr(var, '__name__'):
+        s += f'name = {var.__name__}\n'
+
+    s += f'from {filename}\n'
+    s += f'in line {line_number}, {lines}\n\n'
+
+    return s
+
+
+def lazy_property(fn):
+    '''
+    Decorator that makes a property lazy-evaluated.
+    '''
+    attr_name = '_lazy_' + fn.__name__
+
+    @property
+    def _lazy_property(self):
+        if not hasattr(self, attr_name):
+            setattr(self, attr_name, fn(self))
+        return getattr(self, attr_name)
+
+    return _lazy_property
+
+
+def to_dict(**kwargs):
+    return kwargs

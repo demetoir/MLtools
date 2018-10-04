@@ -1,6 +1,6 @@
 import os
-import tensorflow as tf
 import numpy as np
+import tensorflow as tf
 from script.util.MixIn import LoggerMixIn
 from script.util.misc_util import setup_directory, error_trace
 
@@ -34,13 +34,14 @@ class TFSummary(LoggerMixIn):
     def init_shape(self, x):
         raise NotImplementedError
 
+    def open(self, path, graph):
+        self.writer = tf.summary.FileWriter(path, graph)
+
     def build(self):
         with tf.device(self.device):
             try:
                 self.ph, self.summary_op = self.build_graph(self.name)
-
                 self.writer_path = os.path.join(self.logdir, self.name)
-                self.writer = tf.summary.FileWriter(self.writer_path, self.sess.graph)
                 self.is_build = True
 
                 self.log.info(f'build summary tensor={self.name}, writer_path={self.writer_path}')
@@ -53,6 +54,9 @@ class TFSummary(LoggerMixIn):
             self.x_shape = self.init_shape(x)
             self.sess = sess
             self.build()
+
+        if self.writer is None:
+            self.open(self.writer_path, self.sess.graph)
 
         if epoch is None:
             epoch = self.epoch

@@ -39,30 +39,76 @@ class BaseDatasetCallback:
         raise NotImplementedError
 
 
-class BaseEpochCallback:
+class metaEpochCallback(type):
+    """Metaclass for hook inherited class's function
+    metaclass ref from 'https://code.i-harness.com/ko/q/11fc307'
+    """
+
+    def __init__(cls, name, bases, cls_dict):
+        type.__init__(cls, name, bases, cls_dict)
+
+        # hook __call__
+        f_name = '__call__'
+        if f_name in cls_dict:
+            func = cls_dict[f_name]
+
+            def new_func(self, model, dataset, metric, epoch, *args, **kwargs):
+                if getattr(self, 'is_trance_on', False):
+                    dc = getattr(self, 'dc')
+                    dc_key = getattr(self, 'dc_key')
+                    metric = getattr(dc, dc_key)
+
+                return func(self, model, dataset, metric, epoch, *args, **kwargs)
+
+            new_func.__name__ = f_name + '_wrap'
+            setattr(cls, f_name, new_func)
+
+        def wrap_return_self(f_name, cls_dict, cls):
+            func = cls_dict[f_name]
+
+            def new_func(self, *args, **kwargs):
+                func(self, *args, **kwargs)
+                return self
+
+            new_func.__name__ = f_name + '_wrap'
+            setattr(cls, f_name, new_func)
+
+        # hook return self
+        f_name = 'trace_on'
+        if f_name in cls_dict:
+            wrap_return_self(f_name, cls_dict, cls)
+
+        f_name = 'trace_off'
+        if f_name in cls_dict:
+            wrap_return_self(f_name, cls_dict, cls)
+
+
+class BaseEpochCallback(metaclass=metaEpochCallback):
     def __call__(self, model, dataset, metric, epoch):
         raise NotImplementedError
 
     def trace_on(self, dc, key):
         self.dc = dc
         self.dc_key = key
+        self.is_trance_on = True
 
-    def hook_metric(self, metric):
-        if hasattr(self, 'dc') and hasattr(self, 'dc_key'):
-            metric = getattr(self.dc, self.dc_key)
-        return metric
+    def trace_off(self):
+        del self.dc
+        del self.dc_key
+        self.is_trance_on = False
 
-    def on_start_epoch(self, model, dataset, metric, epoch):
-        pass
 
-    def on_end_epoch(self, model, dataset, metric, epoch):
-        pass
+class BaseDataCollector(BaseEpochCallback):
+    def __init__(self, **kwargs):
+        self.kwargs = kwargs
+        for key, val in kwargs.items():
+            setattr(self, key, val)
 
-    def on_start_train(self, model, dataset, metric, epoch):
-        pass
+    def update_data(self, model, dataset, metric, epoch):
+        raise NotImplementedError
 
-    def on_end_train(self, model, dataset, metric, epoch):
-        pass
+    def __call__(self, model, dataset, metric, epoch):
+        self.update_data(model, dataset, metric, epoch)
 
 
 META_DATA_FILE_NAME = 'instance.meta'
@@ -135,6 +181,14 @@ class BaseModel(
             run_id=run_id
         )
 
+    @property
+    def id(self):
+        return self.metadata.id
+
+    @property
+    def run_id(self):
+        return self.metadata.run_id
+
     def __str__(self):
         s = ""
         s += "%s_%s\n" % (self.AUTHOR, self.__class__.__name__)
@@ -180,6 +234,13 @@ class BaseModel(
         return tf.get_collection(
             tf.GraphKeys.GLOBAL_VARIABLES,
             scope=join_scope(self.metadata.id, 'misc_ops')
+        )
+
+    @property
+    def loss_ops_var_list(self):
+        return tf.get_collection(
+            tf.GraphKeys.GLOBAL_VARIABLES,
+            scope=join_scope(self.metadata.id, 'loss_ops')
         )
 
     @property
@@ -315,11 +376,17 @@ class BaseModel(
 
         return self
 
-    def restore(self, path):
+    def restore(self, path, var_list=None):
         self.log.info(f'restore from {path}')
 
-        saver = tf.train.Saver(self.var_list)
+        if var_list is None:
+            var_list = self.var_list
+
+        saver = tf.train.Saver(var_list)
         saver.restore(self.sess, path_join(path, 'check_point', 'instance.ckpt'))
+
+    def reset_global_epoch(self):
+        self.sess.run(tf.initialize_variables([self.global_step]))
 
     def _loss_check(self, loss_pack):
         for key, item, in loss_pack.items():
