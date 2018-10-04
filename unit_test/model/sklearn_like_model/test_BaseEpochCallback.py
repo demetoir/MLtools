@@ -1,4 +1,4 @@
-from script.model.sklearn_like_model.BaseModel import BaseEpochCallback
+from script.model.sklearn_like_model.callback.BaseEpochCallback import BaseEpochCallback
 
 
 class test_meta_epochCallback(BaseEpochCallback):

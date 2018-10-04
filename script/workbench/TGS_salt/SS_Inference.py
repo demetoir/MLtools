@@ -4,7 +4,8 @@ import numpy as np
 from tqdm import tqdm
 
 from script.data_handler.TGS_salt import mask_label_encoder
-from script.model.sklearn_like_model.BaseModel import BaseEpochCallback, BaseDataCollector
+from script.model.sklearn_like_model.BaseModel import BaseDataCollector
+from script.model.sklearn_like_model.callback.BaseEpochCallback import BaseEpochCallback
 from script.model.sklearn_like_model.SemanticSegmentation import SemanticSegmentation
 from script.model.sklearn_like_model.TFSummary import TFSummaryScalar
 from script.model.sklearn_like_model.callback.EarlyStop import EarlyStop

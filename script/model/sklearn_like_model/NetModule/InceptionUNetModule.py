@@ -1,4 +1,4 @@
-from script.model.sklearn_like_model.DynamicDropoutRate import DynamicDropoutRate
+from script.model.sklearn_like_model.NetModule.DynamicDropoutRate import DynamicDropoutRate
 from script.model.sklearn_like_model.NetModule.BaseNetModule import BaseNetModule
 from script.model.sklearn_like_model.NetModule.InceptionSructure.BaseInceptionNetModule import BaseInceptionNetModule
 from script.util.Stacker import Stacker

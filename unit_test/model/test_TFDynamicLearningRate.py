@@ -1,4 +1,4 @@
-from script.model.sklearn_like_model.TFDynamicLearningRate import TFDynamicLearningRate
+from script.model.sklearn_like_model.NetModule.TFDynamicLearningRate import TFDynamicLearningRate
 from script.util.Stacker import Stacker
 from script.util.tensor_ops import *
 

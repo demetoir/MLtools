@@ -2,7 +2,7 @@ import os
 import shutil
 import numpy as np
 from pprint import pformat
-from script.model.sklearn_like_model.BaseModel import BaseEpochCallback
+from script.model.sklearn_like_model.callback.BaseEpochCallback import BaseEpochCallback
 from script.util.misc_util import path_join, load_json, setup_directory, dump_json, error_trace
 
 

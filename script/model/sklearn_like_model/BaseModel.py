@@ -8,6 +8,7 @@ from env_settting import *
 from script.data_handler.Base.BaseDataset import BaseDataset
 from script.model.sklearn_like_model.Mixin import input_shapesMixIn, paramsMixIn, loss_packMixIn
 from script.model.sklearn_like_model.SessionManager import SessionManager
+from script.model.sklearn_like_model.callback.BaseEpochCallback import BaseEpochCallback
 from script.util.MixIn import LoggerMixIn
 from script.util.misc_util import setup_directory, setup_file, dump_json, load_json
 from script.util.misc_util import time_stamp, path_join, error_trace
@@ -37,65 +38,6 @@ class BaseDatasetCallback:
     @property
     def size(self):
         raise NotImplementedError
-
-
-class metaEpochCallback(type):
-    """Metaclass for hook inherited class's function
-    metaclass ref from 'https://code.i-harness.com/ko/q/11fc307'
-    """
-
-    def __init__(cls, name, bases, cls_dict):
-        type.__init__(cls, name, bases, cls_dict)
-
-        # hook __call__
-        f_name = '__call__'
-        if f_name in cls_dict:
-            func = cls_dict[f_name]
-
-            def new_func(self, model, dataset, metric, epoch, *args, **kwargs):
-                if getattr(self, 'is_trance_on', False):
-                    dc = getattr(self, 'dc')
-                    dc_key = getattr(self, 'dc_key')
-                    metric = getattr(dc, dc_key)
-
-                return func(self, model, dataset, metric, epoch, *args, **kwargs)
-
-            new_func.__name__ = f_name + '_wrap'
-            setattr(cls, f_name, new_func)
-
-        def wrap_return_self(f_name, cls_dict, cls):
-            func = cls_dict[f_name]
-
-            def new_func(self, *args, **kwargs):
-                func(self, *args, **kwargs)
-                return self
-
-            new_func.__name__ = f_name + '_wrap'
-            setattr(cls, f_name, new_func)
-
-        # hook return self
-        f_name = 'trace_on'
-        if f_name in cls_dict:
-            wrap_return_self(f_name, cls_dict, cls)
-
-        f_name = 'trace_off'
-        if f_name in cls_dict:
-            wrap_return_self(f_name, cls_dict, cls)
-
-
-class BaseEpochCallback(metaclass=metaEpochCallback):
-    def __call__(self, model, dataset, metric, epoch):
-        raise NotImplementedError
-
-    def trace_on(self, dc, key):
-        self.dc = dc
-        self.dc_key = key
-        self.is_trance_on = True
-
-    def trace_off(self):
-        del self.dc
-        del self.dc_key
-        self.is_trance_on = False
 
 
 class BaseDataCollector(BaseEpochCallback):
