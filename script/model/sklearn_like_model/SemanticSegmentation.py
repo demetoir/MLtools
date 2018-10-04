@@ -274,3 +274,6 @@ class SemanticSegmentation(
         self.sess.run(self.train_ops, feed_dict={self._Xs: Xs, self._Ys: Ys})
 
         self.net_module.set_non_train(self.sess)
+
+    def init_adam_momentum(self):
+        self.sess.run(tf.variables_initializer(self.train_ops_var_list))
