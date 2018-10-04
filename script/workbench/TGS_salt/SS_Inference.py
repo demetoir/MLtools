@@ -10,8 +10,8 @@ from script.model.sklearn_like_model.TFSummary import TFSummaryScalar
 from script.model.sklearn_like_model.callback.EarlyStop import EarlyStop
 from script.model.sklearn_like_model.callback.Top_k_save import Top_k_save
 from script.util.misc_util import time_stamp, path_join, to_dict
-from script.workbench.TGS_salt.TGS_salt_inference import plot, TGS_salt_metric, TGS_salt_DataHelper, \
-    TGS_salt_aug_callback, iou_metric, masks_rate, miou_metric
+from script.workbench.TGS_salt.TGS_salt_inference import plot, TGS_salt_DataHelper, \
+    TGS_salt_aug_callback, masks_rate, Metrics
 
 SUMMARY_PATH = f'./tf_summary/TGS_salt/SS'
 INSTANCE_PATH = f'./instance/TGS_salt/SS'
@@ -37,19 +37,19 @@ class CollectDataCallback(BaseDataCollector):
         test_predict = model.predict(self.test_x)
         self.test_predict = mask_label_encoder.from_label(test_predict)
 
-        self.train_score = TGS_salt_metric(self.train_y, self.train_predict)
-        self.test_score = TGS_salt_metric(self.test_y, self.test_predict)
+        self.train_score = Metrics.TGS_salt_score(self.train_y, self.train_predict)
+        self.test_score = Metrics.TGS_salt_score(self.test_y, self.test_predict)
 
         idx = np.mean(self.test_y.reshape([len(self.test_y), -1]), axis=1) >= 0.01
-        self.test_upper_1p_TGS_score = TGS_salt_metric(self.test_y[idx], self.test_predict[idx])
-        self.test_upper_1p_iou_score = miou_metric(self.test_y[idx], self.test_predict[idx])
+        self.test_upper_1p_TGS_score = Metrics.TGS_salt_score(self.test_y[idx], self.test_predict[idx])
+        self.test_upper_1p_iou_score = Metrics.miou(self.test_y[idx], self.test_predict[idx])
 
         idx = np.mean(self.train_y.reshape([len(self.train_y), -1]), axis=1) >= 0.01
-        self.train_upper_1p_TGS_score = TGS_salt_metric(self.train_y[idx], self.train_predict[idx])
-        self.train_upper_1p_iou_score = miou_metric(self.train_y[idx], self.train_predict[idx])
+        self.train_upper_1p_TGS_score = Metrics.TGS_salt_score(self.train_y[idx], self.train_predict[idx])
+        self.train_upper_1p_iou_score = Metrics.miou(self.train_y[idx], self.train_predict[idx])
 
-        self.train_iou_score = miou_metric(self.train_y, self.train_predict)
-        self.test_iou_score = miou_metric(self.test_y, self.test_predict)
+        self.train_iou_score = Metrics.miou(self.train_y, self.train_predict)
+        self.test_iou_score = Metrics.miou(self.test_y, self.test_predict)
 
         self.train_predict_sample = self.train_predict[:20]
 
@@ -160,7 +160,7 @@ class PlotToolsCallback(BaseEpochCallback):
         xs = xs.reshape([-1])
         xs /= 255
 
-        ys = np.array([iou_metric(true, predict) for true, predict in zip(test_y, test_predict)])
+        ys = np.array([Metrics.miou(true, predict) for true, predict in zip(test_y, test_predict)])
 
         dots = np.array([[x, y] for x, y in zip(xs, ys)])
 
