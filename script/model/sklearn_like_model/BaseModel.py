@@ -61,12 +61,17 @@ INSTANCE_FOLDER = 'instance'
 
 
 class ModelMetadata:
-    def __init__(self, id_, run_id, **kwargs):
+    def __init__(self, id_, **kwargs):
         self.id = id_
-        self.run_id = run_id
         for key, val in kwargs.items():
             setattr(self, key, val)
-        self.keys = ['id', 'run_id'] + list(kwargs.keys())
+        self.keys = ['id'] + list(kwargs.keys())
+
+    def __str__(self):
+        return pformat(self.metadata)
+
+    def __repr__(self):
+        return self.__str__()
 
     @property
     def metadata(self):
@@ -116,25 +121,34 @@ class BaseModel(
 
         self.verbose = verbose
         # gen instance id
-        run_id = kwargs['run_id'] if 'run_id' in kwargs else time_stamp()
-        id_ = "_".join(["%s_%s" % (self.AUTHOR, self.__class__.__name__), run_id])
+
+        if 'run_id' in kwargs:
+            self.run_id = kwargs['run_id']
+        else:
+            self.run_id = time_stamp()
+
+        if 'id' in kwargs:
+            id_ = kwargs['id']
+        else:
+            id_ = "_".join(["%s_%s" % (self.AUTHOR, self.__class__.__name__), self.run_id])
         self.metadata = ModelMetadata(
             id_=id_,
-            run_id=run_id
         )
 
     @property
     def id(self):
         return self.metadata.id
 
-    @property
-    def run_id(self):
-        return self.metadata.run_id
-
     def __str__(self):
         s = ""
         s += "%s_%s\n" % (self.AUTHOR, self.__class__.__name__)
-        s += pformat(self.params)
+        s += pformat({
+            'id': self.id,
+            'run_id': self.run_id,
+            'params': self.params,
+            'meta': self.metadata
+
+        })
         return s
 
     def __repr__(self):
