@@ -67,10 +67,12 @@ class UNetModule(BaseNetModule):
             self.stacker.pixel_wise_softmax()
             self.proba = self.stacker.last_layer
 
+        return self
+
     def set_train(self, sess):
         self.DynamicDropoutRate.set_train(sess)
 
-    def set_predict(self, sess):
+    def set_non_train(self, sess):
         self.DynamicDropoutRate.set_non_train(sess)
 
     def update_dropout_rate(self, sess, x):
