@@ -1,9 +1,7 @@
-import tensorflow as tf
-
-from script.model.sklearn_like_model.NetModule.DynamicDropoutRate import DynamicDropoutRate
 from script.model.sklearn_like_model.NetModule.BaseNetModule import BaseNetModule
+from script.model.sklearn_like_model.NetModule.DynamicDropoutRate import DynamicDropoutRate
 from script.util.Stacker import Stacker
-from script.util.tensor_ops import CONV_FILTER_3311, relu, CONV_FILTER_2211, CONV_FILTER_2222
+from script.util.tensor_ops import *
 
 
 class UNetModule(BaseNetModule):
