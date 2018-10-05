@@ -1,6 +1,9 @@
+from tqdm import tqdm
+import numpy as np
 from script.model.sklearn_like_model.BaseModel import BaseModel
-from script.model.sklearn_like_model.Mixin import SupervisedMetricCallback
+from script.model.sklearn_like_model.Mixin import SupervisedMetricCallback, slice_np_arr
 from script.model.sklearn_like_model.NetModule.BaseNetModule import BaseNetModule
+from script.model.sklearn_like_model.NetModule.FusionNetStructure import FusionNetModule
 from script.model.sklearn_like_model.NetModule.PlaceHolderModule import PlaceHolderModule
 from script.model.sklearn_like_model.NetModule.TFDynamicLearningRate import TFDynamicLearningRate
 from script.util.Stacker import Stacker
@@ -73,6 +76,31 @@ class conv_decoder_module(BaseNetModule):
         return self
 
 
+class ReconCallback:
+    def __init__(self, model, op, x_ph, **kwargs):
+        self.sess = model.sess
+        self.batch_size = model.batch_size
+        self.op = op
+        self.x_ph = x_ph
+        self.kwargs = kwargs
+
+    def _metric_batch(self, x):
+        return self.sess.run(self.op, feed_dict={self.x_ph: x})
+
+    def __call__(self, x):
+        size = len(x)
+        if size > self.batch_size:
+            tqdm.write('batch metric')
+            xs = slice_np_arr(x, self.batch_size)
+            metrics = [
+                self._metric_batch(x)
+                for x in tqdm(xs)
+            ]
+            return np.concatenate(metrics)
+        else:
+            return self._metric_batch(x)
+
+
 class post_process_AE(BaseModel):
     def __init__(
             self,
@@ -82,6 +110,7 @@ class post_process_AE(BaseModel):
             batch_size=100,
             dropout_rate=0.5,
             verbose=10,
+            resize=None,
             **kwargs
     ):
         BaseModel.__init__(self, verbose, **kwargs)
@@ -91,6 +120,7 @@ class post_process_AE(BaseModel):
         self.beta1 = beta1
         self.dropout_rate = dropout_rate
         self.capacity = capacity
+        self.resize = resize
 
     def _build_input_shapes(self, shapes):
         self.x_ph_module = PlaceHolderModule(shapes['x'], tf.float32, name='x')
@@ -106,20 +136,28 @@ class post_process_AE(BaseModel):
         self.Xs_ph = self.x_ph_module.build().placeholder
         self.Ys_ph = self.y_ph_module.build().placeholder
 
-        self.encoder_module = conv_encoder_module(self.Xs_ph)
-        self.encoder_module.build()
-        self.encode = self.encoder_module.encode
-        self.decoder_module = conv_decoder_module(self.encode, self.Xs_ph.shape)
-        self.decoder_module.build()
-        self.decode = self.decoder_module.decode
-        self._recon = self.decode
+        self.UNetModule = FusionNetModule(
+            self.Xs_ph,
+            capacity=self.capacity,
+            dropout_rate=self.dropout_rate,
+            depth=2,
+            level=3,
+            n_classes=1
+        ).build()
 
-        self.vars = self.encoder_module.vars
-        self.vars += self.decoder_module.vars
+        # todo may fix, proba does not train able, seems like no gradient flow
+        # self._recon = self.UNetModule.proba
+        # self._recon = sigmoid(self.UNetModule.logit)
+        self._recon = self.UNetModule.logit
+
+        self.vars = self.UNetModule.vars
 
     def _build_loss_function(self):
         self.loss = tf.squared_difference(self.Ys_ph, self._recon, name='loss')
         self.loss_mean = tf.reduce_mean(self.loss, name='loss_mean')
+
+        # self.loss_mean = tf.reduce_mean(self.loss, name='loss_mean') + average_top_k_loss(
+        #     flatten(self.loss), 100) * 0.2
 
     def _build_train_ops(self):
         self.drl = TFDynamicLearningRate(self.learning_rate)
@@ -132,8 +170,10 @@ class post_process_AE(BaseModel):
         )
 
     def _train_iter(self, dataset, batch_size):
+        self.set_train()
         x, y = dataset.next_batch(self.batch_size)
         self.sess.run(self.train_op, {self.Xs_ph: x, self.Ys_ph: y})
+        self.set_non_train()
 
     def metric(self, x, y):
         if not getattr(self, '_metric_callback', None):
@@ -148,3 +188,15 @@ class post_process_AE(BaseModel):
 
         if self.sess is not None:
             self.drl.update(self.sess, self.learning_rate)
+
+    def set_non_train(self):
+        self.UNetModule.set_non_train(self.sess)
+
+    def set_train(self):
+        self.UNetModule.set_train(self.sess)
+
+    def recon(self, x):
+        if not getattr(self, '_recon_callback', None):
+            setattr(self, '_recon_callback', ReconCallback(self, self._recon, self.Xs_ph))
+
+        return getattr(self, '_recon_callback')(x)
