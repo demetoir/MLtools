@@ -4,7 +4,7 @@ from script.model.sklearn_like_model.Mixin import Xs_MixIn, Ys_MixIn, supervised
 from script.model.sklearn_like_model.NetModule.InceptionUNetModule import InceptionUNetModule
 from script.model.sklearn_like_model.NetModule.TFDynamicLearningRate import TFDynamicLearningRate
 from script.model.sklearn_like_model.NetModule.FusionNetStructure import FusionNetModule
-from script.model.sklearn_like_model.NetModule.UNetNetModule import UNetNetModule
+from script.model.sklearn_like_model.NetModule.UNetModule import UNetModule
 from script.util.MixIn import LoggerMixIn
 from script.util.tensor_ops import *
 import numpy as np
@@ -111,7 +111,7 @@ class SemanticSegmentation(
     supervised_metricMethodMixIn,
 ):
     net_structure_class_dict = {
-        'UNet': UNetNetModule,
+        'UNet': UNetModule,
         'FusionNet': FusionNetModule,
         'InceptionUNet': InceptionUNetModule,
     }
