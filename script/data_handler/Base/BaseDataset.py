@@ -481,8 +481,8 @@ class BaseDataset(LoggerMixIn, PickleSelfMixIn, metaclass=MetaDataset):
 
         return k_splits
 
-    def k_fold_split(self, k=5, shuffle=False, random_sate=None):
-        k_split = self.k_split(k, shuffle, random_sate)
+    def k_fold_split(self, k=5, shuffle=False, random_state=None):
+        k_split = self.k_split(k, shuffle, random_state)
 
         k_fold_set = []
         for i in range(k):
