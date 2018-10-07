@@ -5,10 +5,10 @@ from tqdm import tqdm
 
 from script.data_handler.TGS_salt import mask_label_encoder
 from script.model.sklearn_like_model.BaseModel import BaseDataCollector
-from script.model.sklearn_like_model.callback.BaseEpochCallback import BaseEpochCallback
 from script.model.sklearn_like_model.SemanticSegmentation import SemanticSegmentation
 from script.model.sklearn_like_model.TFSummary import TFSummaryScalar
-from script.model.sklearn_like_model.callback.EarlyStop import EarlyStop
+from script.model.sklearn_like_model.callback.BaseEpochCallback import BaseEpochCallback
+from script.model.sklearn_like_model.callback.ReduceLrOnPlateau import ReduceLrOnPlateau
 from script.model.sklearn_like_model.callback.Top_k_save import Top_k_save
 from script.util.misc_util import time_stamp, path_join, to_dict
 from script.workbench.TGS_salt.TGS_salt_inference import plot, TGS_salt_DataHelper, \
@@ -65,7 +65,7 @@ class LoggingCallback(BaseEpochCallback):
         msg = f'\n'
         msg += f'e:{epoch}, '
 
-        msg += f'TGS_salt_metric scpre\n'
+        msg += f'TGS_salt_metric score\n'
         msg += f'train        = {self.dc.train_score}\n'
         msg += f'test         = {self.dc.test_score}\n'
 
@@ -218,13 +218,13 @@ class SemanticSegmentation_pipeline:
             learning_rate_decay_rate=0.99,
             learning_rate_decay_method=None,
             beta1=0.9,
-            batch_size=100,
+            batch_size=16,
             stage=4,
-            loss_type='pixel_wise_softmax',
+            loss_type='BCE+dice_soft',
             n_classes=2,
-            net_type=None,
-            capacity=64,
-            depth=2,
+            net_type='FusionNet',
+            capacity=24,
+            depth=4,
             dropout_rate=0.5,
             comment=''
     ):
@@ -269,11 +269,9 @@ class SemanticSegmentation_pipeline:
         return model
 
     def train(self, n_epoch=10, augmentation=False):
-        pprint(self.model)
-
         model = self.model
         run_id = model.run_id
-        dc_callback = CollectDataCallback(self.valid_x, self.valid_y)
+        dc_callback = CollectDataCallback(self.valid_x / 255., self.valid_y)
         callbacks = [
             dc_callback,
             Top_k_save(
@@ -287,28 +285,29 @@ class SemanticSegmentation_pipeline:
             ),
             LoggingCallback(dc_callback),
             TFSummaryCallback(dc_callback, run_id),
-            PlotToolsCallback(dc_callback),
+            # PlotToolsCallback(dc_callback),
 
-            EarlyStop(
-                10, min_best=False
-            ).trace_on(
-                dc_callback, 'test_iou_score'
-            ),
-            # ReduceLrOnPlateau(0.95, 5, 0.005).trace_on(dc_callback, 'test_iou_score'),
-            # TriangleLRScheduler(10, 0.002, 0.0002),
+            # EarlyStop(
+            #     20, min_best=False
+            # ).trace_on(
+            #     dc_callback, 'test_iou_score'
+            # ),
+            ReduceLrOnPlateau(0.5, 10, 0.0001, min_best=False).trace_on(dc_callback, 'test_iou_score'),
+            # TriangleLRScheduler(10, 0.01, 0.001),
         ]
 
         batch_size = model.batch_size
-        aug_callback = TGS_salt_aug_callback(self.train_x, self.train_y_encode, batch_size) \
+        aug_callback = TGS_salt_aug_callback(self.train_x / 255., self.train_y_encode, batch_size) \
             if augmentation else None
 
         # save_tf_summary_params(SUMMARY_PATH, model.params)
-        model.init_adam_momentum()
+        # model.init_adam_momentum()
 
-        model.update_learning_rate(0.002)
-        model.update_dropout_rate(0.5)
+        model.update_learning_rate(0.01)
+        # model.update_dropout_rate(1)
         pprint(self.model)
+        self.train_x = self.train_x
         model.train(
             self.train_x, self.train_y_encode, epoch=n_epoch,
-            epoch_callbacks=callbacks
+            epoch_callbacks=callbacks, dataset_callback=aug_callback
         )
