@@ -17,21 +17,26 @@ import tensorflow as tf
 class Metrics:
     @staticmethod
     def miou(trues, predicts):
-        return np.mean(
-            [
-                Metrics.ious(gt, predict)
-                for gt, predict in zip(trues, predicts)
-            ]
-        )
+        return np.mean(Metrics.iou_vector(trues, predicts))
 
     @staticmethod
-    def ious(true, predict):
-        true = true / 255
-        predict = predict / 255
+    def iou_vector(trues, predicts):
+        return [
+            Metrics.iou(gt, predict)
+            for gt, predict in zip(trues, predicts)
+        ]
 
-        intersect = np.logical_and(true, predict)
-        union = np.logical_or(true, predict)
-        iou_score = np.sum(intersect) / np.sum(union)
+    @staticmethod
+    def iou(true, predict):
+        true = true.astype(np.int32)
+        predict = predict.astype(np.int32)
+
+        intersect = np.sum(np.logical_and(true, predict))
+        union = np.sum(np.logical_or(true, predict))
+        if union == 0:
+            return 0
+        else:
+            iou_score = np.sum(intersect) / np.sum(union)
         return iou_score
 
     @staticmethod
@@ -40,7 +45,7 @@ class Metrics:
             if np.sum(mask_true) == 0:
                 return 0 if np.sum(mask_predict) > 0 else 1
             else:
-                iou_score = Metrics.ious(mask_true, mask_predict)
+                iou_score = Metrics.iou(mask_true, mask_predict)
 
                 threshold = np.arange(0.5, 1, 0.05)
                 score = np.sum(threshold <= iou_score) / 10.0
@@ -193,7 +198,7 @@ class TGS_salt_DataHelper:
         return dataset
 
     def split_hold_out(self, dataset, random_state=1234, ratio=(9, 1)):
-        return dataset.split(ratio, shuffle=True, random_state=random_state)
+        return dataset.split(ratio, shuffle=False, random_state=random_state)
 
     def k_fold_split(self, dataset, k=5, shuffle=False, random_state=1234):
         return dataset.k_fold_split(k, shuffle=shuffle, random_state=random_state)
