@@ -5,11 +5,11 @@ import tensorflow as tf
 
 
 class PlaceHolderModule(LoggerMixIn):
-    def __init__(self, x, dtype=tf.float32, name='placeHolderModule', verbose=0):
+    def __init__(self, shape, dtype=tf.float32, name='placeHolderModule', verbose=0):
         super().__init__(verbose=verbose)
         self.dtype = dtype
         self.name = name
-        self.single_shape = x.shape[1:]
+        self.single_shape = shape
         self.batch_shape = [None] + list(self.single_shape)
         self.flatten_size = reduce(lambda a, b: a * b, self.single_shape)
 
