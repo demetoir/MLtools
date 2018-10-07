@@ -12,7 +12,10 @@ class ReduceLrOnPlateau(BaseEpochCallback):
         self.log = log
 
         self.patience_count = 0
-        self.best_metric = np.inf
+        if self.min_best:
+            self.best_metric = np.inf
+        else:
+            self.best_metric = -np.inf
 
     def reset_patience_count(self):
         self.patience_count = 0
@@ -22,7 +25,12 @@ class ReduceLrOnPlateau(BaseEpochCallback):
         return self.patience - self.patience_count
 
     def __call__(self, model, dataset, metric, epoch):
-        if metric < metric:
+        if self.min_best:
+            res = self.best_metric > metric
+        else:
+            res = self.best_metric < metric
+
+        if res:
             self.reset_patience_count()
             self.best_metric = metric
             self.log(f'in {self.name}, best metric update')
