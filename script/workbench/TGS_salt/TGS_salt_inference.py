@@ -109,53 +109,35 @@ class TGS_salt_DataHelper:
         self._train_set_empty_mask = None
         self._train_depth_image = None
 
-    @property
+    @lazy_property
     def data_pack(self):
-        if self._data_pack is None:
-            self._data_pack = TGS_salt()
-            self._data_pack.load(self.data_pack_path)
+        self._data_pack = TGS_salt()
+        self._data_pack.load(self.data_pack_path)
 
         return self._data_pack
 
-    @property
+    @lazy_property
     def train_set(self):
-        if self._train_set is None:
-            self._train_set = self.data_pack['train']
-
-        return self._train_set
-
-    @property
-    def test_set(self):
-        if self._test_set is None:
-            self._test_set = self.data_pack['test']
-
-        return self._test_set
-
-    @property
-    def sample_xs(self):
-        if self._sample_xs is None:
-            x_full, _ = self.train_set.full_batch()
-            sample_x = x_full[self.sample_offset:self.sample_offset + self.sample_size]
-            self._sample_xs = sample_x
-
-        return self._sample_xs
-
-    @property
-    def sample_ys(self):
-        if self._sample_ys is None:
-            _, ys_full = self.train_set.full_batch()
-            self._sample_ys = ys_full[self.sample_offset:self.sample_offset + self.sample_size]
-
-        return self._sample_ys
-
-    @property
-    def valid_set(self):
-        # TODO
-        return None
+        return self.data_pack['train']
 
     @lazy_property
-    def train_set_non_empty_mask_idxs(self):
-        xs, ys = self.train_set.full_batch()
+    def test_set(self):
+        return self.data_pack['test']
+
+    @lazy_property
+    def sample_xs(self):
+        x_full, _ = self.train_set.full_batch()
+        sample_x = x_full[self.sample_offset:self.sample_offset + self.sample_size]
+        return sample_x
+
+    @lazy_property
+    def sample_ys(self):
+        _, ys_full = self.train_set.full_batch()
+        self._sample_ys = ys_full[self.sample_offset:self.sample_offset + self.sample_size]
+        return self._sample_ys
+
+    def get_non_empty_mask_idxs(self, dataset):
+        ys = dataset.full_batch(['mask'])['mask']
         idxs = [
             i
             for i, y in enumerate(ys)
@@ -163,19 +145,12 @@ class TGS_salt_DataHelper:
         ]
         return idxs
 
-    @property
-    def train_set_non_empty_mask(self):
-        if self._train_set_non_empty_mask is None:
-            idxs = self.train_set_non_empty_mask_idxs
+    def get_non_empty_mask(self, dataset):
+        idxs = self.get_non_empty_mask_idxs(dataset)
+        return dataset.query_by_idxs(idxs)
 
-            self._train_set_non_empty_mask = self.train_set.query_by_idxs(idxs)
-
-        return self._train_set_non_empty_mask
-
-    @lazy_property
-    def train_set_empty_mask_idxs(self):
-        xs, ys = self.train_set.full_batch()
-
+    def get_empty_mask_idxs(self, dataset):
+        ys = dataset.full_batch(['mask'])['mask']
         idxs = [
             i
             for i, y in enumerate(ys)
@@ -183,86 +158,45 @@ class TGS_salt_DataHelper:
         ]
         return idxs
 
-    @property
-    def train_set_empty_mask(self):
-        if self._train_set_empty_mask is None:
-            idxs = self.train_set_empty_mask_idxs
-
-            self._train_set_empty_mask = self.train_set.query_by_idxs(idxs)
-
-        return self._train_set_empty_mask
-
-    @lazy_property
-    def train_set_with_depth_image(self):
-        np_dict = self.train_set.full_batch(['image', 'depth_image'])
-        x = np_dict['image']
-        depth_image = np_dict['depth_image']
-        x_with_depth = np.concatenate((x, depth_image), axis=3)
-        self.train_set.add_data('x_with_depth', x_with_depth)
-
-        return self.train_set
-
-    @lazy_property
-    def test_set_with_depth_image(self):
-        np_dict = self.test_set.full_batch(['image', 'depth_image'])
-        x = np_dict['image']
-        depth_image = np_dict['depth_image']
-        x_with_depth = np.concatenate((x, depth_image), axis=3)
-        self.test_set.add_data('x_with_depth', x_with_depth)
-
-        return self.test_set
-
-    @lazy_property
-    def train_set_non_empty_mask_with_depth_image(self):
-        dataset = self.train_set_with_depth_image
-        idxs = self.train_set_non_empty_mask_idxs
-
+    def get_empty_mask(self, dataset):
+        idxs = self.get_empty_mask_idxs(dataset)
         return dataset.query_by_idxs(idxs)
 
-    @staticmethod
-    def mask_rate_under_n_percent(dataset, n):
+    def add_depth_image_channel(self, dataset):
+        np_dict = dataset.full_batch(['image', 'depth_image'])
+        x = np_dict['image']
+        depth_image = np_dict['depth_image']
+        x_with_depth = np.concatenate((x, depth_image), axis=3)
+        dataset.add_data('x_with_depth', x_with_depth)
+
+        return dataset
+
+    def mask_rate_under_n_percent(self, dataset, n):
         mask_rate = dataset.full_batch(['mask_rate'])['mask_rate']
 
         idx = mask_rate < n
         return dataset.query_by_idxs(idx)
 
-    @staticmethod
-    def mask_rate_upper_n_percent(dataset, n):
+    def mask_rate_upper_n_percent(self, dataset, n):
         mask_rate = dataset.full_batch(['mask_rate'])['mask_rate']
         idx = mask_rate > n
         return dataset.query_by_idxs(idx)
 
-    @lazy_property
-    def train_set_non_empty_mask_with_depth_image_under_1p(self):
-        return self.mask_rate_under_n_percent(self.train_set_non_empty_mask_with_depth_image, 0.01)
+    def lr_flip(self, dataset):
+        flip_lr_set = dataset.copy()
+        x, y = flip_lr_set.full_batch()
+        x = np.fliplr(x)
+        flip_lr_set.data['image'] = x
+        y = np.fliplr(y)
+        flip_lr_set.data['mask'] = y
+        dataset = dataset.merge(dataset, flip_lr_set)
+        return dataset
 
-    @lazy_property
-    def train_set_non_empty_mask_with_depth_image_under_5p(self):
-        return self.mask_rate_under_n_percent(self.train_set_non_empty_mask_with_depth_image, 0.05)
+    def split_hold_out(self, dataset, random_state=1234, ratio=(9, 1)):
+        return dataset.split(ratio, shuffle=True, random_state=random_state)
 
-    @lazy_property
-    def train_set_non_empty_mask_with_depth_image_under_10p(self):
-        return self.mask_rate_under_n_percent(self.train_set_non_empty_mask_with_depth_image, 0.10)
-
-    @lazy_property
-    def train_set_non_empty_mask_with_depth_image_under_20p(self):
-        return self.mask_rate_under_n_percent(self.train_set_non_empty_mask_with_depth_image, 0.20)
-
-    @lazy_property
-    def train_set_non_empty_mask_with_depth_image_upper_1p(self):
-        return self.mask_rate_upper_n_percent(self.train_set_non_empty_mask_with_depth_image, 0.01)
-
-    @lazy_property
-    def train_set_non_empty_mask_with_depth_image_upper_5p(self):
-        return self.mask_rate_upper_n_percent(self.train_set_non_empty_mask_with_depth_image, 0.05)
-
-    @lazy_property
-    def train_set_non_empty_mask_with_depth_image_upper_10p(self):
-        return self.mask_rate_upper_n_percent(self.train_set_non_empty_mask_with_depth_image, 0.10)
-
-    @lazy_property
-    def train_set_non_empty_mask_with_depth_image_upper_20p(self):
-        return self.mask_rate_upper_n_percent(self.train_set_non_empty_mask_with_depth_image, 0.20)
+    def k_fold_split(self, dataset, k=5, shuffle=False, random_state=1234):
+        return dataset.k_fold_split(k, shuffle=shuffle, random_state=random_state)
 
 
 class TGS_salt_aug_callback(BaseDatasetCallback):
