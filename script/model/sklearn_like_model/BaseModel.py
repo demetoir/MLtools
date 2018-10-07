@@ -6,7 +6,7 @@ from tqdm import trange, tqdm
 
 from env_settting import *
 from script.data_handler.Base.BaseDataset import BaseDataset
-from script.model.sklearn_like_model.Mixin import input_shapesMixIn, paramsMixIn, loss_packMixIn
+from script.model.sklearn_like_model.Mixin import paramsMixIn, loss_packMixIn, slice_np_arr
 from script.model.sklearn_like_model.SessionManager import SessionManager
 from script.model.sklearn_like_model.callback.BaseEpochCallback import BaseEpochCallback
 from script.util.MixIn import LoggerMixIn
@@ -91,7 +91,6 @@ class ModelMetadata:
 
 class BaseModel(
     LoggerMixIn,
-    input_shapesMixIn,
     paramsMixIn,
     loss_packMixIn
 ):
@@ -107,7 +106,6 @@ class BaseModel(
         if logger_path is None, log ony stdout
         """
         LoggerMixIn.__init__(self, verbose=verbose)
-        input_shapesMixIn.__init__(self)
         paramsMixIn.__init__(self)
         loss_packMixIn.__init__(self)
 
@@ -286,8 +284,7 @@ class BaseModel(
         if not self._is_input_shape_built:
             try:
                 self.inputs = inputs
-                input_shapes = self._build_input_shapes(inputs)
-                self._apply_input_shapes(input_shapes)
+                self._build_input_shapes(inputs)
                 self._is_input_shape_built = True
             except BaseException as e:
                 print(error_trace(e))
@@ -380,7 +377,7 @@ class BaseModel(
             global_epoch = self.sess.run(self.global_epoch)
             if epoch_pbar: epoch_pbar.update(1)
 
-            metric = getattr(self, 'metric', None)(x, y)
+            metric = np.mean(getattr(self, 'metric', None)(x, y))
             tqdm.write(f"e:{global_epoch}, metric : {np.mean(metric)}")
             if metric in (np.nan, np.inf, -np.inf): break
 
@@ -495,3 +492,29 @@ class BaseModel(
         if dataset_callback: del dataset
 
         return metric
+
+    def batch_execute(self, op, inputs):
+        batch_size = getattr(self, 'batch_size', None)
+        size = 0
+        for val in inputs.values():
+            size = len(val)
+
+        if size > batch_size:
+            partial = {}
+            for key, val in inputs.items():
+                for idx, part in enumerate(slice_np_arr(val, batch_size)):
+                    if idx not in partial:
+                        partial[idx] = {}
+
+                    partial[idx][key] = part
+
+            partial = list(partial.values())
+
+            tqdm.write('batch predict')
+            predicts = [
+                self.sess.run(op, feed_dict=x_partial)
+                for x_partial in tqdm(partial)
+            ]
+            return np.concatenate(predicts)
+        else:
+            return self.sess.run(op, feed_dict=inputs)
