@@ -1,13 +1,14 @@
+import numpy as np
+
 from script.model.sklearn_like_model.BaseModel import BaseModel
-from script.model.sklearn_like_model.Mixin import Xs_MixIn, Ys_MixIn, supervised_trainMethodMixIn, predictMethodMixIn, \
-    predict_probaMethodMixIn, scoreMethodMixIn, supervised_metricMethodMixIn
-from script.model.sklearn_like_model.NetModule.InceptionUNetModule import InceptionUNetModule
-from script.model.sklearn_like_model.NetModule.TFDynamicLearningRate import TFDynamicLearningRate
+from script.model.sklearn_like_model.Mixin import supervised_trainMethodMixIn
 from script.model.sklearn_like_model.NetModule.FusionNetStructure import FusionNetModule
+from script.model.sklearn_like_model.NetModule.InceptionUNetModule import InceptionUNetModule
+from script.model.sklearn_like_model.NetModule.PlaceHolderModule import PlaceHolderModule
+from script.model.sklearn_like_model.NetModule.TFDynamicLearningRate import TFDynamicLearningRate
 from script.model.sklearn_like_model.NetModule.UNetModule import UNetModule
 from script.util.MixIn import LoggerMixIn
 from script.util.tensor_ops import *
-import numpy as np
 
 
 class SemanticSegmentationLossModule(LoggerMixIn):
@@ -102,13 +103,7 @@ class SemanticSegmentationLossModule(LoggerMixIn):
 
 class SemanticSegmentation(
     BaseModel,
-    Xs_MixIn,
-    Ys_MixIn,
     supervised_trainMethodMixIn,
-    predictMethodMixIn,
-    predict_probaMethodMixIn,
-    scoreMethodMixIn,
-    supervised_metricMethodMixIn,
 ):
     net_structure_class_dict = {
         'UNet': UNetModule,
@@ -132,13 +127,7 @@ class SemanticSegmentation(
             **kwargs
     ):
         BaseModel.__init__(self, verbose, **kwargs)
-        Xs_MixIn.__init__(self)
-        Ys_MixIn.__init__(self)
         supervised_trainMethodMixIn.__init__(self, None)
-        predictMethodMixIn.__init__(self)
-        predict_probaMethodMixIn.__init__(self)
-        scoreMethodMixIn.__init__(self)
-        supervised_metricMethodMixIn.__init__(self)
 
         self.learning_rate = learning_rate
         self.beta1 = beta1
@@ -162,18 +151,21 @@ class SemanticSegmentation(
         self.dropout_rate = rate
 
     def _build_input_shapes(self, shapes):
+        self.xs_ph_module = PlaceHolderModule(shapes['x'], name='x').build()
+        self.ys_ph_module = PlaceHolderModule(shapes['y'], name='y').build()
+
         ret = {}
-        ret.update(self._build_Xs_input_shape(shapes))
-        ret.update(self._build_Ys_input_shape(shapes))
+        ret.update(self.xs_ph_module.shape_dict)
+        ret.update(self.ys_ph_module.shape_dict)
         return ret
 
     def _build_main_graph(self):
-        self.Xs = placeholder(tf.float32, self.Xs_shape, name='Xs')
-        self.Ys = placeholder(tf.float32, self.Ys_shape, name='Ys')
+        self.Xs_ph = self.xs_ph_module.placeholder
+        self.Ys_ph = self.ys_ph_module.placeholder
 
         net_class = self.net_structure_class_dict[self.net_type]
         self.net_module = net_class(
-            self.Xs,
+            self.Xs_ph,
             capacity=self.capacity, depth=self.depth, level=self.stage,
             n_classes=self.n_classes
         )
@@ -181,7 +173,7 @@ class SemanticSegmentation(
         self.vars = self.net_module.vars
         self._logit = self.net_module.logit
         self._proba = self.net_module.proba
-        self._predict = reshape(tf.argmax(self._proba, 3, name="predicted"), self.Ys_shape,
+        self._predict = reshape(tf.argmax(self._proba, 3, name="predicted"), self.xs_ph_module.batch_shape,
                                 name='predict')
 
         self._predict_proba_ops = self._proba
@@ -190,21 +182,26 @@ class SemanticSegmentation(
     def _build_loss_function(self):
         if self.loss_type == 'BCE+dice_soft':
             self.dice_soft_loss_module = SemanticSegmentationLossModule(
-                loss_type='dice_soft', labels=self.Ys, logits=self._logit,
+                loss_type='dice_soft', labels=self.Ys_ph, logits=self._logit,
                 probas=self._proba)
             self.dice_soft_loss_module.build()
             self.dice_soft = self.dice_soft_loss_module.loss
 
             self.pixel_wise_softmax_loss_module = SemanticSegmentationLossModule(
-                loss_type='pixel_wise_softmax', labels=self.Ys,
+                loss_type='pixel_wise_softmax', labels=self.Ys_ph,
                 logits=self._logit,
                 probas=self._proba)
             self.pixel_wise_softmax_loss_module.build()
             self.pixel_wise_softmax = self.pixel_wise_softmax_loss_module.loss
 
             self.loss = self.dice_soft + self.pixel_wise_softmax
+            # self.loss = self.pixel_wise_softmax
+
+            # self.loss = lovasz_softmax(self._proba, self.Ys)
+
         else:
-            self.loss_module = SemanticSegmentationLossModule(loss_type=self.loss, labels=self.Ys, logits=self._logit,
+            self.loss_module = SemanticSegmentationLossModule(loss_type=self.loss, labels=self.Ys_ph,
+                                                              logits=self._logit,
                                                               probas=self._proba)
             self.loss_module.build()
             self.loss = self.loss_module.loss
@@ -271,9 +268,21 @@ class SemanticSegmentation(
         self.net_module.set_train(self.sess)
 
         Xs, Ys = dataset.next_batch(batch_size, balanced_class=False)
-        self.sess.run(self.train_ops, feed_dict={self._Xs: Xs, self._Ys: Ys})
+        self.sess.run(self.train_ops, feed_dict={self.Xs_ph: Xs, self.Ys_ph: Ys})
 
         self.net_module.set_non_train(self.sess)
 
     def init_adam_momentum(self):
         self.sess.run(tf.variables_initializer(self.train_ops_var_list))
+
+    def metric(self, x, y):
+        return self.batch_execute(self.loss, {self.Xs_ph: x, self.Ys_ph: y})
+
+    def predict_proba(self, x):
+        return self.batch_execute(self._predict_proba_ops, {self.Xs_ph: x})
+
+    def predict(self, x):
+        return self.batch_execute(self._predict_ops, {self.Xs_ph: x})
+
+    def score(self, x, y):
+        return self.batch_execute(self.score_ops, {self.Xs_ph: x, self.Ys_ph: y})
