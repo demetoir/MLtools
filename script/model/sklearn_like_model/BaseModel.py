@@ -353,6 +353,18 @@ class BaseModel(
     def _train_iter(self, dataset, batch_size):
         raise NotImplementedError
 
+    def _is_fine_metric(self, metric):
+        if metric in (np.nan, np.inf, -np.inf):
+            print('metric is {metric}')
+            return True
+
+        if metric == getattr(self, 'recent_metric', None):
+            return True
+        else:
+            setattr(self, 'recent_metric', metric)
+
+        return False
+
     def train(
             self, x, y=None, epoch=1, batch_size=None,
             dataset_callback=None, epoch_pbar=True, iter_pbar=True, epoch_callbacks=None,
@@ -379,7 +391,8 @@ class BaseModel(
 
             metric = np.mean(getattr(self, 'metric', None)(x, y))
             tqdm.write(f"e:{global_epoch}, metric : {np.mean(metric)}")
-            if metric in (np.nan, np.inf, -np.inf): break
+            if self._is_fine_metric(metric):
+                break
 
             break_epoch = False
             if epoch_callbacks:
