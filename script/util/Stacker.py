@@ -136,6 +136,9 @@ class Stacker(LoggerMixIn):
     def atrous_conv2d(self, output_channel, filter_, rate):
         return self.add_layer(atrous_conv2d, output_channel, filter_, rate)
 
+    def atrous_conv2d_block(self, output_channel, filter_, rate, activate):
+        return self.add_layer(atrous_conv2d_block, output_channel, filter_, rate, activate)
+
     def conv2d_one_by_one(self, output_channel):
         """add bottle neck convolution layer"""
         return self.add_layer(conv2d_one_by_one, output_channel)
