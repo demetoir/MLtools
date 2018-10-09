@@ -1,107 +1,16 @@
 import numpy as np
 from script.model.sklearn_like_model.BaseModel import BaseModel
+from script.model.sklearn_like_model.NetModule.BCELoss import BCELoss
+from script.model.sklearn_like_model.NetModule.DiceSoftLoss import DiceSoftLoss
 from script.model.sklearn_like_model.NetModule.FusionNetStructure import FusionNetModule
 from script.model.sklearn_like_model.NetModule.InceptionUNetModule import InceptionUNetModule
 from script.model.sklearn_like_model.NetModule.PlaceHolderModule import PlaceHolderModule
 from script.model.sklearn_like_model.NetModule.TFDynamicLearningRate import TFDynamicLearningRate
 from script.model.sklearn_like_model.NetModule.UNetModule import UNetModule
-from script.util.MixIn import LoggerMixIn
 from script.util.tensor_ops import *
 
 
-class BaseLossModule(LoggerMixIn):
-    def __init__(self, name=None, verbose=0, **kwargs):
-        super().__init__(verbose=verbose)
-        if name is None:
-            name = self.__class__.__name__
-        self.name = name
-
-    def _build(self):
-        raise NotImplementedError
-
-    @property
-    def loss(self):
-        raise NotImplementedError
-
-    def build(self):
-        with tf.variable_scope(self.name):
-            self._build()
-        self.log.info(f'build {self.name}, {self.loss}')
-        return self
-
-
-class DiceSoftLoss(BaseLossModule):
-    def __init__(self, true, proba, smooth=1e-5, name=None, verbose=0, **kwargs):
-        super().__init__(name, verbose, **kwargs)
-        self.true = true
-        self.proba = proba
-        self.smooth = smooth
-
-    @property
-    def loss(self):
-        return self.dice_loss
-
-    def _build(self):
-        self.true_flatten = flatten(self.true)
-        self.proba_flatten = flatten(self.proba)
-        true = self.true_flatten
-        proba = self.proba_flatten
-
-        self.intersection = tf.reduce_sum(true * proba, axis=1, name='intersection')
-        self.union = tf.reduce_sum((true * true) + (proba * proba), axis=1, name='union')
-        # self.union = tf.reduce_sum(true + proba, axis=1)
-        self.dice_coef = (2. * self.intersection + self.smooth) / (self.union + self.smooth)
-        self.dice_coef = identity(self.dice_coef, 'dice_coef')
-        self.dice_loss = 1 - self.dice_coef
-        self.dice_loss = identity(self.dice_loss, 'dice_loss')
-
-
-class IouLoss(BaseLossModule):
-    def __init__(self, true, proba, smooth=1e-5, name=None, verbose=0, **kwargs):
-        super().__init__(name, verbose, **kwargs)
-        self.true = true
-        self.proba = proba
-        self.smooth = smooth
-
-    def _build(self):
-        self.true_flatten = flatten(self.true)
-        self.proba_flatten = flatten(self.proba)
-        true = self.true_flatten
-        proba = self.proba_flatten
-
-        self.intersection = tf.reduce_sum(true * proba, axis=1)
-        self.union = tf.reduce_sum((true * true) + (proba * proba), axis=1)
-        self.iou_coef = (self.intersection + self.smooth) / (self.union - self.intersection + self.smooth)
-        self.iou_loss = 1 - self.iou_coef
-
-    @property
-    def loss(self):
-        return self.iou_loss
-
-
-class BCELoss(BaseLossModule):
-    def __init__(self, true, logit, name=None, verbose=0, **kwargs):
-        super().__init__(name, verbose, **kwargs)
-        self.true = true
-        self.logit = logit
-
-    def _build(self):
-        self.true_flatten = flatten(self.true)
-        self.logit_flatten = flatten(self.logit)
-        true = self.true_flatten
-        logit = self.logit_flatten
-        self.bce = tf.reduce_mean(
-            tf.nn.sigmoid_cross_entropy_with_logits(labels=true, logits=logit),
-            axis=1)
-
-    @property
-    def loss(self):
-        return self.bce
-
-
-class SemanticSegmentation(
-    BaseModel,
-):
+class SemanticSegmentation(BaseModel):
     net_structure_class_dict = {
         'UNet': UNetModule,
         'FusionNet': FusionNetModule,
@@ -257,7 +166,7 @@ class SemanticSegmentation(
         self.sess.run(tf.variables_initializer(self.train_ops_var_list))
 
     def metric(self, x, y):
-        return self.batch_execute(self.loss, {self.Xs_ph: x, self.Ys_ph: y})
+        return np.mean(self.batch_execute(self.loss, {self.Xs_ph: x, self.Ys_ph: y}))
 
     def predict_proba(self, x):
         return self.batch_execute(self._predict_proba_ops, {self.Xs_ph: x})
@@ -266,4 +175,4 @@ class SemanticSegmentation(
         return self.batch_execute(self._predict_ops, {self.Xs_ph: x})
 
     def score(self, x, y):
-        return self.batch_execute(self.score_ops, {self.Xs_ph: x, self.Ys_ph: y})
+        return np.mean(self.batch_execute(self.score_ops, {self.Xs_ph: x, self.Ys_ph: y}))
