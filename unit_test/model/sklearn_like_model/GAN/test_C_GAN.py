@@ -36,7 +36,7 @@ def GAN_common_titanic(gan_cls, params):
     path = gan.save()
 
     gan = gan_cls()
-    gan.load(path)
+    gan.load_meta(path)
     gan.train(train_Xs, train_Ys, epoch=1)
 
     metric = gan.metric(train_Xs, train_Ys)

@@ -207,7 +207,7 @@ class mask_rate_pipe:
         )
 
     def load_model(self, path):
-        self.model = ImageClf().load(path)
+        self.model = ImageClf().load_meta(path)
         self.model.build(Xs=self.train_x, Ys=self.train_y_onehot)
         self.model.restore(path)
 

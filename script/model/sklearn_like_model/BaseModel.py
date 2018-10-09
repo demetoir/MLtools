@@ -295,6 +295,23 @@ class BaseModel(
         self.sessionManager.open_if_not()
         self.sessionManager.init_variable(self.var_list)
 
+    def save_meta(self, path):
+        setup_directory(path)
+
+        self.metadata.save(path_join(path, 'meta.pkl'))
+        self.metadata.save(path_join(path, 'meta.json'))
+
+        self.params_path = path_join(path, 'params.pkl')
+        self._save_params(self.params_path)
+
+    def save_checkpoint(self, path):
+        setup_directory(path)
+
+        check_point_path = path_join(path, 'check_point', 'instance.ckpt')
+        setup_file(check_point_path)
+        saver = tf.train.Saver(self.var_list)
+        saver.save(self.sess, check_point_path)
+
     def save(self, path=None):
         if not self.is_built:
             raise RuntimeError(f'can not save un built model, {self}')
@@ -306,23 +323,11 @@ class BaseModel(
             self.log.info('save directory not specified, use default directory')
             path = path_join(ROOT_PATH, 'instance', self.metadata.id)
 
-        self.log.info("saved at {}".format(path))
-        setup_directory(path)
+        self.log.info("save at {}".format(path))
+        self.save_checkpoint(path)
+        self.save_meta(path)
 
-        check_point_path = path_join(path, 'check_point', 'instance.ckpt')
-        setup_file(check_point_path)
-        saver = tf.train.Saver(self.var_list)
-        saver.save(self.sess, check_point_path)
-
-        self.metadata.save(path_join(path, 'meta.pkl'))
-        self.metadata.save(path_join(path, 'meta.json'))
-
-        self.params_path = path_join(path, 'params.pkl')
-        self._save_params(self.params_path)
-
-        return path
-
-    def load(self, path):
+    def load_meta(self, path):
         self.log.info(f'load from {path}')
         self.metadata.load(path_join(path, 'meta.json'))
         self._load_params(path_join(path, 'params.pkl'))

@@ -255,7 +255,7 @@ class is_emtpy_mask_clf_pipeline:
         pprint(f'train {params}')
 
         if path:
-            clf = ImageClf().load(path)
+            clf = ImageClf().load_meta(path)
             clf.build(Xs=self.train_x, Ys=self.train_y_onehot)
             clf.restore(path)
         else:

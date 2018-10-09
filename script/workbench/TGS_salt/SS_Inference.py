@@ -230,8 +230,6 @@ class SS_baseline:
             run_id=None,
             verbose=10,
             learning_rate=0.01,
-            learning_rate_decay_rate=0.99,
-            learning_rate_decay_method=None,
             beta1=0.9,
             batch_size=32,
             stage=4,
@@ -360,7 +358,7 @@ class SS_baseline:
         self.load_model(path)
 
     def load_model(self, path):
-        self.model = SemanticSegmentation().load(path)
+        self.model = SemanticSegmentation().load_meta(path)
         self.model.build(x=(101, 101, 1), y=(101, 101, 1))
         self.model.restore(path)
 
