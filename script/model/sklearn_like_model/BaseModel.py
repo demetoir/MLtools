@@ -390,7 +390,7 @@ class BaseModel(
             if epoch_pbar: epoch_pbar.update(1)
 
             metric = np.mean(getattr(self, 'metric', None)(x, y))
-            tqdm.write(f"e:{global_epoch}, metric : {np.mean(metric)}")
+            tqdm.write(f"\nepoch:{global_epoch}, metric : {np.mean(metric)}\n")
             if self._is_fine_metric(metric):
                 break
 
@@ -524,10 +524,14 @@ class BaseModel(
             partial = list(partial.values())
 
             tqdm.write('batch predict')
-            predicts = [
+            batchs = [
                 self.sess.run(op, feed_dict=x_partial)
                 for x_partial in tqdm(partial)
             ]
-            return np.concatenate(predicts)
+
+            try:
+                return np.concatenate(batchs)
+            except:
+                return batchs
         else:
             return self.sess.run(op, feed_dict=inputs)
