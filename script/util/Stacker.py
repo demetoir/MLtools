@@ -62,7 +62,7 @@ class Stacker(LoggerMixIn):
             return self.build_seq[-1]
 
         else:
-            scope_name = self.name + '_layer' + str(self.layer_count)
+            scope_name = f'{self.name}_layer_{self.layer_count}_{func.__name__}'
             with tf.variable_scope(scope_name, reuse=self.reuse):
                 if func == concat:
                     self.last_layer = func(*args, **kwargs)
@@ -70,9 +70,10 @@ class Stacker(LoggerMixIn):
                     self.last_layer = func(self.last_layer, *args, **kwargs)
 
                 self.layer_seq += [self.last_layer]
+
+                self.log.info(f'{scope_name}, {self.last_layer.shape}')
                 self.layer_count += 1
 
-                self.log.info(self.layer_info(self.last_layer))
             return self.last_layer
 
     def add_stacker(self, stacker):
