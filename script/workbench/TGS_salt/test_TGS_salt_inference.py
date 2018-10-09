@@ -5,7 +5,7 @@ from imgaug import augmenters as iaa
 from script.data_handler.ImgMaskAug import ActivatorMask
 from script.data_handler.TGS_salt import load_sample_image, collect_images, TRAIN_MASK_PATH
 from script.util.PlotTools import PlotTools
-from script.workbench.TGS_salt.TGS_salt_inference import TGS_salt_metric, TGS_salt_DataHelper
+from script.workbench.TGS_salt.TGS_salt_inference import TGS_salt_DataHelper, Metrics
 
 plot = PlotTools(save=True, show=False)
 
@@ -93,7 +93,7 @@ def test_TGS_salt_metric():
     metric_score = []
     for a in images:
         for b in images:
-            metric_score += [TGS_salt_metric(a, b)]
+            metric_score += [Metrics.TGS_salt_score(a, b)]
     metric_score = np.array(metric_score).reshape([size, size])
     print(metric_score)
 

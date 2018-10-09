@@ -21,7 +21,7 @@ class Stacker(LoggerMixIn):
     last_layer = stacker.last_layer
     """
 
-    def __init__(self, start_layer=None, reuse=False, name="stacker", verbose=0):
+    def __init__(self, start_layer=None, reuse=False, name=None, verbose=0):
         """create SequenceModel
 
         :param start_layer:the start layer
@@ -48,6 +48,13 @@ class Stacker(LoggerMixIn):
     def layer_info(layer):
         return f'({layer.op.name}, {layer.shape}, {layer.dtype}'
 
+    @property
+    def scope_head(self):
+        if self.name:
+            return f'{self.name}'
+        else:
+            return f'layer'
+
     def add_layer(self, func, *args, **kwargs):
         """add new layer right after last added layer
 
@@ -58,11 +65,9 @@ class Stacker(LoggerMixIn):
         """
         if self.start_layer is None:
             self.build_seq += [(func, args, kwargs)]
-
             return self.build_seq[-1]
-
         else:
-            scope_name = self.name + '_layer' + str(self.layer_count)
+            scope_name = f'{self.scope_head}_{self.layer_count}_{func.__name__}'
             with tf.variable_scope(scope_name, reuse=self.reuse):
                 if func == concat:
                     self.last_layer = func(*args, **kwargs)
@@ -70,9 +75,10 @@ class Stacker(LoggerMixIn):
                     self.last_layer = func(self.last_layer, *args, **kwargs)
 
                 self.layer_seq += [self.last_layer]
+
+                self.log.info(f'{scope_name}, {self.last_layer.shape}')
                 self.layer_count += 1
 
-                self.log.info(self.layer_info(self.last_layer))
             return self.last_layer
 
     def add_stacker(self, stacker):
@@ -127,6 +133,12 @@ class Stacker(LoggerMixIn):
         """add 2d convolution layer"""
         return self.add_layer(conv2d, output_channel, filter_)
 
+    def atrous_conv2d(self, output_channel, filter_, rate):
+        return self.add_layer(atrous_conv2d, output_channel, filter_, rate)
+
+    def atrous_conv2d_block(self, output_channel, filter_, rate, activate):
+        return self.add_layer(atrous_conv2d_block, output_channel, filter_, rate, activate)
+
     def conv2d_one_by_one(self, output_channel):
         """add bottle neck convolution layer"""
         return self.add_layer(conv2d_one_by_one, output_channel)
@@ -147,9 +159,9 @@ class Stacker(LoggerMixIn):
         """add average pooling layer"""
         return self.add_layer(avg_pooling, filter_)
 
-    def max_pooling(self, filter_):
+    def max_pooling(self, filter_, padding):
         """add max pooling layer"""
-        return self.add_layer(max_pooling, filter_)
+        return self.add_layer(max_pooling, filter_, padding)
 
     def softmax(self):
         """add softmax layer"""
@@ -179,3 +191,18 @@ class Stacker(LoggerMixIn):
 
     def pixel_wise_softmax(self):
         return self.add_layer(pixel_wise_softmax)
+
+    def layers_conv2d(self, channel, filter, stride, padding):
+        return self.add_layer(tf.layers.conv2d, channel, filter, stride, padding)
+
+    def layers_bn(self):
+        return self.add_layer(tf.layers.batch_normalization)
+
+    def layers_dropout(self, rate):
+        return self.add_layer(tf.layers.dropout, rate)
+
+    def layers_max_pooling2d(self, pool_size, stride):
+        return self.add_layer(tf.layers.max_pooling2d, pool_size, stride)
+
+    def layers_conv2d_transpose(self, channel, filter, stride, padding):
+        return self.add_layer(tf.layers.conv2d_transpose, channel, filter, stride, padding)

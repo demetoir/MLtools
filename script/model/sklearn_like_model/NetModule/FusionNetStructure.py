@@ -1,36 +1,36 @@
-from script.model.sklearn_like_model.DynamicDropoutRate import DynamicDropoutRate
+from script.model.sklearn_like_model.NetModule.DynamicDropoutRate import DynamicDropoutRate
 from script.model.sklearn_like_model.NetModule.BaseNetModule import BaseNetModule
 from script.util.Stacker import Stacker
 from script.util.tensor_ops import *
 
 
-def _residual_block(x, n_channel, filter_, activation, name='residual_block'):
+def _residual_block_pre_activation(x, n_channel, filter_=(3, 3), name='residual_block_pre_activation'):
     with tf.variable_scope(name):
-        x_in = x
-        x = bn(x, name='bn1')
-        x = activation(x, 'relu1')
-        x = conv2d(x, n_channel, filter_, name='conv1')
+        stack = Stacker(x)
 
-        x = bn(x, name='bn2')
-        x = activation(x, 'relu2')
-        x = conv2d(x, n_channel, filter_, name='conv2')
+        stack.bn()
+        stack.relu()
+        stack.layers_conv2d(n_channel, filter_, (1, 1), 'SAME')
 
-        x = bn(x, name='bn3')
-        x = activation(x, 'relu3')
-        x = conv2d(x, n_channel, filter_, name='conv3')
-        x = residual_add(x, x_in)
-    return x
+        stack.bn()
+        stack.relu()
+        stack.layers_conv2d(n_channel, filter_, (1, 1), 'SAME')
+
+        stack.residual_add(x)
+
+        return stack.last_layer
 
 
 def _residual_atrous_block(x, n_channel, filter_, activation, name='residual_block'):
     with tf.variable_scope(name):
         x_in = x
-        x = atrous_conv2d_block(x, n_channel, filter_, 2, activation, name='atrous_conv2d_block_1')
-        x = atrous_conv2d_block(x, n_channel, filter_, 2, activation, name='atrous_conv2d_block_2')
-        x = atrous_conv2d_block(x, n_channel, filter_, 2, activation, name='atrous_conv2d_block_3')
-        x = residual_add(x, x_in)
+        stack = Stacker(x)
+        stack.atrous_conv2d_block(n_channel, filter_, 2, activation)
+        # stack.atrous_conv2d_block(n_channel, filter_, 2, activation)
+        stack.atrous_conv2d_block(n_channel, filter_, 2, activation)
+        stack.residual_add(x_in)
 
-    return x
+    return stack.last_layer
 
 
 class FusionNetModule(BaseNetModule):
@@ -55,101 +55,137 @@ class FusionNetModule(BaseNetModule):
         self.n_channel = capacity
         self.dropout_rate = dropout_rate
 
-    @staticmethod
-    def conv_seq(stacker, n_channel, depth, dropout_rate_tensor):
-        stacker.conv_block(n_channel, CONV_FILTER_3311, elu)
-
-        for i in range(depth):
-            stacker.add_layer(_residual_atrous_block, n_channel, CONV_FILTER_3311, elu)
-
-            if dropout_rate_tensor:
-                stacker.dropout(dropout_rate_tensor)
-
-        stacker.conv_block(n_channel, CONV_FILTER_3311, elu)
-        return stacker
-
-    def encoder(self, x, n_channel, depth, max_level, dropout_rate_tensor):
-        def recursive(stacker, n_channel, level):
-            if level is 0:
-                return []
-
-            stacker = self.conv_seq(stacker, n_channel, depth, dropout_rate_tensor)
-            skip_tensor = stacker.last_layer
-            stacker.max_pooling(CONV_FILTER_2222)
-
-            return [skip_tensor] + recursive(stacker, n_channel * 2, level - 1)
-
-        self.encoder_stacker = Stacker(x, name='encoder')
-        self.skip_connects = recursive(self.encoder_stacker, n_channel, max_level)
-
-        return self.encoder_stacker.last_layer, self.skip_connects
-
-    def decoder(self, x, skip_connects, n_channel, depth, max_level, dropout_rate_tensor):
-        def recursive(stacker, n_channel, level):
-            if level is 0:
-                return []
-
-            last_convs = recursive(stacker, n_channel * 2, level - 1)
-
-            stacker.upscale_2x_block(n_channel, CONV_FILTER_2211, relu)
-
-            # TODO hack to dynamic batch size after conv transpose, concat must need. wtf?
-            skip_tensor = skip_connects[level - 1]
-            stacker.concat(skip_tensor, axis=3)
-
-            stacker.conv_block(n_channel, CONV_FILTER_3311, relu)
-            stacker.residual_add(skip_tensor)
-
-            stacker = self.conv_seq(stacker, n_channel, depth, dropout_rate_tensor)
-            return [stacker.last_layer] + last_convs
-
-        skip_connects = skip_connects[::-1]
-        self.decoder_stacker = Stacker(x, name='decoder')
-        self.last_convs = recursive(self.decoder_stacker, n_channel, max_level)
-
-        return self.decoder_stacker.last_layer
-
-    def bottom_layer(self, x, n_channel, depth, dropout_rate_tensor):
-        stacker = Stacker(x, name='bottom')
-        stacker = self.conv_seq(stacker, n_channel, depth, dropout_rate_tensor)
-        self.bottom_layer_stacker = stacker
-
-        return self.bottom_layer_stacker.last_layer
-
     def build(self):
         self.DynamicDropoutRate = DynamicDropoutRate(self.dropout_rate)
         self.drop_out_tensor = self.DynamicDropoutRate.tensor
+        self.dropout_rate_tensor = self.drop_out_tensor
 
         with tf.variable_scope(self.name, reuse=self.reuse):
-            encode, skip_tensors = self.encoder(
-                self.x, self.n_channel, self.depth, self.level,
-                self.drop_out_tensor)
+            self.skip_connects = []
+            self.stacker = Stacker(self.x, name='')
+            stacker = self.stacker
 
-            self.encode = encode
+            # 101 to 51
+            stacker.layers_conv2d(self.n_channel, (3, 3), (1, 1), 'SAME')
+            stacker.bn()
+            stacker.relu()
+            stacker.add_layer(_residual_block_pre_activation, self.n_channel)
+            stacker.add_layer(_residual_block_pre_activation, self.n_channel)
+            stacker.bn()
+            stacker.relu()
+            self.skip_connects += [stacker.last_layer]
+            stacker.layers_max_pooling2d((2, 2), (2, 2))
+            stacker.layers_dropout(self.dropout_rate_tensor / 2)
 
-            bottom_layer = self.bottom_layer(
-                encode,
-                self.n_channel * (2 ** (self.level - 1)),
-                self.depth,
-                self.drop_out_tensor
-            )
-            self.bottom_layer = bottom_layer
+            # 51 to 25
+            stacker.layers_conv2d(self.n_channel * 2, (3, 3), (1, 1), 'SAME')
+            stacker.bn()
+            stacker.relu()
+            stacker.add_layer(_residual_block_pre_activation, self.n_channel * 2)
+            stacker.add_layer(_residual_block_pre_activation, self.n_channel * 2)
+            stacker.bn()
+            stacker.relu()
+            self.skip_connects += [stacker.last_layer]
+            stacker.layers_max_pooling2d((2, 2), (2, 2))
+            stacker.layers_dropout(self.dropout_rate_tensor)
 
-            decode = self.decoder(
-                bottom_layer,
-                skip_tensors,
-                self.n_channel,
-                self.depth,
-                self.level,
-                self.drop_out_tensor,
-            )
-            self.decode = decode
+            # 25 to 13
+            stacker.layers_conv2d(self.n_channel * 4, (3, 3), (1, 1), 'SAME')
+            stacker.bn()
+            stacker.relu()
+            stacker.add_layer(_residual_block_pre_activation, self.n_channel * 4)
+            stacker.add_layer(_residual_block_pre_activation, self.n_channel * 4)
+            stacker.bn()
+            stacker.relu()
+            self.skip_connects += [stacker.last_layer]
+            stacker.layers_max_pooling2d((2, 2), (2, 2))
+            stacker.layers_dropout(self.dropout_rate_tensor)
 
-            self.decoder_stacker.conv_block(self.n_classes, CONV_FILTER_3311, relu)
-            self.decoder_stacker.conv_block(self.n_classes, CONV_FILTER_3311, relu)
-            self.decoder_stacker.conv_block(self.n_classes, CONV_FILTER_3311, sigmoid)
-            self.logit = self.decoder_stacker.last_layer
-            self.proba = pixel_wise_softmax(self.logit)
+            # 13 to 7
+            stacker.layers_conv2d(self.n_channel * 8, (3, 3), (1, 1), 'SAME')
+            stacker.bn()
+            stacker.relu()
+            stacker.add_layer(_residual_block_pre_activation, self.n_channel * 8)
+            stacker.add_layer(_residual_block_pre_activation, self.n_channel * 8)
+            stacker.bn()
+            stacker.relu()
+            self.skip_connects += [stacker.last_layer]
+            stacker.layers_max_pooling2d((2, 2), (2, 2))
+            stacker.layers_dropout(self.dropout_rate_tensor)
+
+            print('middle')
+            # middle
+            stacker.layers_conv2d(self.n_channel * 16, (3, 3), (1, 1), 'SAME')
+            stacker.bn()
+            stacker.relu()
+            stacker.add_layer(_residual_block_pre_activation, self.n_channel * 16)
+            stacker.add_layer(_residual_block_pre_activation, self.n_channel * 16)
+            stacker.bn()
+            stacker.relu()
+
+            skip_connects = self.skip_connects[::-1]
+
+            # 7 to 13
+            stacker.layers_conv2d_transpose(self.n_channel * 8, (3, 3), (2, 2), 'SAME')
+            stacker.bn()
+            stacker.relu()
+            stacker.concat([stacker.last_layer, skip_connects[0]], 3)
+            stacker.layers_dropout(self.dropout_rate_tensor)
+            stacker.layers_conv2d(self.n_channel * 8, (3, 3), (1, 1), 'SAME')
+            stacker.bn()
+            stacker.relu()
+            stacker.add_layer(_residual_block_pre_activation, self.n_channel * 8)
+            stacker.add_layer(_residual_block_pre_activation, self.n_channel * 8)
+            stacker.bn()
+            stacker.relu()
+
+            # 12 to 25
+            stacker.layers_conv2d_transpose(self.n_channel * 4, (3, 3), (2, 2), 'VALID')
+            stacker.bn()
+            stacker.relu()
+            stacker.concat([stacker.last_layer, skip_connects[1]], 3)
+            stacker.layers_dropout(self.dropout_rate_tensor)
+            stacker.layers_conv2d(self.n_channel * 4, (3, 3), (1, 1), 'SAME')
+            stacker.bn()
+            stacker.relu()
+            stacker.add_layer(_residual_block_pre_activation, self.n_channel * 4)
+            stacker.add_layer(_residual_block_pre_activation, self.n_channel * 4)
+            stacker.bn()
+            stacker.relu()
+
+            # 25 to 50
+            stacker.layers_conv2d_transpose(self.n_channel * 2, (3, 3), (2, 2), 'SAME')
+            stacker.bn()
+            stacker.relu()
+            stacker.concat([stacker.last_layer, skip_connects[2]], 3)
+            stacker.layers_dropout(self.dropout_rate_tensor)
+            stacker.layers_conv2d(self.n_channel * 2, (3, 3), (1, 1), 'SAME')
+            stacker.bn()
+            stacker.relu()
+            stacker.add_layer(_residual_block_pre_activation, self.n_channel * 2)
+            stacker.add_layer(_residual_block_pre_activation, self.n_channel * 2)
+            stacker.bn()
+            stacker.relu()
+
+            # 50 to 101
+            stacker.layers_conv2d_transpose(self.n_channel * 1, (3, 3), (2, 2), 'VALID')
+            stacker.bn()
+            stacker.relu()
+            stacker.concat([stacker.last_layer, skip_connects[3]], 3)
+            stacker.layers_dropout(self.dropout_rate_tensor)
+            stacker.layers_conv2d(self.n_channel * 1, (3, 3), (1, 1), 'SAME')
+            stacker.bn()
+            stacker.relu()
+            stacker.add_layer(_residual_block_pre_activation, self.n_channel * 1)
+            stacker.add_layer(_residual_block_pre_activation, self.n_channel * 1)
+            stacker.bn()
+            stacker.relu()
+
+            self.logit = stacker.layers_conv2d(self.n_classes, (3, 3), (1, 1), 'SAME')
+            if self.n_classes == 1:
+                self.proba = stacker.sigmoid()
+            else:
+                self.proba = stacker.pixel_wise_softmax()
 
         return self
 

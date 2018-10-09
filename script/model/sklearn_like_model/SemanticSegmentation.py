@@ -1,117 +1,18 @@
-from script.model.sklearn_like_model.BaseModel import BaseModel
-from script.model.sklearn_like_model.Mixin import Xs_MixIn, Ys_MixIn, supervised_trainMethodMixIn, predictMethodMixIn, \
-    predict_probaMethodMixIn, scoreMethodMixIn, supervised_metricMethodMixIn
-from script.model.sklearn_like_model.NetModule.InceptionUNetModule import InceptionUNetModule
-from script.model.sklearn_like_model.TFDynamicLearningRate import TFDynamicLearningRate
-from script.model.sklearn_like_model.NetModule.FusionNetStructure import FusionNetModule
-from script.model.sklearn_like_model.NetModule.UNetNetModule import UNetNetModule
-from script.util.MixIn import LoggerMixIn
-from script.util.tensor_ops import *
 import numpy as np
+from script.model.sklearn_like_model.BaseModel import BaseModel
+from script.model.sklearn_like_model.NetModule.BCELoss import BCELoss
+from script.model.sklearn_like_model.NetModule.DiceSoftLoss import DiceSoftLoss
+from script.model.sklearn_like_model.NetModule.FusionNetStructure import FusionNetModule
+from script.model.sklearn_like_model.NetModule.InceptionUNetModule import InceptionUNetModule
+from script.model.sklearn_like_model.NetModule.PlaceHolderModule import PlaceHolderModule
+from script.model.sklearn_like_model.NetModule.TFDynamicLearningRate import TFDynamicLearningRate
+from script.model.sklearn_like_model.NetModule.UNetModule import UNetModule
+from script.util.tensor_ops import *
 
 
-class SemanticSegmentationLossModule(LoggerMixIn):
-    def __init__(
-            self,
-            loss_type,
-            labels=None,
-            probas=None,
-            logits=None,
-            n_classes=2,
-            name='SegmentationLoss',
-            verbose=0
-    ):
-        super().__init__(verbose=verbose)
-        self.loss_type = loss_type
-        self.labels = labels
-        self.probas = probas
-        self.logits = logits
-        self.n_classes = n_classes
-        self.name = name
-
-        cls = self.__class__
-
-        self.loss_builder_func = {
-            'iou': cls.build_iou,
-            'dice_soft': cls.build_dice_soft,
-            'pixel_wise_softmax': cls.build_pixel_wise_softmax
-        }
-
-        self._loss = None
-
-    @property
-    def loss(self):
-        return self._loss
-
-    def build(self):
-        with tf.variable_scope(self.name + '_' + self.loss_type):
-            if self.loss_type == 'iou':
-                loss = self.build_iou()
-            elif self.loss_type == 'dice_soft':
-                loss = self.build_dice_soft()
-            elif self.loss_type == 'pixel_wise_softmax':
-                loss = self.build_pixel_wise_softmax()
-            else:
-                raise ValueError(f'{self.loss_type} is can not build')
-
-            self._loss = loss
-            self.log.info(f'build {self.name}_{self.loss_type}')
-
-        return self.loss
-
-    def build_iou(self):
-        labels = self.labels
-        probas = self.probas
-
-        # only binary mask
-        probas = probas[:, :, :, 1]
-
-        # https://angusg.com/writing/2016/12/28/optimizing-iou-semantic-segmentation.html
-        probas = tf.cast(tf.reshape(probas, [-1]), tf.float32)
-        labels = tf.cast(tf.reshape(labels, [-1]), tf.float32)
-
-        inter = tf.reduce_sum(probas * labels)
-        union = tf.reduce_sum(probas + labels - probas * labels)
-        loss = 1 - (inter / union)
-
-        return loss
-
-    def build_dice_soft(self):
-        labels = self.labels
-        probas = self.probas
-        # only binary mask
-        probas = probas[:, :, :, 1]
-
-        probas = tf.cast(tf.reshape(probas, [-1]), tf.float32)
-        labels = tf.cast(tf.reshape(labels, [-1]), tf.float32)
-
-        inter = tf.reduce_sum(probas * labels)
-        union = tf.reduce_sum(probas + labels)
-        loss = 1 - (2 * inter / union)
-        return loss
-
-    def build_pixel_wise_softmax(self):
-        labels = self.labels
-        logits = self.logits
-        n_classes = self.n_classes
-
-        logits = tf.reshape(logits, (-1, n_classes))
-        labels = tf.cast(tf.reshape(labels, [-1]), tf.int32)
-        return tf.nn.sparse_softmax_cross_entropy_with_logits(labels=labels, logits=logits)
-
-
-class SemanticSegmentation(
-    BaseModel,
-    Xs_MixIn,
-    Ys_MixIn,
-    supervised_trainMethodMixIn,
-    predictMethodMixIn,
-    predict_probaMethodMixIn,
-    scoreMethodMixIn,
-    supervised_metricMethodMixIn,
-):
+class SemanticSegmentation(BaseModel):
     net_structure_class_dict = {
-        'UNet': UNetNetModule,
+        'UNet': UNetModule,
         'FusionNet': FusionNetModule,
         'InceptionUNet': InceptionUNetModule,
     }
@@ -132,13 +33,6 @@ class SemanticSegmentation(
             **kwargs
     ):
         BaseModel.__init__(self, verbose, **kwargs)
-        Xs_MixIn.__init__(self)
-        Ys_MixIn.__init__(self)
-        supervised_trainMethodMixIn.__init__(self, None)
-        predictMethodMixIn.__init__(self)
-        predict_probaMethodMixIn.__init__(self)
-        scoreMethodMixIn.__init__(self)
-        supervised_metricMethodMixIn.__init__(self)
 
         self.learning_rate = learning_rate
         self.beta1 = beta1
@@ -162,18 +56,21 @@ class SemanticSegmentation(
         self.dropout_rate = rate
 
     def _build_input_shapes(self, shapes):
+        self.xs_ph_module = PlaceHolderModule(shapes['x'], name='x').build()
+        self.ys_ph_module = PlaceHolderModule(shapes['y'], name='y').build()
+
         ret = {}
-        ret.update(self._build_Xs_input_shape(shapes))
-        ret.update(self._build_Ys_input_shape(shapes))
+        ret.update(self.xs_ph_module.shape_dict)
+        ret.update(self.ys_ph_module.shape_dict)
         return ret
 
     def _build_main_graph(self):
-        self.Xs = placeholder(tf.float32, self.Xs_shape, name='Xs')
-        self.Ys = placeholder(tf.float32, self.Ys_shape, name='Ys')
+        self.Xs_ph = self.xs_ph_module.placeholder
+        self.Ys_ph = self.ys_ph_module.placeholder
 
         net_class = self.net_structure_class_dict[self.net_type]
         self.net_module = net_class(
-            self.Xs,
+            self.Xs_ph,
             capacity=self.capacity, depth=self.depth, level=self.stage,
             n_classes=self.n_classes
         )
@@ -181,33 +78,35 @@ class SemanticSegmentation(
         self.vars = self.net_module.vars
         self._logit = self.net_module.logit
         self._proba = self.net_module.proba
-        self._predict = reshape(tf.argmax(self._proba, 3, name="predicted"), self.Ys_shape,
-                                name='predict')
+        self._predict = tf.round(self._proba)
 
         self._predict_proba_ops = self._proba
         self._predict_ops = self._predict
 
+    def _train_iter(self, dataset, batch_size):
+        self.net_module.set_train(self.sess)
+
+        Xs, Ys = dataset.next_batch(batch_size, balanced_class=False)
+        self.sess.run(self.train_ops, feed_dict={self.Xs_ph: Xs, self.Ys_ph: Ys})
+
+        self.net_module.set_non_train(self.sess)
+
     def _build_loss_function(self):
         if self.loss_type == 'BCE+dice_soft':
-            self.dice_soft_loss_module = SemanticSegmentationLossModule(
-                loss_type='dice_soft', labels=self.Ys, logits=self._logit,
-                probas=self._proba)
-            self.dice_soft_loss_module.build()
-            self.dice_soft = self.dice_soft_loss_module.loss
+            self.dice_soft_module = DiceSoftLoss(self.Ys_ph, self._proba)
+            self.dice_soft_module.build()
+            self.dice_soft = self.dice_soft_module.loss
 
-            self.pixel_wise_softmax_loss_module = SemanticSegmentationLossModule(
-                loss_type='pixel_wise_softmax', labels=self.Ys,
-                logits=self._logit,
-                probas=self._proba)
-            self.pixel_wise_softmax_loss_module.build()
-            self.pixel_wise_softmax = self.pixel_wise_softmax_loss_module.loss
+            self.BCE_module = BCELoss(self.Ys_ph, self._logit)
+            self.BCE_module.build()
+            self.BCE = self.BCE_module.loss
 
-            self.loss = self.dice_soft + self.pixel_wise_softmax
+            # self.loss = self.dice_soft + self.BCE
+            self.loss = self.BCE
+            # self.loss = lovasz_softmax(self._proba, self.Ys)
+
         else:
-            self.loss_module = SemanticSegmentationLossModule(loss_type=self.loss, labels=self.Ys, logits=self._logit,
-                                                              probas=self._proba)
-            self.loss_module.build()
-            self.loss = self.loss_module.loss
+            raise NotImplementedError()
 
         def empty_mask_penalty(trues, predicts, batch_size, weight=0.1):
             penalty = []
@@ -241,15 +140,11 @@ class SemanticSegmentation(
         self.drl = TFDynamicLearningRate(self.learning_rate)
         self.drl.build()
 
-        self._train_ops = tf.train.AdamOptimizer(
-            self.drl.learning_rate, beta1=self.beta1
+        self.train_ops = tf.train.AdamOptimizer(
+            self.drl.learning_rate
         ).minimize(
             self.loss, var_list=self.vars
         )
-
-    @property
-    def train_ops(self):
-        return self._train_ops
 
     @property
     def predict_ops(self):
@@ -267,13 +162,17 @@ class SemanticSegmentation(
     def metric_ops(self):
         return self.loss
 
-    def _train_iter(self, dataset, batch_size):
-        self.net_module.set_train(self.sess)
-
-        Xs, Ys = dataset.next_batch(batch_size, balanced_class=False)
-        self.sess.run(self.train_ops, feed_dict={self._Xs: Xs, self._Ys: Ys})
-
-        self.net_module.set_non_train(self.sess)
-
     def init_adam_momentum(self):
         self.sess.run(tf.variables_initializer(self.train_ops_var_list))
+
+    def metric(self, x, y):
+        return np.mean(self.batch_execute(self.loss, {self.Xs_ph: x, self.Ys_ph: y}))
+
+    def predict_proba(self, x):
+        return self.batch_execute(self._predict_proba_ops, {self.Xs_ph: x})
+
+    def predict(self, x):
+        return self.batch_execute(self._predict_ops, {self.Xs_ph: x})
+
+    def score(self, x, y):
+        return np.mean(self.batch_execute(self.score_ops, {self.Xs_ph: x, self.Ys_ph: y}))

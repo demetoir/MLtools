@@ -5,8 +5,8 @@ from script.model.sklearn_like_model.BaseModel import BaseModel
 from script.model.sklearn_like_model.Mixin import UnsupervisedMetricCallback
 from script.model.sklearn_like_model.NetModule.BaseNetModule import BaseNetModule
 from script.model.sklearn_like_model.NetModule.FusionNetStructure import FusionNetModule
-from script.model.sklearn_like_model.PlaceHolderModule import PlaceHolderModule
-from script.model.sklearn_like_model.TFDynamicLearningRate import TFDynamicLearningRate
+from script.model.sklearn_like_model.NetModule.PlaceHolderModule import PlaceHolderModule
+from script.model.sklearn_like_model.NetModule.TFDynamicLearningRate import TFDynamicLearningRate
 from script.util.Stacker import Stacker
 from script.util.tensor_ops import *
 

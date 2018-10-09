@@ -5,7 +5,8 @@ from sklearn.metrics import accuracy_score
 from sklearn.metrics import confusion_matrix
 
 from script.data_handler.ImgMaskAug import ActivatorMask, ImgMaskAug
-from script.model.sklearn_like_model.BaseModel import BaseEpochCallback, BaseDatasetCallback
+from script.model.sklearn_like_model.BaseModel import BaseDatasetCallback
+from script.model.sklearn_like_model.callback.BaseEpochCallback import BaseEpochCallback
 from script.model.sklearn_like_model.ImageClf import ImageClf
 from script.model.sklearn_like_model.TFSummary import TFSummaryScalar
 from script.model.sklearn_like_model.callback.EarlyStop import EarlyStop
@@ -270,7 +271,7 @@ class is_emtpy_mask_clf_pipeline:
             dc,
             log_callback(dc),
             summary_callback(dc, clf.run_id),
-            Top_k_save(path_join(INSTANCE_PATH, clf.run_id, 'top_k'), k=1, dc=dc, key='test_score'),
+            Top_k_save(path_join(INSTANCE_PATH, clf.run_id, 'top_k'), k=1).trace_on(dc, 'test_score'),
             TriangleLRScheduler(7, 0.001, 0.0005),
             EarlyStop(16),
         ]

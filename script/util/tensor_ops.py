@@ -364,7 +364,7 @@ def avg_pooling(input_, filter_, name='avg_pooling'):
     return tf.nn.avg_pool(input_, ksize=[1, kH, kW, 1], strides=[1, sH, sW, 1], padding='SAME', name=name)
 
 
-def max_pooling(input_, filter_, name='max_pooling'):
+def max_pooling(input_, filter_, padding='VALID', name='max_pooling'):
     """max pooling layer
 
     :type input_: Union[tensorflow.Variable, tensorflow.PlaceHolder]
@@ -378,7 +378,7 @@ def max_pooling(input_, filter_, name='max_pooling'):
     :rtype tensorflow.Variable
     """
     kH, kW, sH, sW = filter_
-    return tf.nn.max_pool(input_, ksize=[1, kH, kW, 1], strides=[1, sH, sW, 1], padding='SAME', name=name)
+    return tf.nn.max_pool(input_, ksize=[1, kH, kW, 1], strides=[1, sH, sW, 1], padding=padding, name=name)
 
 
 def onehot_to_index(onehot):

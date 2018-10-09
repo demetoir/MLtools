@@ -1,6 +1,6 @@
 from tensorflow.contrib import slim
 
-from script.model.sklearn_like_model.NetModule.UNetNetModule import UNetNetModule
+from script.model.sklearn_like_model.NetModule.UNetModule import UNetModule
 import tensorflow as tf
 import numpy as np
 
@@ -15,7 +15,7 @@ def show_summary():
 @deco_timeit
 def test_UNetStructure():
     x = tf.placeholder(tf.float32, [None, 128, 128, 3])
-    net = UNetNetModule(x)
+    net = UNetModule(x)
     net.build()
 
     h = net.proba

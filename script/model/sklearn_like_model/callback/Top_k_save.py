@@ -2,7 +2,7 @@ import os
 import shutil
 import numpy as np
 from pprint import pformat
-from script.model.sklearn_like_model.BaseModel import BaseEpochCallback
+from script.model.sklearn_like_model.callback.BaseEpochCallback import BaseEpochCallback
 from script.util.misc_util import path_join, load_json, setup_directory, dump_json, error_trace
 
 
@@ -39,7 +39,7 @@ class Top_k_save(BaseEpochCallback):
 
         try:
             for i in reversed(range(1, self.k + 1)):
-                if sign * self.top_k[i - 1] >= sign * metric >= sign * self.top_k[i]:
+                if sign * self.top_k[i - 1] > sign * metric > sign * self.top_k[i]:
                     # update top_k
                     self.top_k.insert(i, metric)
                     self.top_k.pop(self.k + 1)

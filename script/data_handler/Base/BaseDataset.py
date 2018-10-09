@@ -481,8 +481,8 @@ class BaseDataset(LoggerMixIn, PickleSelfMixIn, metaclass=MetaDataset):
 
         return k_splits
 
-    def k_fold_split(self, k=5, shuffle=False, random_sate=None):
-        k_split = self.k_split(k, shuffle, random_sate)
+    def k_fold_split(self, k=5, shuffle=False, random_state=None):
+        k_split = self.k_split(k, shuffle, random_state)
 
         k_fold_set = []
         for i in range(k):
@@ -623,4 +623,18 @@ class BaseDataset(LoggerMixIn, PickleSelfMixIn, metaclass=MetaDataset):
         dataset.x_keys = self.x_keys
         dataset.y_keys = self.y_keys
 
+        return dataset
+
+    def copy(self, deep=True):
+
+        dataset = BaseDataset()
+        for key, val in self.data.items():
+
+            if deep:
+                dataset.add_data(key, np.copy(val))
+            else:
+                dataset.add_data(key, val)
+
+        dataset.x_keys = self.x_keys
+        dataset.y_keys = self.y_keys
         return dataset

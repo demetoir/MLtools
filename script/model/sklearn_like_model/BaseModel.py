@@ -6,8 +6,9 @@ from tqdm import trange, tqdm
 
 from env_settting import *
 from script.data_handler.Base.BaseDataset import BaseDataset
-from script.model.sklearn_like_model.Mixin import input_shapesMixIn, paramsMixIn, loss_packMixIn
+from script.model.sklearn_like_model.Mixin import paramsMixIn, loss_packMixIn, slice_np_arr
 from script.model.sklearn_like_model.SessionManager import SessionManager
+from script.model.sklearn_like_model.callback.BaseEpochCallback import BaseEpochCallback
 from script.util.MixIn import LoggerMixIn
 from script.util.misc_util import setup_directory, setup_file, dump_json, load_json
 from script.util.misc_util import time_stamp, path_join, error_trace
@@ -39,65 +40,6 @@ class BaseDatasetCallback:
         raise NotImplementedError
 
 
-class metaEpochCallback(type):
-    """Metaclass for hook inherited class's function
-    metaclass ref from 'https://code.i-harness.com/ko/q/11fc307'
-    """
-
-    def __init__(cls, name, bases, cls_dict):
-        type.__init__(cls, name, bases, cls_dict)
-
-        # hook __call__
-        f_name = '__call__'
-        if f_name in cls_dict:
-            func = cls_dict[f_name]
-
-            def new_func(self, model, dataset, metric, epoch, *args, **kwargs):
-                if getattr(self, 'is_trance_on', False):
-                    dc = getattr(self, 'dc')
-                    dc_key = getattr(self, 'dc_key')
-                    metric = getattr(dc, dc_key)
-
-                return func(self, model, dataset, metric, epoch, *args, **kwargs)
-
-            new_func.__name__ = f_name + '_wrap'
-            setattr(cls, f_name, new_func)
-
-        def wrap_return_self(f_name, cls_dict, cls):
-            func = cls_dict[f_name]
-
-            def new_func(self, *args, **kwargs):
-                func(self, *args, **kwargs)
-                return self
-
-            new_func.__name__ = f_name + '_wrap'
-            setattr(cls, f_name, new_func)
-
-        # hook return self
-        f_name = 'trace_on'
-        if f_name in cls_dict:
-            wrap_return_self(f_name, cls_dict, cls)
-
-        f_name = 'trace_off'
-        if f_name in cls_dict:
-            wrap_return_self(f_name, cls_dict, cls)
-
-
-class BaseEpochCallback(metaclass=metaEpochCallback):
-    def __call__(self, model, dataset, metric, epoch):
-        raise NotImplementedError
-
-    def trace_on(self, dc, key):
-        self.dc = dc
-        self.dc_key = key
-        self.is_trance_on = True
-
-    def trace_off(self):
-        del self.dc
-        del self.dc_key
-        self.is_trance_on = False
-
-
 class BaseDataCollector(BaseEpochCallback):
     def __init__(self, **kwargs):
         self.kwargs = kwargs
@@ -119,12 +61,17 @@ INSTANCE_FOLDER = 'instance'
 
 
 class ModelMetadata:
-    def __init__(self, id_, run_id, **kwargs):
+    def __init__(self, id_, **kwargs):
         self.id = id_
-        self.run_id = run_id
         for key, val in kwargs.items():
             setattr(self, key, val)
-        self.keys = ['id', 'run_id'] + list(kwargs.keys())
+        self.keys = ['id'] + list(kwargs.keys())
+
+    def __str__(self):
+        return pformat(self.metadata)
+
+    def __repr__(self):
+        return self.__str__()
 
     @property
     def metadata(self):
@@ -144,7 +91,6 @@ class ModelMetadata:
 
 class BaseModel(
     LoggerMixIn,
-    input_shapesMixIn,
     paramsMixIn,
     loss_packMixIn
 ):
@@ -160,7 +106,6 @@ class BaseModel(
         if logger_path is None, log ony stdout
         """
         LoggerMixIn.__init__(self, verbose=verbose)
-        input_shapesMixIn.__init__(self)
         paramsMixIn.__init__(self)
         loss_packMixIn.__init__(self)
 
@@ -174,25 +119,34 @@ class BaseModel(
 
         self.verbose = verbose
         # gen instance id
-        run_id = kwargs['run_id'] if 'run_id' in kwargs else time_stamp()
-        id_ = "_".join(["%s_%s" % (self.AUTHOR, self.__class__.__name__), run_id])
+
+        if 'run_id' in kwargs:
+            self.run_id = kwargs['run_id']
+        else:
+            self.run_id = time_stamp()
+
+        if 'id' in kwargs:
+            id_ = kwargs['id']
+        else:
+            id_ = "_".join(["%s_%s" % (self.AUTHOR, self.__class__.__name__), self.run_id])
         self.metadata = ModelMetadata(
             id_=id_,
-            run_id=run_id
         )
 
     @property
     def id(self):
         return self.metadata.id
 
-    @property
-    def run_id(self):
-        return self.metadata.run_id
-
     def __str__(self):
         s = ""
         s += "%s_%s\n" % (self.AUTHOR, self.__class__.__name__)
-        s += pformat(self.params)
+        s += pformat({
+            'id': self.id,
+            'run_id': self.run_id,
+            'params': self.params,
+            'meta': self.metadata
+
+        })
         return s
 
     def __repr__(self):
@@ -330,8 +284,7 @@ class BaseModel(
         if not self._is_input_shape_built:
             try:
                 self.inputs = inputs
-                input_shapes = self._build_input_shapes(inputs)
-                self._apply_input_shapes(input_shapes)
+                self._build_input_shapes(inputs)
                 self._is_input_shape_built = True
             except BaseException as e:
                 print(error_trace(e))
@@ -400,6 +353,18 @@ class BaseModel(
     def _train_iter(self, dataset, batch_size):
         raise NotImplementedError
 
+    def _is_fine_metric(self, metric):
+        if metric in (np.nan, np.inf, -np.inf):
+            print('metric is {metric}')
+            return True
+
+        if metric == getattr(self, 'recent_metric', None):
+            return True
+        else:
+            setattr(self, 'recent_metric', metric)
+
+        return False
+
     def train(
             self, x, y=None, epoch=1, batch_size=None,
             dataset_callback=None, epoch_pbar=True, iter_pbar=True, epoch_callbacks=None,
@@ -424,9 +389,10 @@ class BaseModel(
             global_epoch = self.sess.run(self.global_epoch)
             if epoch_pbar: epoch_pbar.update(1)
 
-            metric = getattr(self, 'metric', None)(x, y)
-            tqdm.write(f"e:{global_epoch}, metric : {np.mean(metric)}")
-            if metric in (np.nan, np.inf, -np.inf): break
+            metric = np.mean(getattr(self, 'metric', None)(x, y))
+            tqdm.write(f"\nepoch:{global_epoch}, metric : {np.mean(metric)}\n")
+            if self._is_fine_metric(metric):
+                break
 
             break_epoch = False
             if epoch_callbacks:
@@ -539,3 +505,33 @@ class BaseModel(
         if dataset_callback: del dataset
 
         return metric
+
+    def batch_execute(self, op, inputs):
+        batch_size = getattr(self, 'batch_size', None)
+        size = 0
+        for val in inputs.values():
+            size = len(val)
+
+        if size > batch_size:
+            partial = {}
+            for key, val in inputs.items():
+                for idx, part in enumerate(slice_np_arr(val, batch_size)):
+                    if idx not in partial:
+                        partial[idx] = {}
+
+                    partial[idx][key] = part
+
+            partial = list(partial.values())
+
+            tqdm.write('batch predict')
+            batchs = [
+                self.sess.run(op, feed_dict=x_partial)
+                for x_partial in tqdm(partial)
+            ]
+
+            try:
+                return np.concatenate(batchs)
+            except:
+                return batchs
+        else:
+            return self.sess.run(op, feed_dict=inputs)

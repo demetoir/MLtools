@@ -1,5 +1,6 @@
 import inspect
 from functools import reduce
+from pprint import pformat
 
 import numpy as np
 from tqdm import tqdm
@@ -245,6 +246,12 @@ class paramsMixIn:
 
         for key in self._params_keys:
             setattr(self, key, None)
+
+    def __str__(self):
+        return self.params
+
+    def __repr__(self):
+        return self.__str__()
 
     @property
     def params(self):
