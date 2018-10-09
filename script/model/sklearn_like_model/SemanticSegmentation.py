@@ -1,6 +1,5 @@
 import numpy as np
 from script.model.sklearn_like_model.BaseModel import BaseModel
-from script.model.sklearn_like_model.Mixin import supervised_trainMethodMixIn
 from script.model.sklearn_like_model.NetModule.FusionNetStructure import FusionNetModule
 from script.model.sklearn_like_model.NetModule.InceptionUNetModule import InceptionUNetModule
 from script.model.sklearn_like_model.NetModule.PlaceHolderModule import PlaceHolderModule
@@ -100,25 +99,8 @@ class BCELoss(BaseLossModule):
         return self.bce
 
 
-class BCE_loss:
-    def __init__(self, true, predict, epsilon=1e-8):
-        self.true = true
-        self.predict = predict
-        self.epsilon = epsilon
-
-    def build(self):
-        epsilon = self.epsilon
-
-        target = self.true
-        output = self.predict
-        self.loss = tf.reduce_sum(
-            -(target * tf.log(output + epsilon) + (1. - target) * tf.log(1. - output + epsilon))
-        )
-
-
 class SemanticSegmentation(
     BaseModel,
-    supervised_trainMethodMixIn,
 ):
     net_structure_class_dict = {
         'UNet': UNetModule,
@@ -142,7 +124,6 @@ class SemanticSegmentation(
             **kwargs
     ):
         BaseModel.__init__(self, verbose, **kwargs)
-        supervised_trainMethodMixIn.__init__(self, None)
 
         self.learning_rate = learning_rate
         self.beta1 = beta1
@@ -188,12 +169,18 @@ class SemanticSegmentation(
         self.vars = self.net_module.vars
         self._logit = self.net_module.logit
         self._proba = self.net_module.proba
-        # self._predict = reshape(tf.argmax(self._proba, 3, name="predicted"), self.xs_ph_module.batch_shape,
-        #                         name='predict')
-        self._predict = tf.greater(self._proba, 0.5)
+        self._predict = tf.round(self._proba)
 
         self._predict_proba_ops = self._proba
         self._predict_ops = self._predict
+
+    def _train_iter(self, dataset, batch_size):
+        self.net_module.set_train(self.sess)
+
+        Xs, Ys = dataset.next_batch(batch_size, balanced_class=False)
+        self.sess.run(self.train_ops, feed_dict={self.Xs_ph: Xs, self.Ys_ph: Ys})
+
+        self.net_module.set_non_train(self.sess)
 
     def _build_loss_function(self):
         if self.loss_type == 'BCE+dice_soft':
@@ -201,11 +188,12 @@ class SemanticSegmentation(
             self.dice_soft_module.build()
             self.dice_soft = self.dice_soft_module.loss
 
-            self.BCE_module = BCELoss(self.Ys_ph, self._proba)
+            self.BCE_module = BCELoss(self.Ys_ph, self._logit)
             self.BCE_module.build()
             self.BCE = self.BCE_module.loss
 
-            self.loss = self.dice_soft + self.BCE
+            # self.loss = self.dice_soft + self.BCE
+            self.loss = self.BCE
             # self.loss = lovasz_softmax(self._proba, self.Ys)
 
         else:
@@ -243,15 +231,11 @@ class SemanticSegmentation(
         self.drl = TFDynamicLearningRate(self.learning_rate)
         self.drl.build()
 
-        self._train_ops = tf.train.AdamOptimizer(
-            self.drl.learning_rate, beta1=self.beta1
+        self.train_ops = tf.train.AdamOptimizer(
+            self.drl.learning_rate
         ).minimize(
             self.loss, var_list=self.vars
         )
-
-    @property
-    def train_ops(self):
-        return self._train_ops
 
     @property
     def predict_ops(self):
@@ -268,14 +252,6 @@ class SemanticSegmentation(
     @property
     def metric_ops(self):
         return self.loss
-
-    def _train_iter(self, dataset, batch_size):
-        self.net_module.set_train(self.sess)
-
-        Xs, Ys = dataset.next_batch(batch_size, balanced_class=False)
-        self.sess.run(self.train_ops, feed_dict={self.Xs_ph: Xs, self.Ys_ph: Ys})
-
-        self.net_module.set_non_train(self.sess)
 
     def init_adam_momentum(self):
         self.sess.run(tf.variables_initializer(self.train_ops_var_list))
