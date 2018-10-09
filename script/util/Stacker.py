@@ -156,9 +156,9 @@ class Stacker(LoggerMixIn):
         """add average pooling layer"""
         return self.add_layer(avg_pooling, filter_)
 
-    def max_pooling(self, filter_):
+    def max_pooling(self, filter_, padding):
         """add max pooling layer"""
-        return self.add_layer(max_pooling, filter_)
+        return self.add_layer(max_pooling, filter_, padding)
 
     def softmax(self):
         """add softmax layer"""
@@ -188,3 +188,18 @@ class Stacker(LoggerMixIn):
 
     def pixel_wise_softmax(self):
         return self.add_layer(pixel_wise_softmax)
+
+    def layers_conv2d(self, channel, filter, stride, padding):
+        return self.add_layer(tf.layers.conv2d, channel, filter, stride, padding)
+
+    def layers_bn(self):
+        return self.add_layer(tf.layers.batch_normalization)
+
+    def layers_dropout(self, rate):
+        return self.add_layer(tf.layers.dropout, rate)
+
+    def layers_max_pooling2d(self, pool_size, stride):
+        return self.add_layer(tf.layers.max_pooling2d, pool_size, stride)
+
+    def layers_conv2d_transpose(self, channel, filter, stride, padding):
+        return self.add_layer(tf.layers.conv2d_transpose, channel, filter, stride, padding)
