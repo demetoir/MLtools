@@ -21,7 +21,7 @@ class Stacker(LoggerMixIn):
     last_layer = stacker.last_layer
     """
 
-    def __init__(self, start_layer=None, reuse=False, name="stacker", verbose=0):
+    def __init__(self, start_layer=None, reuse=False, name=None, verbose=0):
         """create SequenceModel
 
         :param start_layer:the start layer
@@ -48,6 +48,13 @@ class Stacker(LoggerMixIn):
     def layer_info(layer):
         return f'({layer.op.name}, {layer.shape}, {layer.dtype}'
 
+    @property
+    def scope_head(self):
+        if self.name:
+            return f'{self.name}'
+        else:
+            return f'layer'
+
     def add_layer(self, func, *args, **kwargs):
         """add new layer right after last added layer
 
@@ -58,11 +65,9 @@ class Stacker(LoggerMixIn):
         """
         if self.start_layer is None:
             self.build_seq += [(func, args, kwargs)]
-
             return self.build_seq[-1]
-
         else:
-            scope_name = f'{self.name}_layer_{self.layer_count}_{func.__name__}'
+            scope_name = f'{self.scope_head}_{self.layer_count}_{func.__name__}'
             with tf.variable_scope(scope_name, reuse=self.reuse):
                 if func == concat:
                     self.last_layer = func(*args, **kwargs)
