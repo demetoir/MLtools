@@ -31,25 +31,19 @@ class Metrics:
         true = true.astype(np.int32)
         predict = predict.astype(np.int32)
 
-        intersect = np.sum(np.logical_and(true, predict))
-        union = np.sum(np.logical_or(true, predict))
-        if union == 0:
-            return 0
-        else:
-            iou_score = np.sum(intersect) / np.sum(union)
-        return iou_score
+        # zero rate mask will include, 1
+        intersection = np.logical_and(true, predict)
+        union = np.logical_or(true, predict)
+        iou = (np.sum(intersection > 0) + 1e-10) / (np.sum(union > 0) + 1e-10)
+        return iou
 
     @staticmethod
     def TGS_salt_score(mask_true, mask_predict):
         def _metric(mask_true, mask_predict):
-            if np.sum(mask_true) == 0:
-                return 0 if np.sum(mask_predict) > 0 else 1
-            else:
-                iou_score = Metrics.iou(mask_true, mask_predict)
-
-                threshold = np.arange(0.5, 1, 0.05)
-                score = np.sum(threshold <= iou_score) / 10.0
-                return score
+            iou_score = Metrics.iou(mask_true, mask_predict)
+            threshold = np.arange(0.5, 1, 0.05)
+            score = np.sum(threshold <= iou_score) / 10.0
+            return score
 
         if mask_true.shape != mask_predict.shape:
             raise ValueError(f'mask shape does not match, true={mask_true.shape}, predict={mask_predict}')
