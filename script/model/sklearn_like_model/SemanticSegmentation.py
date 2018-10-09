@@ -25,7 +25,8 @@ class BaseLossModule(LoggerMixIn):
         raise NotImplementedError
 
     def build(self):
-        self._build()
+        with tf.variable_scope(self.name):
+            self._build()
         self.log.info(f'build {self.name}, {self.loss}')
         return self
 
@@ -43,14 +44,17 @@ class DiceSoftLoss(BaseLossModule):
 
     def _build(self):
         self.true_flatten = flatten(self.true)
-        self.predict_flatten = flatten(self.proba)
+        self.proba_flatten = flatten(self.proba)
         true = self.true_flatten
-        predict = self.predict_flatten
+        proba = self.proba_flatten
 
-        self.intersection = tf.reduce_sum(true * predict, axis=1)
-        self.union = tf.reduce_sum((true * true) + (predict * predict), axis=1)
+        self.intersection = tf.reduce_sum(true * proba, axis=1, name='intersection')
+        self.union = tf.reduce_sum((true * true) + (proba * proba), axis=1, name='union')
+        # self.union = tf.reduce_sum(true + proba, axis=1)
         self.dice_coef = (2. * self.intersection + self.smooth) / (self.union + self.smooth)
+        self.dice_coef = identity(self.dice_coef, 'dice_coef')
         self.dice_loss = 1 - self.dice_coef
+        self.dice_loss = identity(self.dice_loss, 'dice_loss')
 
 
 class IouLoss(BaseLossModule):
@@ -62,12 +66,12 @@ class IouLoss(BaseLossModule):
 
     def _build(self):
         self.true_flatten = flatten(self.true)
-        self.predict_flatten = flatten(self.proba)
+        self.proba_flatten = flatten(self.proba)
         true = self.true_flatten
-        predict = self.predict_flatten
+        proba = self.proba_flatten
 
-        self.intersection = tf.reduce_sum(true * predict, axis=1)
-        self.union = tf.reduce_sum((true * true) + (predict * predict), axis=1)
+        self.intersection = tf.reduce_sum(true * proba, axis=1)
+        self.union = tf.reduce_sum((true * true) + (proba * proba), axis=1)
         self.iou_coef = (self.intersection + self.smooth) / (self.union - self.intersection + self.smooth)
         self.iou_loss = 1 - self.iou_coef
 
@@ -77,13 +81,19 @@ class IouLoss(BaseLossModule):
 
 
 class BCELoss(BaseLossModule):
-    def __init__(self, true, proba, name=None, verbose=0, **kwargs):
+    def __init__(self, true, logit, name=None, verbose=0, **kwargs):
         super().__init__(name, verbose, **kwargs)
         self.true = true
-        self.proba = proba
+        self.logit = logit
 
     def _build(self):
-        self.bce = tf.nn.sigmoid_cross_entropy_with_logits(logits=self.proba, labels=self.true)
+        self.true_flatten = flatten(self.true)
+        self.logit_flatten = flatten(self.logit)
+        true = self.true_flatten
+        logit = self.logit_flatten
+        self.bce = tf.reduce_mean(
+            tf.nn.sigmoid_cross_entropy_with_logits(labels=true, logits=logit),
+            axis=1)
 
     @property
     def loss(self):
