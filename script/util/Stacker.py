@@ -159,7 +159,7 @@ class Stacker(LoggerMixIn):
         """add average pooling layer"""
         return self.add_layer(avg_pooling, filter_)
 
-    def max_pooling(self, filter_, padding):
+    def max_pooling(self, filter_, padding='SAME'):
         """add max pooling layer"""
         return self.add_layer(max_pooling, filter_, padding)
 
