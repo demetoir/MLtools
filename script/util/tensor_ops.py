@@ -364,7 +364,7 @@ def avg_pooling(input_, filter_, name='avg_pooling'):
     return tf.nn.avg_pool(input_, ksize=[1, kH, kW, 1], strides=[1, sH, sW, 1], padding='SAME', name=name)
 
 
-def max_pooling(input_, filter_, padding='VALID', name='max_pooling'):
+def max_pooling(input_, filter_, padding='SAME', name='max_pooling'):
     """max pooling layer
 
     :type input_: Union[tensorflow.Variable, tensorflow.PlaceHolder]
