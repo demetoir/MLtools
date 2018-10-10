@@ -4,6 +4,15 @@ import numpy as np
 
 class ReduceLrOnPlateau(BaseEpochCallback):
     def __init__(self, reduce_rate, patience, min_lr=None, min_best=True, name='ReduceLrOnPlateau', log=print):
+        if not 0 < reduce_rate < 1:
+            raise ValueError(f'reduce_rate expect 0 < rate < 1, but {reduce_rate}')
+
+        if not (type(patience) == int and patience >= 1):
+            raise ValueError(f'patience expect integer and patience > 1, but {patience}')
+
+        if not 0 < min_lr < 1:
+            raise ValueError(f'min_lr expect 0 < min_lr < 1, but {min_lr}')
+
         self.reduce_rate = reduce_rate
         self.patience = patience
         self.min_lr = min_lr if min_lr else -np.inf
