@@ -194,3 +194,6 @@ class ImageClf(
 
     def set_predict(self, sess):
         self.mlp_net_module.set_non_train(sess)
+
+    def init_adam_momentum(self):
+        self.sess.run(tf.variables_initializer(self.train_ops_var_list))
