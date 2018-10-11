@@ -8,6 +8,7 @@ from script.model.sklearn_like_model.NetModule.PlaceHolderModule import PlaceHol
 from script.model.sklearn_like_model.NetModule.TFDynamicLearningRate import TFDynamicLearningRate
 from script.model.sklearn_like_model.NetModule.UNetModule import UNetModule
 from script.util.tensor_ops import *
+from script.workbench.TGS_salt.lovazs_loss import lovasz_hinge
 
 
 class SemanticSegmentation(BaseModel):
@@ -101,9 +102,9 @@ class SemanticSegmentation(BaseModel):
             self.BCE_module.build()
             self.BCE = self.BCE_module.loss
 
-            # self.loss = self.dice_soft + self.BCE
-            self.loss = self.BCE
-            # self.loss = lovasz_softmax(self._proba, self.Ys)
+            self.loss = self.dice_soft + self.BCE
+
+            lovasz = lovasz_hinge(self._logit, self.Ys_ph)
 
         else:
             raise NotImplementedError()
@@ -165,8 +166,8 @@ class SemanticSegmentation(BaseModel):
     def init_adam_momentum(self):
         self.sess.run(tf.variables_initializer(self.train_ops_var_list))
 
-    def metric(self, x, y):
-        return np.mean(self.batch_execute(self.loss, {self.Xs_ph: x, self.Ys_ph: y}))
+    def _metric(self, x=None, y=None):
+        return self.batch_execute(self.loss, {self.Xs_ph: x, self.Ys_ph: y})
 
     def predict_proba(self, x):
         return self.batch_execute(self._predict_proba_ops, {self.Xs_ph: x})
