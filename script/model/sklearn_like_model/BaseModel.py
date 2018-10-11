@@ -338,7 +338,7 @@ class BaseModel(
         self.log.info(f'restore from {path}')
 
         if var_list is None:
-            var_list = self.var_list
+            var_list = self.main_graph_var_list + self.misc_ops_var_list
 
         saver = tf.train.Saver(var_list)
         saver.restore(self.sess, path_join(path, 'check_point', 'instance.ckpt'))
