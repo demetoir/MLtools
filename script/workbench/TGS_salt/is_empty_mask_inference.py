@@ -142,13 +142,16 @@ class aug_callback(BaseDatasetCallback):
 
 
 class is_emtpy_mask_clf_baseline:
-    def init_dataset(self, fold=7, fold_index=0):
+    def init_dataset(self, fold=7, fold_index=3):
         helper = TGS_salt_DataHelper()
         train_set = helper.train_set
+        train_set = helper.add_depth_image_channel(train_set)
         # train_set = helper.get_non_empty_mask(train_set)
         train_set = helper.lr_flip(train_set)
         train_set.y_keys = ['empty_mask']
+        train_set.x_keys = ['x_with_depth']
         train_set, hold_out = helper.split_hold_out(train_set)
+        self.hold_out_set = hold_out
         kfold_sets = helper.k_fold_split(train_set, k=fold)
         train_set_fold1, valid_set_fold1 = kfold_sets[fold_index]
 
@@ -215,24 +218,28 @@ class is_emtpy_mask_clf_baseline:
         return x / 255.
 
     def encode_y(self, y):
-        return np_index_to_onehot(y)
+        y = y.reshape([-1, 1])
+        from sklearn.preprocessing import OneHotEncoder
+        enc = OneHotEncoder()
+        enc.fit(y)
+        y = enc.transform(y).toarray()
+
+        return y
+
+    def encode(self, x, y):
+        x = self.encode_x(x)
+        y = self.encode_y(y)
+        return x, y
 
     def encode_datas(self, datas):
-
         train_x, train_y, valid_x, valid_y = datas
 
         train_x_enc = self.encode_x(train_x)
         valid_x_enc = self.encode_x(valid_x)
+        train_y_enc = self.encode_y(train_y)
+        valid_y_enc = self.encode_y(valid_y)
 
-        train_y = train_y.reshape([-1, 1])
-        valid_y = valid_y.reshape([-1, 1])
-        from sklearn.preprocessing import OneHotEncoder
-        enc = OneHotEncoder()
-        enc.fit(train_y)
-        train_y_onehot = enc.transform(train_y).toarray()
-        valid_y_onehot = enc.transform(valid_y).toarray()
-
-        return train_x_enc, train_y_onehot, valid_x_enc, valid_y_onehot
+        return train_x_enc, train_y_enc, valid_x_enc, valid_y_enc
 
     def train(self, n_epoch=None, callbacks=None, datas=None):
         clf = self.model
@@ -253,11 +260,12 @@ class is_emtpy_mask_clf_baseline:
                 summary_callback(dc, clf.run_id),
                 BestSave(path_join(INSTANCE_PATH, clf.run_id), max_best=True).trace_on(dc, 'test_score'),
                 # TriangleLRScheduler(7, 0.001, 0.0005),
-                ReduceLrOnPlateau(5, 0.5, 0.0001),
-                # EarlyStop(16),
+                ReduceLrOnPlateau(0.5, 5, 0.0001, min_best=False).trace_on(dc, 'test_score'),
+                # EarlyStop(10).trace_on(dc, 'test_score'),
             ]
 
         n_epoch = 50
+        # clf.init_adam_momentum()
         clf.update_learning_rate(0.01)
         clf.train(
             train_x_enc, train_y_onehot, epoch=n_epoch, epoch_callbacks=callbacks,
@@ -266,7 +274,7 @@ class is_emtpy_mask_clf_baseline:
     def fold_train(self, epoch=50, k=7):
 
         models = []
-        for fold in range(k):
+        for fold in range(2, k):
             clf = self.new_model()
             models += [clf]
 
@@ -292,18 +300,68 @@ class is_emtpy_mask_clf_baseline:
                 train_x_enc, train_y_onehot, epoch=epoch, epoch_callbacks=callbacks
             )
 
+    def fold_score(self, k=7):
+        models = []
+
+        train_scores = []
+        valid_scores = []
+
+        hold_out_predicts = []
+        hold_out_probas = []
+        for fold in range(k):
+            path = f'./instance/TGS_salt/empty_mask_clf/fold_{fold}'
+            clf = self.load_model(path)
+            models += [clf]
+
+            datas = self.init_dataset(k, fold)
+            train_x_enc, train_y_onehot, valid_x_enc, valid_y_onehot = self.encode_datas(datas)
+            train_score = clf.score(train_x_enc, train_y_onehot)
+            valid_score = clf.score(valid_x_enc, valid_y_onehot)
+
+            holdout_x, holdout_y = self.hold_out_set.full_batch()
+            holdout_x_enc, holdout_y_enc = self.encode(holdout_x, holdout_y)
+
+            hold_out_proba = clf.predict_proba(holdout_x_enc)
+            hold_out_predict = clf.predict(holdout_x_enc)
+            hold_out_predicts += [hold_out_predict]
+            hold_out_probas += [hold_out_proba]
+
+            train_scores += [train_score]
+            valid_scores += [valid_score]
+
+        print(f'train score')
+        for i, score in enumerate(train_scores):
+            print(i, score)
+
+        print(f'valid score')
+        for i, score in enumerate(valid_scores):
+            print(i, score)
+
+        hold_out_probas = np.array(hold_out_probas)
+        probas = np.sum(hold_out_probas, axis=0)
+        probas /= k
+        predict = np.argmax(probas, axis=1)
+        from sklearn.metrics import accuracy_score
+        score = accuracy_score(holdout_y, predict)
+        print(f'ensemble soft score = {score}')
+
     def load_model(self, path):
         clf = ImageClf().load_meta(path)
-        clf.build(x=(101, 101, 1), y=(2,))
+        clf.build(x=(101, 101, 2), y=(2,))
         clf.restore(path)
         self.model = clf
+        return clf
 
     def new_model(self):
         params = self.params()
         clf = ImageClf(**params)
-        clf.build(x=(101, 101, 1), y=(2,))
+        clf.build(x=(101, 101, 2), y=(2,))
         self.model = clf
         return clf
+
+    def load_baseline(self):
+        path = f'./instance/TGS_salt/empty_mask_clf/fold_3'
+        self.load_model(path)
 
     def new_train(self):
         # top base line but suspicious 0.94 test
