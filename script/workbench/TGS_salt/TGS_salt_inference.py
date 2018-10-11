@@ -181,13 +181,13 @@ class TGS_salt_DataHelper:
         idx = mask_rate > n
         return dataset.query_by_idxs(idx)
 
-    def lr_flip(self, dataset):
+    def lr_flip(self, dataset, x_key='image', y_key='mask'):
         flip_lr_set = dataset.copy()
         x, y = flip_lr_set.full_batch()
         x = np.fliplr(x)
-        flip_lr_set.data['image'] = x
+        flip_lr_set.data[x_key] = x
         y = np.fliplr(y)
-        flip_lr_set.data['mask'] = y
+        flip_lr_set.data[y_key] = y
         dataset = dataset.merge(dataset, flip_lr_set)
         return dataset
 
