@@ -55,6 +55,18 @@ class Metrics:
 
         return ret
 
+    @staticmethod
+    def miou_non_empty(true, predict):
+        non_empty = np.mean(true, axis=(1, 2, 3))
+        idx = non_empty > 0
+        return Metrics.miou(true[idx], predict[idx])
+
+
+    @staticmethod
+    def TGS_salt_score_non_empty(true, predict):
+        non_empty = np.mean(true, axis=(1, 2, 3))
+        idx = non_empty > 0
+        return Metrics.TGS_salt_score(true[idx], predict[idx])
 
 def masks_rate(masks):
     size = masks.shape[0]
