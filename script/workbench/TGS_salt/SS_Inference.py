@@ -58,6 +58,12 @@ class CollectDataCallback(BaseDataCollector):
 
         self.train_predict_sample = self.train_predict_dec[:20]
 
+        self.train_non_empty_iou_score = Metrics.miou_non_empty(self.train_y_enc, self.train_predict_enc)
+        self.test_non_empty_iou_score = Metrics.miou_non_empty(self.test_y_enc, self.test_predict_enc)
+
+        self.train_non_empty_TGS_score = Metrics.TGS_salt_score_non_empty(self.train_y_enc, self.train_predict_enc)
+        self.test_non_empty_TGS_score = Metrics.TGS_salt_score_non_empty(self.test_y_enc, self.test_predict_enc)
+
 
 class LoggingCallback(BaseEpochCallback):
     def __init__(self, data_collection):
@@ -76,6 +82,15 @@ class LoggingCallback(BaseEpochCallback):
         msg += f'iou score\n'
         msg += f'train        = {self.dc.train_iou_score}\n'
         msg += f'test         = {self.dc.test_iou_score}\n'
+        msg += f'\n'
+
+        msg += f'non empty TGS_salt_metric score\n'
+        msg += f'train        = {self.dc.train_non_empty_TGS_score}\n'
+        msg += f'test         = {self.dc.test_non_empty_TGS_score}\n'
+
+        msg += f'non empty iou score\n'
+        msg += f'train        = {self.dc.train_non_empty_iou_score}\n'
+        msg += f'test         = {self.dc.test_non_empty_iou_score}\n'
         msg += f'\n'
 
         tqdm.write(msg)
@@ -271,10 +286,11 @@ class SS_baseline:
     def prepare_set(self, k=5, index=0):
         helper = TGS_salt_DataHelper()
         train_set = helper.train_set
-        train_set = helper.add_depth_image_channel(train_set)
-        train_set.x_keys = ['x_with_depth']
+        # train_set = helper.add_depth_image_channel(train_set)
+        # train_set.x_keys = ['x_with_depth']
         # train_set = helper.get_non_empty_mask(train_set)
-        train_set = helper.lr_flip(train_set, x_key='x_with_depth')
+        # train_set = helper.lr_flip(train_set, x_key='x_with_depth')
+        train_set = helper.lr_flip(train_set)
         train_set, hold_out = helper.split_hold_out(train_set)
         kfold_sets = helper.k_fold_split(train_set, k=k)
         train_set_fold1, valid_set_fold1 = kfold_sets[index]
@@ -314,7 +330,7 @@ class SS_baseline:
             callbacks = [
                 dc_callback,
                 BestSave(
-                    path_join(INSTANCE_PATH, run_id, 'test_score'),
+                    path_join(INSTANCE_PATH, run_id),
                     name='test_score',
                     max_best=True
                 ).trace_on(dc_callback, 'test_score'),
@@ -327,7 +343,7 @@ class SS_baseline:
                 # ).trace_on(
                 #     dc_callback, 'test_iou_score'
                 # ),
-                ReduceLrOnPlateau(0.5, 7, 0.0001, min_best=False).trace_on(dc_callback, 'test_iou_score'),
+                ReduceLrOnPlateau(0.5, 5, 0.0001, min_best=False).trace_on(dc_callback, 'test_iou_score'),
                 # TriangleLRScheduler(10, 0.01, 0.001),
             ]
 
@@ -337,7 +353,7 @@ class SS_baseline:
         # model.update_dropout_rate(1)
         pprint(model)
 
-        epoch = 50
+        epoch = 100
         model.train(
             train_x_enc, train_y_enc, epoch=epoch,
             epoch_callbacks=callbacks,
@@ -429,17 +445,17 @@ class SS_baseline:
     def new_model(self):
         params = self.params()
         self.model = SemanticSegmentation(**params)
-        self.model.build(x=(101, 101, 2), y=(101, 101, 1))
+        self.model.build(x=(101, 101, 1), y=(101, 101, 1))
 
         return self.model
 
     def load_baseline(self):
-        path = './instance/TGS_salt/SS/baseline'
+        path = './instance/TGS_salt/SS/target'
         self.load_model(path)
 
     def load_model(self, path):
         self.model = SemanticSegmentation().load_meta(path)
-        self.model.build(x=(101, 101, 2), y=(101, 101, 1))
+        self.model.build(x=(101, 101, 1), y=(101, 101, 1))
         self.model.restore(path)
 
         return self.model
