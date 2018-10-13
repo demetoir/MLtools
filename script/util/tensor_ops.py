@@ -116,21 +116,19 @@ def linear(input_, output_size, name="linear", stddev=0.02, bias_start=0.0, with
 
 
 def conv2d_transpose(input_, output_shape, filter_, name="conv2d_transpose", stddev=0.02,
-                     with_w=False):
+                     padding='SAME'):
     """transposed 2d convolution layer
 
     :type input_: Union[tensorflow.Variable, tensorflow.PlaceHolder]
     :type output_shape: Union[list, tuple]
     :type filter_: tuple[int, int, int, int]
     :type name: str
-    :type with_w: bool
     :type stddev: float
     :param input_: input variable or placeholder of tensorflow
     :param output_shape: output shape of after transposed convolution
     :param filter_: convolution filter(kernel and stride)
     :param name: tensor scope name
     :param stddev: stddev for initialize weight
-    :param with_w: return with weight and bias tensor variable
 
     :return: result of 2d transposed convolution
     :rtype tensorflow.Variable
@@ -139,15 +137,14 @@ def conv2d_transpose(input_, output_shape, filter_, name="conv2d_transpose", std
     with tf.variable_scope(name):
         weight = tf.get_variable('weight', [k_h, k_w, output_shape[-1], input_.get_shape()[-1]],
                                  initializer=tf.contrib.layers.xavier_initializer_conv2d())
-        conv_transpose = tf.nn.conv2d_transpose(input_, weight, output_shape=output_shape, strides=[1, d_h, d_w, 1])
+        conv_transpose = tf.nn.conv2d_transpose(
+            input_, weight, output_shape=output_shape, strides=[1, d_h, d_w, 1],
+            padding=padding)
 
         bias = tf.get_variable('bias', [output_shape[-1]], initializer=tf.constant_initializer(0.0))
         conv_transpose = tf.nn.bias_add(conv_transpose, bias)
 
-        if with_w:
-            return conv_transpose, weight, bias
-        else:
-            return conv_transpose
+        return conv_transpose
 
 
 def conv2d(input_, output_channel, filter_, stddev=0.02, name="conv2d"):
@@ -193,7 +190,7 @@ def atrous_conv2d(input_, output_channel, filter_, rate, name='atrous_conv2d'):
         return conv
 
 
-def atrous_conv2d_block(input_, output_channel, filter_, rate, activation, name):
+def atrous_conv2d_block(input_, output_channel, filter_, rate, activation, name='atrous_conv2d_block'):
     with tf.variable_scope(name):
         net = atrous_conv2d(input_, output_channel, filter_, rate)
         net = bn(net)
@@ -264,7 +261,7 @@ def upscale_2x_atrous_block(input_, output_channel, filter_, rate, activation, n
     return net
 
 
-def upscale_2x(input_, output_channel, filter_, name='upscale_2x'):
+def upscale_2x(input_, output_channel, filter_, padding='SAME', name='upscale_2x'):
     """transposed convolution to double scale up layer
 
     doubled width and height of input
@@ -288,10 +285,10 @@ def upscale_2x(input_, output_channel, filter_, name='upscale_2x'):
 
     output_shape = [n, h * 2, w * 2, output_channel]
     output_shape = list(map(int, output_shape))
-    return conv2d_transpose(input_, output_shape, filter_, name=name)
+    return conv2d_transpose(input_, output_shape, filter_, name=name, padding=padding)
 
 
-def upscale_2x_block(input_, output_channel, filter_, activate, name='upscale_2x_block'):
+def upscale_2x_block(input_, output_channel, filter_, activate, padding='SAME', name='upscale_2x_block'):
     """2*2 upscale tensor block(transposed convolution, batch normalization, activation)
 
     :type input_: Union[tensorflow.Variable, tensorflow.PlaceHolder]
@@ -309,7 +306,7 @@ def upscale_2x_block(input_, output_channel, filter_, activate, name='upscale_2x
     :rtype tensorflow.Variable
     """
     with tf.variable_scope(name):
-        input_ = upscale_2x(input_, output_channel, filter_)
+        input_ = upscale_2x(input_, output_channel, filter_, padding=padding)
         input_ = bn(input_)
         input_ = activate(input_)
     return input_
