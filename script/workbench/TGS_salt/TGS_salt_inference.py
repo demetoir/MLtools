@@ -3,6 +3,7 @@ from imgaug import augmenters as iaa
 from sklearn.decomposition import PCA
 from sklearn.manifold import TSNE
 
+from script.data_handler.Base.BaseDataset import BaseDataset
 from script.data_handler.ImgMaskAug import ActivatorMask, ImgMaskAug
 from script.data_handler.TGS_salt import collect_images, TRAIN_MASK_PATH, TGS_salt, \
     TRAIN_IMAGE_PATH, TEST_IMAGE_PATH, RLE_mask_encoding
@@ -61,12 +62,12 @@ class Metrics:
         idx = non_empty > 0
         return Metrics.miou(true[idx], predict[idx])
 
-
     @staticmethod
     def TGS_salt_score_non_empty(true, predict):
         non_empty = np.mean(true, axis=(1, 2, 3))
         idx = non_empty > 0
         return Metrics.TGS_salt_score(true[idx], predict[idx])
+
 
 def masks_rate(masks):
     size = masks.shape[0]
@@ -208,6 +209,47 @@ class TGS_salt_DataHelper:
 
     def k_fold_split(self, dataset, k=5, shuffle=False, random_state=1234):
         return dataset.k_fold_split(k, shuffle=shuffle, random_state=random_state)
+
+    def crop_dataset(self, dataset, size=(64, 64), k=10, with_edge=True):
+        xs, ys = dataset.full_batch()
+
+        w, h = size
+        new_x = []
+        new_y = []
+        size = len(xs)
+        # edge
+        if with_edge:
+            for i in range(size):
+                x = xs[i]
+                y = ys[i]
+                new_x += [x[:w, :h, :].reshape([1, h, w, 1])]
+                new_y += [y[:w, :h, :].reshape([1, h, w, 1])]
+
+                new_x += [x[101 - w:101, :h, :].reshape([1, h, w, 1])]
+                new_y += [y[101 - w:101, :h, :].reshape([1, h, w, 1])]
+
+                new_x += [x[:w, 101 - h:101, :].reshape([1, h, w, 1])]
+                new_y += [y[:w, 101 - h:101, :].reshape([1, h, w, 1])]
+
+                new_x += [x[101 - w:101, 101 - h:101, :].reshape([1, h, w, 1])]
+                new_y += [y[101 - w:101, 101 - h:101, :].reshape([1, h, w, 1])]
+
+        # non_edge
+        for i in range(size):
+            for _ in range(k):
+                x = xs[i]
+                y = ys[i]
+                a = np.random.randint(1, 101 - 64 - 1)
+                b = np.random.randint(1, 101 - 64 - 1)
+                new_x += [x[a:a + w, b:b + h, :].reshape([1, h, w, 1])]
+                new_y += [y[a:a + w, b:b + h, :].reshape([1, h, w, 1])]
+
+        new_x = np.concatenate(new_x)
+        new_y = np.concatenate(new_y)
+        print(new_x.shape)
+        print(new_y.shape)
+
+        return BaseDataset(x=new_x, y=new_y)
 
 
 class TGS_salt_aug_callback(BaseDatasetCallback):
