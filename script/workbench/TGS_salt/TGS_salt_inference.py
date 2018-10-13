@@ -148,7 +148,8 @@ class TGS_salt_DataHelper:
         self._sample_ys = ys_full[self.sample_offset:self.sample_offset + self.sample_size]
         return self._sample_ys
 
-    def get_non_empty_mask_idxs(self, dataset):
+    @staticmethod
+    def get_non_empty_mask_idxs(dataset):
         ys = dataset.full_batch(['mask'])['mask']
         idxs = [
             i
@@ -161,7 +162,8 @@ class TGS_salt_DataHelper:
         idxs = self.get_non_empty_mask_idxs(dataset)
         return dataset.query_by_idxs(idxs)
 
-    def get_empty_mask_idxs(self, dataset):
+    @staticmethod
+    def get_empty_mask_idxs(dataset):
         ys = dataset.full_batch(['mask'])['mask']
         idxs = [
             i
@@ -174,7 +176,8 @@ class TGS_salt_DataHelper:
         idxs = self.get_empty_mask_idxs(dataset)
         return dataset.query_by_idxs(idxs)
 
-    def add_depth_image_channel(self, dataset):
+    @staticmethod
+    def add_depth_image_channel(dataset):
         np_dict = dataset.full_batch(['image', 'depth_image'])
         x = np_dict['image']
         depth_image = np_dict['depth_image']
@@ -183,18 +186,21 @@ class TGS_salt_DataHelper:
 
         return dataset
 
-    def mask_rate_under_n_percent(self, dataset, n):
+    @staticmethod
+    def mask_rate_under_n_percent(dataset, n):
         mask_rate = dataset.full_batch(['mask_rate'])['mask_rate']
 
         idx = mask_rate < n
         return dataset.query_by_idxs(idx)
 
-    def mask_rate_upper_n_percent(self, dataset, n):
+    @staticmethod
+    def mask_rate_upper_n_percent(dataset, n):
         mask_rate = dataset.full_batch(['mask_rate'])['mask_rate']
         idx = mask_rate > n
         return dataset.query_by_idxs(idx)
 
-    def lr_flip(self, dataset, x_key='image', y_key='mask'):
+    @staticmethod
+    def lr_flip(dataset, x_key='image', y_key='mask'):
         flip_lr_set = dataset.copy()
         x, y = flip_lr_set.full_batch()
         x = np.fliplr(x)
@@ -204,13 +210,16 @@ class TGS_salt_DataHelper:
         dataset = dataset.merge(dataset, flip_lr_set)
         return dataset
 
-    def split_hold_out(self, dataset, random_state=1234, ratio=(9, 1)):
+    @staticmethod
+    def split_hold_out(dataset, random_state=1234, ratio=(9, 1)):
         return dataset.split(ratio, shuffle=False, random_state=random_state)
 
-    def k_fold_split(self, dataset, k=5, shuffle=False, random_state=1234):
+    @staticmethod
+    def k_fold_split(dataset, k=5, shuffle=False, random_state=1234):
         return dataset.k_fold_split(k, shuffle=shuffle, random_state=random_state)
 
-    def crop_dataset(self, dataset, size=(64, 64), k=10, with_edge=True):
+    @staticmethod
+    def crop_dataset(dataset, size=(64, 64), k=10, with_edge=True):
         xs, ys = dataset.full_batch()
 
         w, h = size
