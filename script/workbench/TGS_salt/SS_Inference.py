@@ -469,41 +469,27 @@ class SS_baseline:
 
         return np.concatenate(ret, axis=0)
 
-    def log_score(self):
+    def log_score(self, k, index):
         baseline = self.model
 
-        # train_predict = baseline.predict(pipe.train_x)
-        # train_predict = mask_label_encoder.from_label(train_predict)
-        #
-        # test_predict = baseline.predict(pipe.valid_x)
-        # test_predict = mask_label_encoder.from_label(test_predict)
-        #
-        # train_loss = baseline.metric(pipe.train_x, pipe.train_y_encode)
-        # test_loss = baseline.metric(pipe.valid_x, pipe.valid_y_encode)
-        #
-        # train_proba = baseline.predict_proba(pipe.train_x)
-        # test_proba = baseline.predict_proba(pipe.valid_x)
-        #
-        # train_score = Metrics.TGS_salt_score(pipe.train_y, train_predict)
-        # test_score = Metrics.TGS_salt_score(pipe.valid_y, test_predict)
-        #
-        # train_mask_rate = masks_rate(pipe.train_y)
-        # test_mask_rate = masks_rate(pipe.valid_y)
-        #
-        # train_miou = Metrics.miou(pipe.train_y, train_predict)
-        # test_miou = Metrics.miou(pipe.valid_y, test_predict)
-        #
-        # train_ious = Metrics.ious(pipe.train_y, train_predict)
-        # test_ious = Metrics.ious(pipe.valid_y, test_predict)
+        datas = self.prepare_set(k, index)
+        train_x_enc, train_y_enc, valid_x_enc, valid_y_enc = self.encode_datas(datas)
+        train_predict = baseline.predict(train_x_enc)
+        valid_predict = baseline.predict(valid_x_enc)
 
-        # print(
-        #     f'train TGS score = {train_score}\n'
-        #     f'test TGS score = {test_score}\n'
-        #     f'train miou = {train_miou}\n'
-        #     f'test miou = {test_miou}\n'
-        #     f'train loss = {train_loss}\n'
-        #     f'test loss = {test_loss}\n'
-        # )
+        train_TGS_score = Metrics.TGS_salt_score(train_y_enc, train_predict)
+        valid_TGS_score = Metrics.TGS_salt_score(valid_y_enc, valid_predict)
+        train_iou_score = Metrics.miou(train_y_enc, train_predict)
+        valid_iou_score = Metrics.miou(valid_y_enc, valid_predict)
+
+        print(
+            f'train TGS score = {train_TGS_score}\n'
+            f'test TGS score = {valid_TGS_score}\n'
+            f'train miou = {train_iou_score}\n'
+            f'test miou = {valid_iou_score}\n'
+            # f'train loss = {train_loss}\n'
+            # f'test loss = {test_loss}\n'
+        )
 
     def log_split_mask_rate_score(self):
 
