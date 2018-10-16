@@ -219,7 +219,7 @@ class TGS_salt_DataHelper:
         return dataset.k_fold_split(k, shuffle=shuffle, random_state=random_state)
 
     @staticmethod
-    def crop_dataset(dataset, size=(64, 64), k=10, with_edge=True):
+    def crop_dataset(dataset, size=(64, 64), k=30, with_edge=True):
         xs, ys = dataset.full_batch()
 
         w, h = size
@@ -252,6 +252,47 @@ class TGS_salt_DataHelper:
                 b = np.random.randint(1, 101 - 64 - 1)
                 new_x += [x[a:a + w, b:b + h, :].reshape([1, h, w, 1])]
                 new_y += [y[a:a + w, b:b + h, :].reshape([1, h, w, 1])]
+
+        new_x = np.concatenate(new_x)
+        new_y = np.concatenate(new_y)
+        print(new_x.shape)
+        print(new_y.shape)
+
+        return BaseDataset(x=new_x, y=new_y)
+
+    @staticmethod
+    def crop_dataset_stride(dataset, size=(64, 64), stride=10, with_edge=True):
+        xs, ys = dataset.full_batch()
+
+        w, h = size
+        new_x = []
+        new_y = []
+        size = len(xs)
+        # edge
+        if with_edge:
+            for i in range(size):
+                x = xs[i]
+                y = ys[i]
+                new_x += [x[:w, :h, :].reshape([1, h, w, 1])]
+                new_y += [y[:w, :h, :].reshape([1, h, w, 1])]
+
+                new_x += [x[101 - w:101, :h, :].reshape([1, h, w, 1])]
+                new_y += [y[101 - w:101, :h, :].reshape([1, h, w, 1])]
+
+                new_x += [x[:w, 101 - h:101, :].reshape([1, h, w, 1])]
+                new_y += [y[:w, 101 - h:101, :].reshape([1, h, w, 1])]
+
+                new_x += [x[101 - w:101, 101 - h:101, :].reshape([1, h, w, 1])]
+                new_y += [y[101 - w:101, 101 - h:101, :].reshape([1, h, w, 1])]
+
+        # non_edge
+        for i in range(size):
+            for a in range(0, 101 - 64, stride):
+                for b in range(0, 101 - 64, stride):
+                    x = xs[i]
+                    y = ys[i]
+                    new_x += [x[a:a + w, b:b + h, :].reshape([1, h, w, 1])]
+                    new_y += [y[a:a + w, b:b + h, :].reshape([1, h, w, 1])]
 
         new_x = np.concatenate(new_x)
         new_y = np.concatenate(new_y)
