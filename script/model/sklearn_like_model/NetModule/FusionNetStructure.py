@@ -71,6 +71,7 @@ class FusionNetModule(BaseNetModule):
             stacker.relu()
             stacker.add_layer(_residual_block_pre_activation, self.n_channel)
             stacker.add_layer(_residual_block_pre_activation, self.n_channel)
+            stacker.add_layer(_residual_block_pre_activation, self.n_channel)
             stacker.bn()
             stacker.relu()
             self.skip_connects += [stacker.last_layer]
@@ -81,6 +82,7 @@ class FusionNetModule(BaseNetModule):
             stacker.layers_conv2d(self.n_channel * 2, (3, 3), (1, 1), 'SAME')
             stacker.bn()
             stacker.relu()
+            stacker.add_layer(_residual_block_pre_activation, self.n_channel * 2)
             stacker.add_layer(_residual_block_pre_activation, self.n_channel * 2)
             stacker.add_layer(_residual_block_pre_activation, self.n_channel * 2)
             stacker.bn()
@@ -95,6 +97,7 @@ class FusionNetModule(BaseNetModule):
             stacker.relu()
             stacker.add_layer(_residual_block_pre_activation, self.n_channel * 4)
             stacker.add_layer(_residual_block_pre_activation, self.n_channel * 4)
+            stacker.add_layer(_residual_block_pre_activation, self.n_channel * 4)
             stacker.bn()
             stacker.relu()
             self.skip_connects += [stacker.last_layer]
@@ -105,6 +108,7 @@ class FusionNetModule(BaseNetModule):
             stacker.layers_conv2d(self.n_channel * 8, (3, 3), (1, 1), 'SAME')
             stacker.bn()
             stacker.relu()
+            stacker.add_layer(_residual_block_pre_activation, self.n_channel * 8)
             stacker.add_layer(_residual_block_pre_activation, self.n_channel * 8)
             stacker.add_layer(_residual_block_pre_activation, self.n_channel * 8)
             stacker.bn()
@@ -118,6 +122,7 @@ class FusionNetModule(BaseNetModule):
             stacker.layers_conv2d(self.n_channel * 16, (3, 3), (1, 1), 'SAME')
             stacker.bn()
             stacker.relu()
+            stacker.add_layer(_residual_block_pre_activation, self.n_channel * 16)
             stacker.add_layer(_residual_block_pre_activation, self.n_channel * 16)
             stacker.add_layer(_residual_block_pre_activation, self.n_channel * 16)
             stacker.bn()
@@ -136,6 +141,7 @@ class FusionNetModule(BaseNetModule):
             stacker.relu()
             stacker.add_layer(_residual_block_pre_activation, self.n_channel * 8)
             stacker.add_layer(_residual_block_pre_activation, self.n_channel * 8)
+            stacker.add_layer(_residual_block_pre_activation, self.n_channel * 8)
             stacker.bn()
             stacker.relu()
 
@@ -148,6 +154,7 @@ class FusionNetModule(BaseNetModule):
             stacker.layers_conv2d(self.n_channel * 4, (3, 3), (1, 1), 'SAME')
             stacker.bn()
             stacker.relu()
+            stacker.add_layer(_residual_block_pre_activation, self.n_channel * 4)
             stacker.add_layer(_residual_block_pre_activation, self.n_channel * 4)
             stacker.add_layer(_residual_block_pre_activation, self.n_channel * 4)
             stacker.bn()
@@ -164,6 +171,7 @@ class FusionNetModule(BaseNetModule):
             stacker.relu()
             stacker.add_layer(_residual_block_pre_activation, self.n_channel * 2)
             stacker.add_layer(_residual_block_pre_activation, self.n_channel * 2)
+            stacker.add_layer(_residual_block_pre_activation, self.n_channel * 2)
             stacker.bn()
             stacker.relu()
 
@@ -178,10 +186,11 @@ class FusionNetModule(BaseNetModule):
             stacker.relu()
             stacker.add_layer(_residual_block_pre_activation, self.n_channel * 1)
             stacker.add_layer(_residual_block_pre_activation, self.n_channel * 1)
+            stacker.add_layer(_residual_block_pre_activation, self.n_channel * 1)
             stacker.bn()
             stacker.relu()
 
-            self.logit = stacker.layers_conv2d(self.n_classes, (3, 3), (1, 1), 'SAME')
+            self.logit = stacker.layers_conv2d(self.n_classes, (1, 1), (1, 1), 'SAME')
             if self.n_classes == 1:
                 self.proba = stacker.sigmoid()
             else:
