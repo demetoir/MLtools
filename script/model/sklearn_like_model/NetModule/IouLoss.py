@@ -9,7 +9,7 @@ class IouLoss(BaseLossModule):
         self.proba = proba
         self.smooth = smooth
 
-    def _build(self):
+    def build(self):
         self.true_flatten = flatten(self.true)
         self.proba_flatten = flatten(self.proba)
         true = self.true_flatten

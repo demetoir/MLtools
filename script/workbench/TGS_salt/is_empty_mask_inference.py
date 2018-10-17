@@ -1,20 +1,17 @@
-from pprint import pprint
-
 from imgaug import augmenters as iaa
 from sklearn.metrics import accuracy_score
 from sklearn.metrics import confusion_matrix
 
 from script.data_handler.ImgMaskAug import ActivatorMask, ImgMaskAug
 from script.model.sklearn_like_model.BaseModel import BaseDatasetCallback
-from script.model.sklearn_like_model.callback.BaseEpochCallback import BaseEpochCallback
 from script.model.sklearn_like_model.ImageClf import ImageClf
 from script.model.sklearn_like_model.TFSummary import TFSummaryScalar
-from script.model.sklearn_like_model.callback.EarlyStop import EarlyStop
-from script.model.sklearn_like_model.callback.Top_k_save import Top_k_save
-from script.model.sklearn_like_model.callback.TriangleLRScheduler import TriangleLRScheduler
+from script.model.sklearn_like_model.callback.BaseEpochCallback import BaseEpochCallback
+from script.model.sklearn_like_model.callback.BestSave import BestSave
+from script.model.sklearn_like_model.callback.ReduceLrOnPlateau import ReduceLrOnPlateau
 from script.util.misc_util import time_stamp, path_join, to_dict
 from script.util.numpy_utils import *
-from script.workbench.TGS_salt.TGS_salt_inference import TGS_salt_DataHelper, plot, save_tf_summary_params
+from script.workbench.TGS_salt.TGS_salt_inference import TGS_salt_DataHelper
 
 SUMMARY_PATH = f'./tf_summary/TGS_salt/empty_mask_clf'
 INSTANCE_PATH = f'./instance/TGS_salt/empty_mask_clf'
@@ -67,11 +64,14 @@ class log_callback(BaseEpochCallback):
 
     def __call__(self, model, dataset, metric, epoch):
         self.log(
+            f'\n'
             f'e={epoch}, '
             f'train_score = {self.dc.train_score},\n'
-            f'train_confusion = {self.dc.train_confusion},\n'
+            f'train_confusion\n'
+            f'{self.dc.train_confusion}\n'
             f'test_score = {self.dc.test_score},\n'
-            f'test_confusion ={self.dc.test_confusion}\n'
+            f'test_confusion\n'
+            f'{self.dc.test_confusion}\n'
         )
 
 
@@ -141,83 +141,47 @@ class aug_callback(BaseDatasetCallback):
         return x[:batch_size], y[:batch_size]
 
 
-class is_emtpy_mask_clf_pipeline:
-    def __init__(self):
-        self.plot = plot
-        import random
-        self.random_sate = random.randint(1, 1234567)
-        self.init_dataset()
-        self.init_aug_set()
-
-    def init_dataset(self):
-        self.data_helper = TGS_salt_DataHelper()
-        # self.data_helper.train_set.y_keys = ['empty_mask']
-
-        train_set = self.data_helper.train_set_with_depth_image
+class is_emtpy_mask_clf_baseline:
+    def init_dataset(self, fold=7, fold_index=3):
+        helper = TGS_salt_DataHelper()
+        train_set = helper.train_set
+        train_set = helper.add_depth_image_channel(train_set)
+        # train_set = helper.get_non_empty_mask(train_set)
+        train_set = helper.lr_flip(train_set)
         train_set.y_keys = ['empty_mask']
+        train_set.x_keys = ['x_with_depth']
+        train_set, hold_out = helper.split_hold_out(train_set)
+        self.hold_out_set = hold_out
+        kfold_sets = helper.k_fold_split(train_set, k=fold)
+        train_set_fold1, valid_set_fold1 = kfold_sets[fold_index]
 
-        train_x, train_y = train_set.full_batch()
-        train_x = train_x.reshape([-1, 101, 101, 1])
-        train_y = train_y.reshape([-1, 1])
-        from sklearn.preprocessing import OneHotEncoder
-        enc = OneHotEncoder()
-        enc.fit(train_y)
+        print(f' {fold} fold, index {fold_index}')
+        print('train_set')
+        print(train_set_fold1)
+        print('valid_set')
+        print(valid_set_fold1)
 
-        from sklearn.model_selection import train_test_split
-        train_x, test_x, train_y, test_y = train_test_split(
-            train_x, train_y, test_size=0.33, random_state=self.random_sate)
-        self.enc = enc
-        train_y_onehot = enc.transform(train_y).toarray()
-        test_y_onehot = enc.transform(test_y).toarray()
+        train_x, train_y = train_set_fold1.full_batch()
+        valid_x, valid_y = valid_set_fold1.full_batch()
 
-        sample_size = 100
-        sample_x = train_x[:sample_size]
-        sample_y = train_y[:sample_size]
-        sample_y_onehot = train_y_onehot[:sample_size]
-
-        self.train_set = train_set
-        self.train_x = train_x
-        self.train_y = train_y
-        self.test_x = test_x
-        self.test_y = test_y
-        self.test_y_onehot = test_y_onehot
-        self.train_y_onehot = train_y_onehot
-        self.sample_x = sample_x
-        self.sample_y = sample_y
-        self.sample_y_onehot = sample_y_onehot
-
-    def init_aug_set(self):
-        self.data_helper.train_set.y_keys = ['mask']
-        train_set = self.data_helper.train_set
-        x_full, y_full = train_set.full_batch()
-        x_full = x_full.reshape([-1, 101, 101, 1])
-        y_full = y_full.reshape([-1, 101, 101, 1])
-
-        from sklearn.model_selection import train_test_split
-        train_x, test_x, train_y, test_y = train_test_split(
-            x_full, y_full, test_size=0.33, random_state=self.random_sate)
-
-        self.aug_train_x = train_x
-        self.aug_test_x = test_x
-        self.aug_train_y = train_y
-        self.aug_test_y = test_y
+        return train_x, train_y, valid_x, valid_y
 
     def params(
             self,
             run_id=None,
             learning_rate=0.01,
             beta1=0.9,
-            batch_size=100,
-            net_type='VGG16',
+            batch_size=64,
+            net_type='InceptionV1',
             n_classes=2,
-            capacity=64,
+            capacity=4,
             use_l1_norm=False,
             l1_norm_rate=0.01,
             use_l2_norm=False,
             l2_norm_rate=0.01,
             dropout_rate=0.5,
-            fc_depth=2,
             fc_capacity=1024,
+            fc_depth=2,
             comment=''
     ):
         # net_type = 'InceptionV1'
@@ -250,43 +214,246 @@ class is_emtpy_mask_clf_pipeline:
             comment=comment,
         )
 
-    def train(self, params, n_epoch, augmentation=False, path=None, callbacks=None):
-        save_tf_summary_params(SUMMARY_PATH, params)
-        pprint(f'train {params}')
+    def encode_x(self, x):
+        return x / 255.
 
-        if path:
-            clf = ImageClf().load(path)
-            clf.build(Xs=self.train_x, Ys=self.train_y_onehot)
-            clf.restore(path)
-        else:
-            clf = ImageClf(**params)
-            clf.build(Xs=self.train_x, Ys=self.train_y_onehot)
+    def encode_y(self, y):
+        y = y.reshape([-1, 1])
+        from sklearn.preprocessing import OneHotEncoder
+        enc = OneHotEncoder()
+        enc.fit(y)
+        y = enc.transform(y).toarray()
 
-        print('build callback')
-        dc = collect_data_callback(
-            self.train_x, self.train_y_onehot,
-            self.test_x, self.test_y_onehot
-        )
-        callbacks = [
-            dc,
-            log_callback(dc),
-            summary_callback(dc, clf.run_id),
-            Top_k_save(path_join(INSTANCE_PATH, clf.run_id, 'top_k'), k=1).trace_on(dc, 'test_score'),
-            TriangleLRScheduler(7, 0.001, 0.0005),
-            EarlyStop(16),
-        ]
+        return y
 
-        if augmentation:
-            dataset_callback = aug_callback(
-                self.aug_train_x,
-                self.aug_train_y,
-                params['batch_size'],
-                enc=self.enc
+    def encode(self, x, y):
+        x = self.encode_x(x)
+        y = self.encode_y(y)
+        return x, y
+
+    def encode_datas(self, datas):
+        train_x, train_y, valid_x, valid_y = datas
+
+        train_x_enc = self.encode_x(train_x)
+        valid_x_enc = self.encode_x(valid_x)
+        train_y_enc = self.encode_y(train_y)
+        valid_y_enc = self.encode_y(valid_y)
+
+        return train_x_enc, train_y_enc, valid_x_enc, valid_y_enc
+
+    def train(self, n_epoch=None, callbacks=None, datas=None):
+        clf = self.model
+
+        if datas is None:
+            datas = self.init_dataset()
+
+        train_x_enc, train_y_onehot, valid_x_enc, valid_y_onehot = self.encode_datas(datas)
+
+        if callbacks is None:
+            dc = collect_data_callback(
+                train_x_enc, train_y_onehot,
+                valid_x_enc, valid_y_onehot
             )
-        else:
-            dataset_callback = None
-        clf.update_learning_rate(0.001)
+            callbacks = [
+                dc,
+                log_callback(dc),
+                summary_callback(dc, clf.run_id),
+                BestSave(path_join(INSTANCE_PATH, clf.run_id), max_best=True).trace_on(dc, 'test_score'),
+                # TriangleLRScheduler(7, 0.001, 0.0005),
+                ReduceLrOnPlateau(0.5, 5, 0.0001, min_best=False).trace_on(dc, 'test_score'),
+                # EarlyStop(10).trace_on(dc, 'test_score'),
+            ]
+
+        n_epoch = 50
+        # clf.init_adam_momentum()
+        clf.update_learning_rate(0.01)
         clf.train(
-            self.train_x, self.train_y_onehot, epoch=n_epoch, epoch_callbacks=callbacks,
-            dataset_callback=dataset_callback
+            train_x_enc, train_y_onehot, epoch=n_epoch, epoch_callbacks=callbacks,
         )
+
+    def fold_train(self, epoch=50, k=7):
+
+        models = []
+        for fold in range(2, k):
+            clf = self.new_model()
+            models += [clf]
+
+            datas = self.init_dataset(k, fold)
+            train_x_enc, train_y_onehot, valid_x_enc, valid_y_onehot = self.encode_datas(datas)
+
+            dc = collect_data_callback(
+                train_x_enc, train_y_onehot,
+                valid_x_enc, valid_y_onehot
+            )
+            callbacks = [
+                dc,
+                log_callback(dc),
+                summary_callback(dc, clf.run_id),
+                BestSave(path_join(INSTANCE_PATH, f'fold_{fold}'), max_best=True).trace_on(dc, 'test_score'),
+                # TriangleLRScheduler(7, 0.001, 0.0005),
+                ReduceLrOnPlateau(0.7, 5, 0.0001),
+                # EarlyStop(16),
+            ]
+
+            clf.update_learning_rate(0.01)
+            clf.train(
+                train_x_enc, train_y_onehot, epoch=epoch, epoch_callbacks=callbacks
+            )
+
+    def fold_score(self, k=7):
+        models = []
+
+        train_scores = []
+        valid_scores = []
+
+        hold_out_predicts = []
+        hold_out_probas = []
+        for fold in range(k):
+            path = f'./instance/TGS_salt/empty_mask_clf/fold_{fold}'
+            clf = self.load_model(path)
+            models += [clf]
+
+            datas = self.init_dataset(k, fold)
+            train_x_enc, train_y_onehot, valid_x_enc, valid_y_onehot = self.encode_datas(datas)
+            train_score = clf.score(train_x_enc, train_y_onehot)
+            valid_score = clf.score(valid_x_enc, valid_y_onehot)
+
+            holdout_x, holdout_y = self.hold_out_set.full_batch()
+            holdout_x_enc, holdout_y_enc = self.encode(holdout_x, holdout_y)
+
+            hold_out_proba = clf.predict_proba(holdout_x_enc)
+            hold_out_predict = clf.predict(holdout_x_enc)
+            hold_out_predicts += [hold_out_predict]
+            hold_out_probas += [hold_out_proba]
+
+            train_scores += [train_score]
+            valid_scores += [valid_score]
+
+        print(f'train score')
+        for i, score in enumerate(train_scores):
+            print(i, score)
+
+        print(f'valid score')
+        for i, score in enumerate(valid_scores):
+            print(i, score)
+
+        hold_out_probas = np.array(hold_out_probas)
+        probas = np.sum(hold_out_probas, axis=0)
+        probas /= k
+        predict = np.argmax(probas, axis=1)
+        from sklearn.metrics import accuracy_score
+        score = accuracy_score(holdout_y, predict)
+        print(f'ensemble soft score = {score}')
+
+    def load_model(self, path):
+        clf = ImageClf().load_meta(path)
+        clf.build(x=(101, 101, 2), y=(2,))
+        clf.restore(path)
+        self.model = clf
+        return clf
+
+    def new_model(self):
+        params = self.params()
+        clf = ImageClf(**params)
+        clf.build(x=(101, 101, 2), y=(2,))
+        self.model = clf
+        return clf
+
+    def load_baseline(self):
+        path = f'./instance/TGS_salt/empty_mask_clf/fold_3'
+        self.load_model(path)
+
+    def new_train(self):
+        # top base line but suspicious 0.94 test
+        path = f'./instance/TGS_salt/empty_mask_clf/inceptionv1'
+        pipe = is_emtpy_mask_clf_baseline()
+        params = pipe.params(
+            capacity=4,
+            net_type='InceptionV1',
+            batch_size=64,
+            learning_rate=0.01,
+            dropout_rate=0.5,
+            fc_capacity=1024,
+            fc_depth=2,
+            comment='inception v1',
+        )
+        self.model.train()
+        pipe.train(params)
+
+    def top_baseline(self):
+        # top base line but suspicious 0.94 test
+        path = f'./instance/TGS_salt/empty_mask_clf/inceptionv1'
+        pipe = is_emtpy_mask_clf_baseline()
+        params = pipe.params(
+            capacity=4,
+            net_type='InceptionV1',
+            batch_size=64,
+            learning_rate=0.01,
+            dropout_rate=0.5,
+            fc_capacity=1024,
+            fc_depth=2,
+            comment='inception v1',
+        )
+        pipe.train(params, )
+
+    def inceptionv1(self):
+        # top base line but suspicious 0.94 test
+        path = f'./instance/TGS_salt/empty_mask_clf/inceptionv1'
+        pipe = is_emtpy_mask_clf_baseline()
+        params = pipe.params(
+            capacity=4,
+            net_type='InceptionV1',
+            batch_size=64,
+            learning_rate=0.01,
+            dropout_rate=0.5,
+            fc_capacity=1024,
+            fc_depth=2,
+            comment='inception v1',
+        )
+        pipe.train(params, )
+
+    def inceptionv2(self):
+        path = f'./instance/TGS_salt/empty_mask_clf/inceptionv2'
+        pipe = is_emtpy_mask_clf_baseline()
+        params = pipe.params(
+            capacity=4,
+            net_type='InceptionV2',
+            # net_type='ResNet18',
+            batch_size=32,
+            learning_rate=0.01,
+            dropout_rate=0.5,
+            fc_capacity=1024,
+            fc_depth=2,
+            comment='inception v1',
+        )
+        pipe.train(params, )
+
+    def Resnet34(self):
+        path = f'./instance/TGS_salt/empty_mask_clf/resnet34'
+        pipe = is_emtpy_mask_clf_baseline()
+        params = pipe.params(
+            capacity=4,
+            net_type='ResNet34',
+            batch_size=32,
+            learning_rate=0.01,
+            dropout_rate=0.5,
+            fc_capacity=1024,
+            fc_depth=2,
+            comment='inception v1',
+        )
+        pipe.train(params, )
+
+    def Resnet50(self):
+        path = f'./instance/TGS_salt/empty_mask_clf/resnet50'
+        pipe = is_emtpy_mask_clf_baseline()
+        params = pipe.params(
+            capacity=4,
+            net_type='ResNet50',
+            batch_size=32,
+            learning_rate=0.01,
+            dropout_rate=0.5,
+            fc_capacity=1024,
+            fc_depth=2,
+            comment='inception v1',
+        )
+        pipe.train(params, )

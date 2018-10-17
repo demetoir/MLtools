@@ -5,6 +5,9 @@ from script.model.sklearn_like_model.callback.BaseEpochCallback import BaseEpoch
 
 class EarlyStop(BaseEpochCallback):
     def __init__(self, patience, name='EarlyStop', log_func=None, min_best=True):
+        if not patience >= 1:
+            raise ValueError(f'patience expect patience >=1, but {patience}')
+
         self.patience = patience
         self.min_best = min_best
         self.name = name

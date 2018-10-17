@@ -26,7 +26,7 @@ class ModelTester:
                 path = self.path
 
             self.model.save(path)
-            self.model.load(path)
+            self.model.load_meta(path)
             self.model.restore(path)
         except BaseException as e:
             print(error_trace(e))

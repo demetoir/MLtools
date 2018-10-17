@@ -28,7 +28,7 @@ def test_MLPClf():
     path = model.save()
 
     model = class_()
-    model.load(path)
+    model.load_meta(path)
     model.train(Xs, Ys)
 
     predict = model.predict(sample_X)

@@ -1292,7 +1292,7 @@ def exp_data_aug_VAE_wine_quality():
         cvae.train(Xs, Ys, epoch=1600)
         cvae.save(CVAE_path)
     else:
-        cvae = CVAE().load(CVAE_path)
+        cvae = CVAE().load_meta(CVAE_path)
 
     metric = cvae.metric(Xs, Ys)
     metric = np.mean(metric)
@@ -1375,7 +1375,7 @@ def exp_data_aug_GAN_wine_quality():
         c_GAN.train(train_Xs, train_Ys, epoch=200)
         c_GAN.save(GAN_path)
     else:
-        c_GAN = model().load(GAN_path)
+        c_GAN = model().load_meta(GAN_path)
 
     metric = c_GAN.metric(train_Xs, train_Ys)
     print(metric)

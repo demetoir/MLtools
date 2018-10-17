@@ -8,7 +8,7 @@ class BCELoss(BaseLossModule):
         self.true = true
         self.logit = logit
 
-    def _build(self):
+    def build(self):
         self.true_flatten = flatten(self.true)
         self.logit_flatten = flatten(self.logit)
         true = self.true_flatten

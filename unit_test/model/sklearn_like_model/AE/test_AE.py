@@ -25,7 +25,7 @@ def AE_total_execute(model):
     class_ = model.__class__
     del model
 
-    model = class_().load(path)
+    model = class_().load_meta(path)
     print('model reloaded')
 
     for i in range(2):

@@ -34,7 +34,7 @@ def common_info_GAN(gan_cls, params, epoch=1, dataset_name='titanic'):
     path = gan.save()
 
     gan = gan_cls()
-    gan.load(path)
+    gan.load_meta(path)
     gan.train(train_Xs, train_Ys, epoch=epoch)
 
     metric = gan.metric(train_Xs, train_Ys)

@@ -3,6 +3,7 @@ from imgaug import augmenters as iaa
 from sklearn.decomposition import PCA
 from sklearn.manifold import TSNE
 
+from script.data_handler.Base.BaseDataset import BaseDataset
 from script.data_handler.ImgMaskAug import ActivatorMask, ImgMaskAug
 from script.data_handler.TGS_salt import collect_images, TRAIN_MASK_PATH, TGS_salt, \
     TRAIN_IMAGE_PATH, TEST_IMAGE_PATH, RLE_mask_encoding
@@ -54,6 +55,18 @@ class Metrics:
             ret = _metric(mask_true, mask_predict)
 
         return ret
+
+    @staticmethod
+    def miou_non_empty(true, predict):
+        non_empty = np.mean(true, axis=(1, 2, 3))
+        idx = non_empty > 0
+        return Metrics.miou(true[idx], predict[idx])
+
+    @staticmethod
+    def TGS_salt_score_non_empty(true, predict):
+        non_empty = np.mean(true, axis=(1, 2, 3))
+        idx = non_empty > 0
+        return Metrics.TGS_salt_score(true[idx], predict[idx])
 
 
 def masks_rate(masks):
@@ -135,7 +148,8 @@ class TGS_salt_DataHelper:
         self._sample_ys = ys_full[self.sample_offset:self.sample_offset + self.sample_size]
         return self._sample_ys
 
-    def get_non_empty_mask_idxs(self, dataset):
+    @staticmethod
+    def get_non_empty_mask_idxs(dataset):
         ys = dataset.full_batch(['mask'])['mask']
         idxs = [
             i
@@ -148,7 +162,8 @@ class TGS_salt_DataHelper:
         idxs = self.get_non_empty_mask_idxs(dataset)
         return dataset.query_by_idxs(idxs)
 
-    def get_empty_mask_idxs(self, dataset):
+    @staticmethod
+    def get_empty_mask_idxs(dataset):
         ys = dataset.full_batch(['mask'])['mask']
         idxs = [
             i
@@ -161,7 +176,8 @@ class TGS_salt_DataHelper:
         idxs = self.get_empty_mask_idxs(dataset)
         return dataset.query_by_idxs(idxs)
 
-    def add_depth_image_channel(self, dataset):
+    @staticmethod
+    def add_depth_image_channel(dataset):
         np_dict = dataset.full_batch(['image', 'depth_image'])
         x = np_dict['image']
         depth_image = np_dict['depth_image']
@@ -170,32 +186,120 @@ class TGS_salt_DataHelper:
 
         return dataset
 
-    def mask_rate_under_n_percent(self, dataset, n):
+    @staticmethod
+    def mask_rate_under_n_percent(dataset, n):
         mask_rate = dataset.full_batch(['mask_rate'])['mask_rate']
 
         idx = mask_rate < n
         return dataset.query_by_idxs(idx)
 
-    def mask_rate_upper_n_percent(self, dataset, n):
+    @staticmethod
+    def mask_rate_upper_n_percent(dataset, n):
         mask_rate = dataset.full_batch(['mask_rate'])['mask_rate']
         idx = mask_rate > n
         return dataset.query_by_idxs(idx)
 
-    def lr_flip(self, dataset):
+    @staticmethod
+    def lr_flip(dataset, x_key='image', y_key='mask'):
         flip_lr_set = dataset.copy()
         x, y = flip_lr_set.full_batch()
         x = np.fliplr(x)
-        flip_lr_set.data['image'] = x
+        flip_lr_set.data[x_key] = x
         y = np.fliplr(y)
-        flip_lr_set.data['mask'] = y
+        flip_lr_set.data[y_key] = y
         dataset = dataset.merge(dataset, flip_lr_set)
         return dataset
 
-    def split_hold_out(self, dataset, random_state=1234, ratio=(9, 1)):
+    @staticmethod
+    def split_hold_out(dataset, random_state=1234, ratio=(9, 1)):
         return dataset.split(ratio, shuffle=False, random_state=random_state)
 
-    def k_fold_split(self, dataset, k=5, shuffle=False, random_state=1234):
+    @staticmethod
+    def k_fold_split(dataset, k=5, shuffle=False, random_state=1234):
         return dataset.k_fold_split(k, shuffle=shuffle, random_state=random_state)
+
+    @staticmethod
+    def crop_dataset(dataset, size=(64, 64), k=30, with_edge=True):
+        xs, ys = dataset.full_batch()
+
+        w, h = size
+        new_x = []
+        new_y = []
+        size = len(xs)
+        # edge
+        if with_edge:
+            for i in range(size):
+                x = xs[i]
+                y = ys[i]
+                new_x += [x[:w, :h, :].reshape([1, h, w, 1])]
+                new_y += [y[:w, :h, :].reshape([1, h, w, 1])]
+
+                new_x += [x[101 - w:101, :h, :].reshape([1, h, w, 1])]
+                new_y += [y[101 - w:101, :h, :].reshape([1, h, w, 1])]
+
+                new_x += [x[:w, 101 - h:101, :].reshape([1, h, w, 1])]
+                new_y += [y[:w, 101 - h:101, :].reshape([1, h, w, 1])]
+
+                new_x += [x[101 - w:101, 101 - h:101, :].reshape([1, h, w, 1])]
+                new_y += [y[101 - w:101, 101 - h:101, :].reshape([1, h, w, 1])]
+
+        # non_edge
+        for i in range(size):
+            for _ in range(k):
+                x = xs[i]
+                y = ys[i]
+                a = np.random.randint(1, 101 - 64 - 1)
+                b = np.random.randint(1, 101 - 64 - 1)
+                new_x += [x[a:a + w, b:b + h, :].reshape([1, h, w, 1])]
+                new_y += [y[a:a + w, b:b + h, :].reshape([1, h, w, 1])]
+
+        new_x = np.concatenate(new_x)
+        new_y = np.concatenate(new_y)
+        print(new_x.shape)
+        print(new_y.shape)
+
+        return BaseDataset(x=new_x, y=new_y)
+
+    @staticmethod
+    def crop_dataset_stride(dataset, size=(64, 64), stride=10, with_edge=True):
+        xs, ys = dataset.full_batch()
+
+        w, h = size
+        new_x = []
+        new_y = []
+        size = len(xs)
+        # edge
+        if with_edge:
+            for i in range(size):
+                x = xs[i]
+                y = ys[i]
+                new_x += [x[:w, :h, :].reshape([1, h, w, 1])]
+                new_y += [y[:w, :h, :].reshape([1, h, w, 1])]
+
+                new_x += [x[101 - w:101, :h, :].reshape([1, h, w, 1])]
+                new_y += [y[101 - w:101, :h, :].reshape([1, h, w, 1])]
+
+                new_x += [x[:w, 101 - h:101, :].reshape([1, h, w, 1])]
+                new_y += [y[:w, 101 - h:101, :].reshape([1, h, w, 1])]
+
+                new_x += [x[101 - w:101, 101 - h:101, :].reshape([1, h, w, 1])]
+                new_y += [y[101 - w:101, 101 - h:101, :].reshape([1, h, w, 1])]
+
+        # non_edge
+        for i in range(size):
+            for a in range(0, 101 - 64, stride):
+                for b in range(0, 101 - 64, stride):
+                    x = xs[i]
+                    y = ys[i]
+                    new_x += [x[a:a + w, b:b + h, :].reshape([1, h, w, 1])]
+                    new_y += [y[a:a + w, b:b + h, :].reshape([1, h, w, 1])]
+
+        new_x = np.concatenate(new_x)
+        new_y = np.concatenate(new_y)
+        print(new_x.shape)
+        print(new_y.shape)
+
+        return BaseDataset(x=new_x, y=new_y)
 
 
 class TGS_salt_aug_callback(BaseDatasetCallback):

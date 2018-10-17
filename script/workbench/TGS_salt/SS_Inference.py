@@ -8,6 +8,8 @@ from script.model.sklearn_like_model.BaseModel import BaseDataCollector
 from script.model.sklearn_like_model.SemanticSegmentation import SemanticSegmentation
 from script.model.sklearn_like_model.TFSummary import TFSummaryScalar
 from script.model.sklearn_like_model.callback.BaseEpochCallback import BaseEpochCallback
+from script.model.sklearn_like_model.callback.BestSave import BestSave
+from script.model.sklearn_like_model.callback.ReduceLrOnPlateau import ReduceLrOnPlateau
 from script.model.sklearn_like_model.callback.Top_k_save import Top_k_save
 from script.util.misc_util import time_stamp, path_join, to_dict
 from script.workbench.TGS_salt.TGS_salt_inference import plot, TGS_salt_DataHelper, \
@@ -56,6 +58,12 @@ class CollectDataCallback(BaseDataCollector):
 
         self.train_predict_sample = self.train_predict_dec[:20]
 
+        self.train_non_empty_iou_score = Metrics.miou_non_empty(self.train_y_enc, self.train_predict_enc)
+        self.test_non_empty_iou_score = Metrics.miou_non_empty(self.test_y_enc, self.test_predict_enc)
+
+        self.train_non_empty_TGS_score = Metrics.TGS_salt_score_non_empty(self.train_y_enc, self.train_predict_enc)
+        self.test_non_empty_TGS_score = Metrics.TGS_salt_score_non_empty(self.test_y_enc, self.test_predict_enc)
+
 
 class LoggingCallback(BaseEpochCallback):
     def __init__(self, data_collection):
@@ -74,6 +82,15 @@ class LoggingCallback(BaseEpochCallback):
         msg += f'iou score\n'
         msg += f'train        = {self.dc.train_iou_score}\n'
         msg += f'test         = {self.dc.test_iou_score}\n'
+        msg += f'\n'
+
+        msg += f'non empty TGS_salt_metric score\n'
+        msg += f'train        = {self.dc.train_non_empty_TGS_score}\n'
+        msg += f'test         = {self.dc.test_non_empty_TGS_score}\n'
+
+        msg += f'non empty iou score\n'
+        msg += f'train        = {self.dc.train_non_empty_iou_score}\n'
+        msg += f'test         = {self.dc.test_non_empty_iou_score}\n'
         msg += f'\n'
 
         tqdm.write(msg)
@@ -230,8 +247,6 @@ class SS_baseline:
             run_id=None,
             verbose=10,
             learning_rate=0.01,
-            learning_rate_decay_rate=0.99,
-            learning_rate_decay_method=None,
             beta1=0.9,
             batch_size=32,
             stage=4,
@@ -268,15 +283,17 @@ class SS_baseline:
         )
         return params
 
-    def prepare_set(self):
-
+    def prepare_set(self, k=5, index=0):
         helper = TGS_salt_DataHelper()
         train_set = helper.train_set
+        # train_set = helper.add_depth_image_channel(train_set)
+        # train_set.x_keys = ['x_with_depth']
         # train_set = helper.get_non_empty_mask(train_set)
+        # train_set = helper.lr_flip(train_set, x_key='x_with_depth')
         train_set = helper.lr_flip(train_set)
         train_set, hold_out = helper.split_hold_out(train_set)
-        kfold_sets = helper.k_fold_split(train_set)
-        train_set_fold1, valid_set_fold1 = kfold_sets[1]
+        kfold_sets = helper.k_fold_split(train_set, k=k)
+        train_set_fold1, valid_set_fold1 = kfold_sets[index]
 
         print('train_set')
         print(train_set_fold1)
@@ -288,48 +305,47 @@ class SS_baseline:
 
         return train_x, train_y, valid_x, valid_y
 
-    def train(self):
+    def encode_datas(self, datas):
         def encode(x):
             return x / 255.
 
-        def decode(x):
-            return x * 255
-
-        train_x, train_y, valid_x, valid_y = self.prepare_set()
-
+        train_x, train_y, valid_x, valid_y = datas
         train_x_enc = encode(train_x)
         train_y_enc = encode(train_y)
         valid_x_enc = encode(valid_x)
         valid_y_enc = encode(valid_y)
 
+        return train_x_enc, train_y_enc, valid_x_enc, valid_y_enc
+
+    def train(self, callbacks=None, k=5, index=0):
+        datas = self.prepare_set(k, index)
+        train_x_enc, train_y_enc, valid_x_enc, valid_y_enc = self.encode_datas(datas)
+
         model = self.model
         pprint(model)
 
-        run_id = model.run_id
-        dc_callback = CollectDataCallback(valid_x_enc, valid_y_enc)
-        callbacks = [
-            dc_callback,
-            Top_k_save(
-                path_join(INSTANCE_PATH, run_id, 'test_score'),
-                k=1,
-                name='test_score',
-                save_model=True
-            ).trace_on(
+        if callbacks is None:
+            run_id = model.run_id
+            dc_callback = CollectDataCallback(valid_x_enc, valid_y_enc)
+            callbacks = [
                 dc_callback,
-                'test_score'
-            ),
-            LoggingCallback(dc_callback),
-            TFSummaryCallback(dc_callback, run_id),
-            PlotToolsCallback(dc_callback),
+                BestSave(
+                    path_join(INSTANCE_PATH, run_id),
+                    name='test_score',
+                    max_best=True
+                ).trace_on(dc_callback, 'test_score'),
+                LoggingCallback(dc_callback),
+                TFSummaryCallback(dc_callback, run_id),
+                # PlotToolsCallback(dc_callback),
 
-            # EarlyStop(
-            #     20, min_best=False
-            # ).trace_on(
-            #     dc_callback, 'test_iou_score'
-            # ),
-            # ReduceLrOnPlateau(0.5, 5, 0.0001, min_best=False).trace_on(dc_callback, 'test_iou_score'),
-            # TriangleLRScheduler(10, 0.01, 0.001),
-        ]
+                # EarlyStop(
+                #     20, min_best=False
+                # ).trace_on(
+                #     dc_callback, 'test_iou_score'
+                # ),
+                ReduceLrOnPlateau(0.5, 5, 0.0001, min_best=False).trace_on(dc_callback, 'test_iou_score'),
+                # TriangleLRScheduler(10, 0.01, 0.001),
+            ]
 
         # model.init_adam_momentum()
         # model.update_learning_rate(0.01)
@@ -337,32 +353,112 @@ class SS_baseline:
         # model.update_dropout_rate(1)
         pprint(model)
 
-        epoch = 50
+        epoch = 100
         model.train(
             train_x_enc, train_y_enc, epoch=epoch,
             epoch_callbacks=callbacks,
-            # dataset_callback=aug_callback
         )
+
+    def fold_train(self, k=5):
+        models = []
+        for i in range(k):
+            datas = self.prepare_set(k=5, index=i)
+            train_x_enc, train_y_enc, valid_x_enc, valid_y_enc = self.encode_datas(datas)
+
+            model = self.new_model()
+            models += model
+
+            run_id = model.run_id
+            dc_callback = CollectDataCallback(valid_x_enc, valid_y_enc)
+            callbacks = [
+                dc_callback,
+                BestSave(
+                    path_join(INSTANCE_PATH, f'fold_{i}', 'test_score'),
+                    name='test_score',
+                    max_best=True
+                ).trace_on(dc_callback, 'test_score'),
+                LoggingCallback(dc_callback),
+                TFSummaryCallback(dc_callback, run_id),
+                # PlotToolsCallback(dc_callback),
+
+                # EarlyStop(
+                #     20, min_best=False
+                # ).trace_on(
+                #     dc_callback, 'test_iou_score'
+                # ),
+                ReduceLrOnPlateau(0.5, 7, 0.0001, min_best=False).trace_on(dc_callback, 'test_iou_score'),
+                # TriangleLRScheduler(10, 0.01, 0.001),
+            ]
+
+            # model.init_adam_momentum()
+            model.update_learning_rate(0.01)
+            pprint(model)
+
+            epoch = 50
+            model.train(
+                train_x_enc, train_y_enc, epoch=epoch,
+                epoch_callbacks=callbacks,
+            )
+
+    def fold_score(self, k=5):
+
+        models = []
+        train_TGS_scores = []
+        valid_TGS_scores = []
+        train_mious = []
+        valid_mious = []
+        for i in range(k):
+            path = f'./instance/TGS_salt/SS/baseline/fold_{i}'
+            model = self.load_model(path)
+            models += model
+
+            datas = self.prepare_set(k=5, index=i)
+            train_x_enc, train_y_enc, valid_x_enc, valid_y_enc = self.encode_datas(datas)
+            train_predict = model.predict(train_x_enc)
+            valid_predict = model.predict(valid_y_enc)
+
+            train_TGS_score = Metrics.TGS_salt_score(train_y_enc, train_predict)
+            valid_TGS_score = Metrics.TGS_salt_score(valid_y_enc, valid_predict)
+            train_iou_score = Metrics.miou(train_y_enc, train_predict)
+            valid_iou_score = Metrics.miou(valid_y_enc, valid_predict)
+            train_TGS_scores += [train_TGS_score]
+            valid_TGS_scores += [valid_TGS_score]
+            train_mious += [train_iou_score]
+            valid_mious += [valid_iou_score]
+
+        def print_score(scores):
+            for i, score in enumerate(scores):
+                print(i, score)
+
+        print(f'train TGS score')
+        print_score(train_TGS_scores)
+
+        print(f'valid TGS score')
+        print_score(valid_TGS_scores)
+
+        print(f'train ious')
+        print_score(train_mious)
+
+        print(f'valid ious')
+        print_score(valid_mious)
 
     def new_model(self):
         params = self.params()
-        # import tensorflow as tf
-        # from tensorflow.python import debug as tf_debug
-        # sess = tf.Session()
-        # sess = tf_debug.TensorBoardDebugWrapperSession(sess, "demetoir-desktop:7777")
-        # params.update({'sess': sess})
         self.model = SemanticSegmentation(**params)
-
         self.model.build(x=(101, 101, 1), y=(101, 101, 1))
 
+        return self.model
+
     def load_baseline(self):
-        path = './instance/TGS_salt/SS/baseline'
+        path = './instance/TGS_salt/SS/target'
         self.load_model(path)
 
     def load_model(self, path):
-        self.model = SemanticSegmentation().load(path)
+        self.model = SemanticSegmentation().load_meta(path)
         self.model.build(x=(101, 101, 1), y=(101, 101, 1))
         self.model.restore(path)
+
+        return self.model
 
     @staticmethod
     def scramble_column(*args, size=10):
@@ -373,41 +469,27 @@ class SS_baseline:
 
         return np.concatenate(ret, axis=0)
 
-    def log_score(self):
+    def log_score(self, k, index):
         baseline = self.model
 
-        # train_predict = baseline.predict(pipe.train_x)
-        # train_predict = mask_label_encoder.from_label(train_predict)
-        #
-        # test_predict = baseline.predict(pipe.valid_x)
-        # test_predict = mask_label_encoder.from_label(test_predict)
-        #
-        # train_loss = baseline.metric(pipe.train_x, pipe.train_y_encode)
-        # test_loss = baseline.metric(pipe.valid_x, pipe.valid_y_encode)
-        #
-        # train_proba = baseline.predict_proba(pipe.train_x)
-        # test_proba = baseline.predict_proba(pipe.valid_x)
-        #
-        # train_score = Metrics.TGS_salt_score(pipe.train_y, train_predict)
-        # test_score = Metrics.TGS_salt_score(pipe.valid_y, test_predict)
-        #
-        # train_mask_rate = masks_rate(pipe.train_y)
-        # test_mask_rate = masks_rate(pipe.valid_y)
-        #
-        # train_miou = Metrics.miou(pipe.train_y, train_predict)
-        # test_miou = Metrics.miou(pipe.valid_y, test_predict)
-        #
-        # train_ious = Metrics.ious(pipe.train_y, train_predict)
-        # test_ious = Metrics.ious(pipe.valid_y, test_predict)
+        datas = self.prepare_set(k, index)
+        train_x_enc, train_y_enc, valid_x_enc, valid_y_enc = self.encode_datas(datas)
+        train_predict = baseline.predict(train_x_enc)
+        valid_predict = baseline.predict(valid_x_enc)
 
-        # print(
-        #     f'train TGS score = {train_score}\n'
-        #     f'test TGS score = {test_score}\n'
-        #     f'train miou = {train_miou}\n'
-        #     f'test miou = {test_miou}\n'
-        #     f'train loss = {train_loss}\n'
-        #     f'test loss = {test_loss}\n'
-        # )
+        train_TGS_score = Metrics.TGS_salt_score(train_y_enc, train_predict)
+        valid_TGS_score = Metrics.TGS_salt_score(valid_y_enc, valid_predict)
+        train_iou_score = Metrics.miou(train_y_enc, train_predict)
+        valid_iou_score = Metrics.miou(valid_y_enc, valid_predict)
+
+        print(
+            f'train TGS score = {train_TGS_score}\n'
+            f'test TGS score = {valid_TGS_score}\n'
+            f'train miou = {train_iou_score}\n'
+            f'test miou = {valid_iou_score}\n'
+            # f'train loss = {train_loss}\n'
+            # f'test loss = {test_loss}\n'
+        )
 
     def log_split_mask_rate_score(self):
 

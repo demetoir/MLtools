@@ -1,4 +1,5 @@
 from script.model.sklearn_like_model.NetModule.MLPNetModule import MLPNetModule
+from script.model.sklearn_like_model.NetModule.PlaceHolderModule import PlaceHolderModule
 from script.model.sklearn_like_model.NetModule.TFDynamicLearningRate import TFDynamicLearningRate
 from script.model.sklearn_like_model.NetModule.TFNormalize import TFL1Normalize, TFL2Normalize
 from script.model.sklearn_like_model.BaseModel import BaseModel
@@ -80,14 +81,17 @@ class ImageClf(
         self.fc_capacity = fc_capacity
 
     def _build_input_shapes(self, shapes):
+        self.x_module = PlaceHolderModule(shapes['x'], name='x').build()
+        self.y_module = PlaceHolderModule(shapes['y'], name='y').build()
+
         ret = {}
-        ret.update(self._build_Xs_input_shape(shapes))
-        ret.update(self._build_Ys_input_shape(shapes))
+        ret.update(self.x_module.shape_dict)
+        ret.update(self.y_module.shape_dict)
         return ret
 
     def _build_main_graph(self):
-        self.Xs = tf.placeholder(tf.float32, self.Xs_shape, name='Xs')
-        self.Ys = tf.placeholder(tf.float32, self.Ys_shape, name='Ys')
+        self.Xs = self.x_module.placeholder
+        self.Ys = self.y_module.placeholder
         if self.n_classes is None:
             self.n_classes = self.Ys.shape[1]
         self.Ys_label = onehot_to_index(self.Ys)
@@ -153,8 +157,11 @@ class ImageClf(
     def _train_iter(self, dataset, batch_size):
         self.set_train(self.sess)
         Xs, Ys = dataset.next_batch(batch_size, balanced_class=False)
-        self.sess.run(self.train_ops, feed_dict={self._Xs: Xs, self._Ys: Ys})
+        self.sess.run(self.train_ops, feed_dict={self.Xs: Xs, self.Ys: Ys})
         self.set_predict(self.sess)
+
+    def _metric(self, x=None, y=None):
+        return self.batch_execute(self.loss, {self.Xs: x, self.Ys: y})
 
     @property
     def train_ops(self):
@@ -187,3 +194,6 @@ class ImageClf(
 
     def set_predict(self, sess):
         self.mlp_net_module.set_non_train(sess)
+
+    def init_adam_momentum(self):
+        self.sess.run(tf.variables_initializer(self.train_ops_var_list))

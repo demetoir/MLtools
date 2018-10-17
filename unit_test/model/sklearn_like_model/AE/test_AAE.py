@@ -42,7 +42,7 @@ def AAE_total_execute(model):
     path = model.save()
 
     model = class_()
-    model.load(path)
+    model.load_meta(path)
     print('model reloaded')
 
     code = model.code(sample_Xs)

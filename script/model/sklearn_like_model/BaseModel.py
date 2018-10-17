@@ -295,6 +295,23 @@ class BaseModel(
         self.sessionManager.open_if_not()
         self.sessionManager.init_variable(self.var_list)
 
+    def save_meta(self, path):
+        setup_directory(path)
+
+        self.metadata.save(path_join(path, 'meta.pkl'))
+        self.metadata.save(path_join(path, 'meta.json'))
+
+        self.params_path = path_join(path, 'params.pkl')
+        self._save_params(self.params_path)
+
+    def save_checkpoint(self, path):
+        setup_directory(path)
+
+        check_point_path = path_join(path, 'check_point', 'instance.ckpt')
+        setup_file(check_point_path)
+        saver = tf.train.Saver(self.var_list)
+        saver.save(self.sess, check_point_path)
+
     def save(self, path=None):
         if not self.is_built:
             raise RuntimeError(f'can not save un built model, {self}')
@@ -306,23 +323,11 @@ class BaseModel(
             self.log.info('save directory not specified, use default directory')
             path = path_join(ROOT_PATH, 'instance', self.metadata.id)
 
-        self.log.info("saved at {}".format(path))
-        setup_directory(path)
+        self.log.info("save at {}".format(path))
+        self.save_checkpoint(path)
+        self.save_meta(path)
 
-        check_point_path = path_join(path, 'check_point', 'instance.ckpt')
-        setup_file(check_point_path)
-        saver = tf.train.Saver(self.var_list)
-        saver.save(self.sess, check_point_path)
-
-        self.metadata.save(path_join(path, 'meta.pkl'))
-        self.metadata.save(path_join(path, 'meta.json'))
-
-        self.params_path = path_join(path, 'params.pkl')
-        self._save_params(self.params_path)
-
-        return path
-
-    def load(self, path):
+    def load_meta(self, path):
         self.log.info(f'load from {path}')
         self.metadata.load(path_join(path, 'meta.json'))
         self._load_params(path_join(path, 'params.pkl'))
@@ -333,7 +338,7 @@ class BaseModel(
         self.log.info(f'restore from {path}')
 
         if var_list is None:
-            var_list = self.var_list
+            var_list = self.main_graph_var_list + self.misc_ops_var_list
 
         saver = tf.train.Saver(var_list)
         saver.restore(self.sess, path_join(path, 'check_point', 'instance.ckpt'))
@@ -365,8 +370,11 @@ class BaseModel(
 
         return False
 
+    def train_iter(self, x=None, y=None, batch_size=None):
+        self._train_iter(BaseDataset(x=x, y=y), batch_size)
+
     def train(
-            self, x, y=None, epoch=1, batch_size=None,
+            self, x=None, y=None, epoch=1, batch_size=None,
             dataset_callback=None, epoch_pbar=True, iter_pbar=True, epoch_callbacks=None,
     ):
 
@@ -389,7 +397,7 @@ class BaseModel(
             global_epoch = self.sess.run(self.global_epoch)
             if epoch_pbar: epoch_pbar.update(1)
 
-            metric = np.mean(getattr(self, 'metric', None)(x, y))
+            metric = np.mean(getattr(self, 'metric', None)(x=x, y=y))
             tqdm.write(f"\nepoch:{global_epoch}, metric : {np.mean(metric)}\n")
             if self._is_fine_metric(metric):
                 break
@@ -414,96 +422,13 @@ class BaseModel(
 
         return metric
 
-    def train_supervised(
-            self, x, y, epoch=1, batch_size=None,
-            dataset_callback=None,
-            epoch_pbar=True, iter_pbar=True, epoch_callbacks=None,
-    ):
+    def _metric(self, x=None, y=None):
+        raise NotImplementedError
 
-        if not self.is_built:
-            raise RuntimeError(f'{self} not built')
-
-        batch_size = getattr(self, 'batch_size') if batch_size is None else batch_size
-        dataset = dataset_callback if dataset_callback else BaseDataset(x=x, y=y)
-
-        metric = None
-        epoch_pbar = tqdm([i for i in range(1, epoch + 1)]) if epoch_pbar else None
-        for _ in range(1, epoch + 1):
-            dataset.shuffle()
-
-            iter_pbar = trange if iter_pbar else range
-            for _ in iter_pbar(int(dataset.size / batch_size)):
-                self._train_iter(dataset, batch_size)
-
-            self.sess.run(self.op_inc_global_epoch)
-            global_epoch = self.sess.run(self.global_epoch)
-            if epoch_pbar: epoch_pbar.update(1)
-
-            metric = getattr(self, 'metric', None)(x, y)
-            tqdm.write(f"e:{global_epoch}, metric : {np.mean(metric)}")
-            if metric in (np.nan, np.inf, -np.inf): break
-
-            break_epoch = False
-            if epoch_callbacks:
-                results = [
-                    callback(self, dataset, metric, global_epoch)
-                    for callback in epoch_callbacks
-                ]
-
-                for result in results:
-                    if result and getattr(result, 'break_epoch', False):
-                        break_epoch = True
-            if break_epoch: break
-
-        if epoch_pbar: epoch_pbar.close()
-        if dataset_callback: del dataset
-
-        return metric
-
-    def train_unsupervised(
-            self, x, epoch=1, batch_size=None,
-            dataset_callback=None,
-            epoch_pbar=True, iter_pbar=True, epoch_callbacks=None,
-    ):
-
-        if not self.is_built:
-            raise RuntimeError(f'{self} not built')
-
-        batch_size = getattr(self, 'batch_size') if batch_size is None else batch_size
-        dataset = dataset_callback if dataset_callback else BaseDataset(x=x)
-
-        metric = None
-        epoch_pbar = tqdm([i for i in range(1, epoch + 1)]) if epoch_pbar else None
-        for _ in range(1, epoch + 1):
-            dataset.shuffle()
-
-            iter_pbar = trange if iter_pbar else range
-            for _ in iter_pbar(int(dataset.size / batch_size)):
-                self._train_iter(dataset, batch_size)
-
-            self.sess.run(self.op_inc_global_epoch)
-            global_epoch = self.sess.run(self.global_epoch)
-            if epoch_pbar: epoch_pbar.update(1)
-
-            metric = getattr(self, 'metric', None)(x)
-            tqdm.write(f"global epoch:{global_epoch}, metric : {np.mean(metric)}")
-            if metric in (np.nan, np.inf, -np.inf): break
-
-            break_epoch = False
-            if epoch_callbacks:
-                results = [
-                    callback(self, dataset, metric, global_epoch)
-                    for callback in epoch_callbacks
-                ]
-
-                for result in results:
-                    if result and getattr(result, 'break_epoch', False):
-                        break_epoch = True
-            if break_epoch: break
-
-        if epoch_pbar: epoch_pbar.close()
-        if dataset_callback: del dataset
-
+    def metric(self, x=None, y=None, mean=True):
+        metric = self._metric(x, y)
+        if mean:
+            metric = np.mean(metric)
         return metric
 
     def batch_execute(self, op, inputs):
