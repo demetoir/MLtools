@@ -72,7 +72,8 @@ class BaseDataset(LoggerMixIn, PickleSelfMixIn, metaclass=MetaDataset):
              f"size = {self.size}\n" \
              f"keys = {pformat(self.keys)}\n" \
              f"x_keys = {pformat(self.x_keys)}\n"
-        if self.y_keys:
+
+        if hasattr(self, 'y_keys'):
             s += f"y_keys = {pformat(self.y_keys)}\n"
 
         return s

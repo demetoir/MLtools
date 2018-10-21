@@ -80,28 +80,21 @@ def test_SlackBot():
 def deco_slackbot(token_path, channel):
     def _deco_slack_bot(func):
         def wrapper(*args, **kwargs):
-            bot = None
-            ret = None
             try:
-                bot = SlackBot(token_path, channel)
-            except BaseException as e:
-                print(error_trace(e))
-                print('slackbot init fail')
-
-            start = time.time()
-            try:
+                start = time.time()
                 ret = func(*args, **kwargs)
+                elapse_time = time.time() - start
             except BaseException as e:
                 print(error_trace(e))
                 ret = None
-            finally:
-                if bot:
-                    try:
-                        msg = f"in {func.__name__}(), time {time.time() - start:.4f}'s elapsed"
-                        bot.post_message(msg)
-                    except BaseException as e:
-                        print(error_trace(e))
-                        print('slackbot fail to post message')
+
+            try:
+                bot = SlackBot(token_path, channel)
+                msg = f"in {func.__name__}(), time {elapse_time:.4f}'s elapsed"
+                bot.post_message(msg)
+            except BaseException as e:
+                print(error_trace(e))
+                print('slackbot fail to post message')
 
             return ret
 

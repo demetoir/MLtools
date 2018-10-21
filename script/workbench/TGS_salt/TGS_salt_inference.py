@@ -6,13 +6,15 @@ from sklearn.manifold import TSNE
 from script.data_handler.Base.BaseDataset import BaseDataset
 from script.data_handler.ImgMaskAug import ActivatorMask, ImgMaskAug
 from script.data_handler.TGS_salt import collect_images, TRAIN_MASK_PATH, TGS_salt, \
-    TRAIN_IMAGE_PATH, TEST_IMAGE_PATH, RLE_mask_encoding
+    TRAIN_IMAGE_PATH, TEST_IMAGE_PATH, RLE_mask_encoding, make_submission_csv
 from script.model.sklearn_like_model.BaseModel import BaseDatasetCallback
 from script.model.sklearn_like_model.TFSummary import TFSummaryParams
 from script.util.PlotTools import PlotTools
-from script.util.misc_util import path_join, lazy_property
+from script.util.misc_util import path_join, lazy_property, load_pickle
 from script.util.numpy_utils import *
 import tensorflow as tf
+
+from script.workbench.TGS_salt.post_process_AE import post_process_AE
 
 
 class Metrics:
@@ -584,3 +586,320 @@ class experiment:
         masked = np.array(masked)
         print(len(masked))
         plot.plot_image_tile(masked, title='chopped')
+
+
+class post_processing:
+
+    def fill_hole(self):
+        # suck way
+        import cv2
+        import numpy as np
+
+        # Read image
+        im_in = cv2.imread("nickel.jpg", cv2.IMREAD_GRAYSCALE)
+
+        # Threshold.
+        # Set values equal to or above 220 to 0.
+        # Set values below 220 to 255.
+
+        th, im_th = cv2.threshold(im_in, 220, 255, cv2.THRESH_BINARY_INV)
+
+        # Copy the thresholded image.
+        im_floodfill = im_th.copy()
+
+        # Mask used to flood filling.
+        # Notice the size needs to be 2 pixels than the image.
+        h, w = im_th.shape[:2]
+        mask = np.zeros((h + 2, w + 2), np.uint8)
+
+        # Floodfill from point (0, 0)
+        cv2.floodFill(im_floodfill, mask, (0, 0), 255)
+
+        # Invert floodfilled image
+        im_floodfill_inv = cv2.bitwise_not(im_floodfill)
+
+        # Combine the two images to get the foreground.
+        im_out = im_th | im_floodfill_inv
+
+        # Display images.
+        cv2.imshow("Thresholded Image", im_th)
+        cv2.imshow("Floodfilled Image", im_floodfill)
+        cv2.imshow("Inverted Floodfilled Image", im_floodfill_inv)
+        cv2.imshow("Foreground", im_out)
+        cv2.waitKey(0)
+
+    def fill_hole2(self):
+        # suck way
+        train_predict, valid_predict = self.load_SS_predict()
+
+        def fill_hole(xs):
+            #
+            def batch(x):
+                import numpy as np
+                import skimage.morphology, skimage.data
+
+                labels = skimage.morphology.label(x)
+                labelCount = np.bincount(labels.ravel())
+                background = np.argmax(labelCount)
+                x[labels != background] = 255
+                return x
+
+            return np.concatenate(
+                [
+                    batch(x)
+                    for x in xs
+                ],
+                axis=0
+            )
+
+        a = fill_hole(train_predict)
+        a = a.reshape([-1, 101, 101, 1])
+        print(a.shape)
+        print(a[:10])
+        plot.plot_image_tile(a, path=f"./matplot/fill_hole_train.png")
+
+    def AE(self):
+        ae = post_process_AE(capacity=32, batch_size=32)
+        pprint(ae)
+        # set_dict = data_dict().post_AE_mask_only()
+        set_dict = None
+        train_x = set_dict['train_x']
+        valid_x = set_dict['valid_x']
+        # ae.load(f"./instance/post_process_AE")
+        ae.build(x=train_x, y=train_x)
+
+        # ae.restore(f"./instance/post_process_AE")
+
+        def to_scale(x):
+            return x / 255.
+
+        def from_scale(x):
+            return x * 255.
+
+        train_x_scale = to_scale(train_x)
+        valid_x_scale = to_scale(valid_x)
+
+        train_metric = ae.metric(train_x_scale, train_x_scale)
+        valid_metric = ae.metric(valid_x_scale, valid_x_scale)
+
+        print(f'train metric = {train_metric}')
+        print(f'test metric = {valid_metric}')
+
+        # print(train_x_scale)
+        for i in range(1):
+            ae.train(train_x_scale, train_x_scale, epoch=1)
+            train_metric = ae.metric(train_x_scale, train_x_scale)
+            valid_metric = ae.metric(valid_x_scale, valid_x_scale)
+
+            print(f'train metric = {train_metric}')
+            print(f'test metric = {valid_metric}')
+
+            recon = ae.recon(train_x_scale)
+            recon = from_scale(recon)
+            # print(recon)
+            # recon = recon.reshape([-1, 101, 101, 1])
+            plot.plot_image_tile(recon, path=f'./matplot/train/recon_{str(i*10)}.png')
+
+            recon = ae.recon(valid_x_scale)
+            recon = from_scale(recon)
+            # print(recon)
+            # recon = recon.reshape([-1, 101, 101, 1])
+            plot.plot_image_tile(recon, path=f'./matplot/test/recon_{str(i*10)}.png')
+
+        # ae.save(f"./instance/post_process_AE")
+
+    @property
+    def ae(self):
+        if not getattr(self, '_ae', None):
+            ae = post_process_AE(
+                capacity=8, batch_size=64, learning_rate=0.01
+            )
+
+            ae.build(x=(101, 101, 1), y=(101, 101, 1))
+            # ae.restore(f"./instance/post_process_AE")
+            self._ae = ae
+
+        return self._ae
+
+    def post_processing(self, predict):
+        ae = self.ae
+
+        def to_scale(x):
+            return x / 255.
+
+        def from_scale(x):
+            return x * 255.
+
+        predict = to_scale(predict)
+        pp_predict = ae.recon(predict)
+        pp_predict = from_scale(pp_predict)
+        return pp_predict
+
+    def ae_score(self, x, y):
+
+        def to_scale(x):
+            return x / 255.
+
+        def from_scale(x):
+            return x * 255.
+
+        x = to_scale(x)
+        y = to_scale(y)
+        x = self.ae.metric(x, y)
+        return x
+
+    @staticmethod
+    def scramble_column(*args, size=10):
+        ret = []
+        for i in range(0, len(args[0]), size):
+            for j in range(len(args)):
+                ret += [args[j][i:i + size]]
+
+        return np.concatenate(ret, axis=0)
+
+    def log_post_process(self, y, predict, post_predict):
+
+        before_tgs_score = Metrics.TGS_salt_score(y, predict)
+        before_miou_score = Metrics.miou(y, predict)
+
+        after_tgs_score = Metrics.TGS_salt_score(y, post_predict)
+        after_miou_score = Metrics.miou(y, post_predict)
+
+        print(
+            f"before TGS score = {before_tgs_score}\n"
+            f"before miou score = {before_miou_score}\n"
+            f"after TGS score = {after_tgs_score}\n"
+            f"after miou score = {after_miou_score}\n"
+            f"diff = {after_tgs_score - before_tgs_score}\n"
+            f"\n"
+        )
+
+    def load_SS_predict(self):
+        # set_dict = data_dict().non_empty_with_depth()
+
+        # train_x = set_dict['train_x']
+        # train_y = set_dict['train_y']
+        # valid_x = set_dict['valid_x']
+        # valid_y = set_dict['valid_y']
+
+        train_predict = load_pickle('./train_predict')
+        valid_predict = load_pickle('./valid_predict')
+
+        # SS_pipe = SS_baseline().load_baseline()
+        # ss = SS_pipe.model
+        # train_predict = ss.predict(train_x)
+        # train_predict = mask_label_encoder.from_label(train_predict)
+        # valid_predict = ss.predict(valid_x)
+        # valid_predict = mask_label_encoder.from_label(valid_predict)
+        # dump_pickle(train_predict, './train_predict')
+        # dump_pickle(valid_predict, './valid_predict')
+        # return
+
+        # print(train_predict[0])
+        # print(train_y[0])
+
+        return train_predict, valid_predict
+
+    def apply_pp(self):
+        set_dict = None
+
+        train_x = set_dict['train_x']
+        train_y = set_dict['train_y']
+        valid_x = set_dict['valid_x']
+        valid_y = set_dict['valid_y']
+
+        train_predict, valid_predict = self.load_SS_predict()
+
+        for i in range(100):
+            def to_scale(x):
+                return x / 255.
+
+            self.ae.train(to_scale(train_predict), to_scale(train_y))
+
+            def normalize(x):
+                threash_hold = 255 * 0.5
+                new_x = np.zeros_like(x)
+                new_x[x > threash_hold] = 255
+                new_x[x <= threash_hold] = 0
+                return new_x
+
+            pp_train_predict = self.post_processing(to_scale(train_predict))
+            pp_valid_predict = self.post_processing(to_scale(valid_predict))
+            pre_normalize = pp_valid_predict
+            pp_train_predict = normalize(pp_train_predict)
+            pp_valid_predict = normalize(pp_valid_predict)
+
+            # train_tile = self.scramble_column(train_y[:30], train_predict[:30], pp_train_predict[:30])
+            valid_tile = self.scramble_column(
+                valid_y[i * 30:i * 30 + 30],
+                valid_predict[i * 30:i * 30 + 30],
+                pp_valid_predict[i * 30:i * 30 + 30],
+                pre_normalize[i * 30:i * 30 + 30])
+            # plot.plot_image_tile(train_tile, path=f'./matplot/train_tile_{i}.png')
+            plot.plot_image_tile(valid_tile, path=f'./matplot/valid_tile_{i}.png')
+
+            print('train')
+            self.log_post_process(train_y, train_predict, pp_train_predict)
+
+            print('valid')
+            self.log_post_process(valid_y, valid_predict, pp_valid_predict)
+
+    def TTA(self, predict):
+        pass
+
+
+def crop_empty_mask_rate(crop_set):
+    x, y = crop_set.full_batch()
+
+    size = len(x)
+    c = 0
+    for i in y:
+        if np.sum(i) == 0:
+            c += 1
+    print(c / size, size)
+
+
+def merge_predict(model, x, true):
+    def crop(x):
+        up_left = None
+        up_right = None
+        down_left = None
+        down_right = None
+        return up_left, up_right, down_left, down_right
+
+
+def merge_clf_SS():
+    empty_mask_predict = np.load(f'./empty_mask_predict.np.npy')
+    mask_predict = np.load(f'test_merge.np.npy')
+
+    # print(mask_predict)
+    threshold = -0.1067679754257063
+    # threshold = 0
+    mask_predict = mask_predict > threshold
+    mask_predict = mask_predict.astype(np.float32)
+
+    print(empty_mask_predict.shape)
+    print(mask_predict.shape)
+
+    # print(empty_mask_predict)
+    # print(mask_predict)
+    # mask_predict[empty_mask_predict == 1] *= 0
+    # plot.plot_image_tile(mask_predict*255, path='./predict.png')
+
+    # for idx in empty_mask_predict == 0:
+    #     a = np.zeros([101, 101, 1])
+    #     print(a.shape)
+    #     a[0, :, :] += 1
+    #     mask_predict[idx] = a
+    # plot.plot_image_tile(mask_predict * 255, path='./predict.png')
+
+    np.save('test_predict_merge', mask_predict)
+
+    helper = TGS_salt_DataHelper()
+    test_set = helper.test_set
+    print(test_set)
+    ids = test_set.full_batch(['id'])['id']
+    print(ids)
+
+    make_submission_csv(ids, mask_predict)
+    pass

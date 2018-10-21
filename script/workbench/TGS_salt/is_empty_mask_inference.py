@@ -345,6 +345,36 @@ class is_emtpy_mask_clf_baseline:
         score = accuracy_score(holdout_y, predict)
         print(f'ensemble soft score = {score}')
 
+    def fold_predict(self, k=7):
+        helper = TGS_salt_DataHelper()
+        test_set = helper.test_set
+        test_set = helper.add_depth_image_channel(test_set)
+        test_set.x_keys = ['x_with_depth']
+        x = test_set.full_batch(['x_with_depth'])['x_with_depth']
+        id = test_set.full_batch(['id'])['id']
+        print(id)
+
+        x_enc = self.encode_x(x)
+
+        probas = []
+        for fold in range(k):
+            path = f'./instance/TGS_salt/empty_mask_clf/fold_{fold}'
+            clf = self.load_model(path)
+
+            proba = clf.predict_proba(x_enc)
+
+            print(proba.shape)
+            probas += [proba]
+
+        probas = np.array(probas)
+        probas = np.sum(probas, axis=0)
+        probas /= k
+        print(probas.shape)
+        predict = np.argmax(probas, axis=1)
+        print(predict.shape)
+        np.save(f'./empty_mask_predict.np', predict)
+        return predict
+
     def load_model(self, path):
         clf = ImageClf().load_meta(path)
         clf.build(x=(101, 101, 2), y=(2,))
