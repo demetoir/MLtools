@@ -9,6 +9,7 @@ from script.model.sklearn_like_model.SemanticSegmentation import SemanticSegment
 from script.model.sklearn_like_model.TFSummary import TFSummaryScalar
 from script.model.sklearn_like_model.callback.BaseEpochCallback import BaseEpochCallback
 from script.model.sklearn_like_model.callback.BestSave import BestSave
+from script.model.sklearn_like_model.callback.EarlyStop import EarlyStop
 from script.model.sklearn_like_model.callback.ReduceLrOnPlateau import ReduceLrOnPlateau
 from script.model.sklearn_like_model.callback.Top_k_save import Top_k_save
 from script.util.misc_util import time_stamp, path_join, to_dict
@@ -248,12 +249,12 @@ class SS_baseline:
             verbose=10,
             learning_rate=0.01,
             beta1=0.9,
-            batch_size=32,
+            batch_size=64,
             stage=4,
             loss_type='BCE+dice_soft',
             n_classes=1,
             net_type='FusionNet',
-            capacity=16,
+            capacity=14,
             depth=2,
             dropout_rate=0.5,
             comment=''
@@ -283,13 +284,13 @@ class SS_baseline:
         )
         return params
 
-    def prepare_set(self, k=5, index=0):
+    def prepare_set(self, k=7, index=0):
         helper = TGS_salt_DataHelper()
         train_set = helper.train_set
         # train_set = helper.add_depth_image_channel(train_set)
         # train_set.x_keys = ['x_with_depth']
-        # train_set = helper.get_non_empty_mask(train_set)
         # train_set = helper.lr_flip(train_set, x_key='x_with_depth')
+        train_set = helper.get_non_empty_mask(train_set)
         train_set = helper.lr_flip(train_set)
         train_set, hold_out = helper.split_hold_out(train_set)
         kfold_sets = helper.k_fold_split(train_set, k=k)
@@ -317,7 +318,7 @@ class SS_baseline:
 
         return train_x_enc, train_y_enc, valid_x_enc, valid_y_enc
 
-    def train(self, callbacks=None, k=5, index=0):
+    def train(self, callbacks=None, k=7, index=0):
         datas = self.prepare_set(k, index)
         train_x_enc, train_y_enc, valid_x_enc, valid_y_enc = self.encode_datas(datas)
 
@@ -338,11 +339,11 @@ class SS_baseline:
                 TFSummaryCallback(dc_callback, run_id),
                 # PlotToolsCallback(dc_callback),
 
-                # EarlyStop(
-                #     20, min_best=False
-                # ).trace_on(
-                #     dc_callback, 'test_iou_score'
-                # ),
+                EarlyStop(
+                    30, min_best=False
+                ).trace_on(
+                    dc_callback, 'test_iou_score'
+                ),
                 ReduceLrOnPlateau(0.5, 5, 0.0001, min_best=False).trace_on(dc_callback, 'test_iou_score'),
                 # TriangleLRScheduler(10, 0.01, 0.001),
             ]
@@ -353,7 +354,7 @@ class SS_baseline:
         # model.update_dropout_rate(1)
         pprint(model)
 
-        epoch = 100
+        epoch = 200
         model.train(
             train_x_enc, train_y_enc, epoch=epoch,
             epoch_callbacks=callbacks,
@@ -450,7 +451,7 @@ class SS_baseline:
         return self.model
 
     def load_baseline(self):
-        path = './instance/TGS_salt/SS/target'
+        path = './instance/TGS_salt/SS/non_empty'
         self.load_model(path)
 
     def load_model(self, path):
@@ -492,7 +493,6 @@ class SS_baseline:
         )
 
     def log_split_mask_rate_score(self):
-
         pipe = self.load_baseline()
         baseline = pipe.model
 

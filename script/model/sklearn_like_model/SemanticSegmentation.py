@@ -103,6 +103,8 @@ class SemanticSegmentation(BaseModel):
             self.BCE = self.BCE_module.loss
 
             self.loss = self.dice_soft + self.BCE
+            self.loss = self.BCE
+            # self.loss = self.BCE
 
             lovasz = lovasz_hinge(self._logit, self.Ys_ph)
 

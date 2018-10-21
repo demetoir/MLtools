@@ -6,7 +6,7 @@ import pandas as pd
 from script.data_handler.Base.BaseDataset import BaseDataset
 from script.data_handler.Base.BaseDatasetPack import BaseDatasetPack
 from script.util.image_utils import PIL_img_from_file, PIL_img_to_np_img
-from script.util.misc_util import path_join, load_pickle, dump_pickle
+from script.util.misc_util import path_join, load_pickle, dump_pickle, extract_zip
 
 HEAD_PATH = './data/TGS_salt'
 DEPTHS_CSV_PATH = path_join(HEAD_PATH, 'depths.csv')
@@ -182,14 +182,41 @@ def RLE_mask_encoding(np_arr):
 
 def make_submission_csv(ids, masks):
     # TODO test
-    masks = np.transpose(masks, (0, 2, 1, 3))
-    masks = np.reshape(masks, [-1, 101, 101])
+    # masks = np.transpose(masks, (0, 2, 1, 3))
+    # masks = np.reshape(masks, [-1, 101, 101])
 
-    rle_masks = RLE_mask_encoding(masks)
+    # rle_masks = RLE_mask_encoding(masks)
+
+    def rle_encode(im):
+        '''
+        im: numpy array, 1 - mask, 0 - background
+        Returns run length as string formated
+        '''
+        pixels = im.flatten(order='F')
+        pixels = np.concatenate([[0], pixels, [0]])
+        runs = np.where(pixels[1:] != pixels[:-1])[0] + 1
+        runs[1::2] -= runs[::2]
+        return ' '.join(str(x) for x in runs)
+
+    rle_masks = np.array([rle_encode(mask) for mask in masks])
+
     df = pd.DataFrame({'id': ids, 'rle_mask': rle_masks})
     df = df[['id', 'rle_mask']]
+
+    df.to_csv('./submission2.csv', index=False)
     df_sample = pd.read_csv(SUBMISSION_CSV_PATH)
-    df_submission = pd.merge(left=df, right=df_sample, how='inner', left_on='id', right_on='id')
+    print(df_sample.head())
+
+    for id_, mask in zip(ids, rle_masks):
+        if id_ not in df_sample['id']:
+            print(id_)
+            break
+        # print(id_)
+        # print(df_sample['id'] == id_)
+        df_sample.loc[df_sample['id'] == id_, 'rle_mask'] = mask
+    df_sample.to_csv('./submission1.csv', index=False)
+
+    df_submission = pd.merge(left=df, right=df_sample, how='inner', left_on='id', right_on='id', sort=False)
     return df_submission
 
 
@@ -219,6 +246,26 @@ def to_128(x):
 def to_101(x):
     x = np.array([cv2.resize(a, (128, 128)) for a in x]).reshape([-1, 128, 128, 1])
     return x
+
+
+def download_and_unzip(path=None):
+    if path is None:
+        path = f'./TGS_salt'
+
+    import subprocess
+
+    cmd = 'kaggle competitions download -c tgs-salt-identification-challenge'
+    cmd += f' -p {path}'
+    # cmd += f' --unzip'
+    subprocess.run(cmd)
+
+    train_zip = 'train.zip'
+    test_zip = 'test.zip'
+    train_extract = 'train'
+    test_extract = 'test'
+
+    extract_zip(path_join(path, train_zip), path_join(path, train_extract))
+    extract_zip(path_join(path, test_zip), path_join(path, test_extract))
 
 
 class mask_label_encoder:
