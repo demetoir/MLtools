@@ -193,7 +193,10 @@ def extract_tar(source_path, destination_path):
         file.extractall(destination_path)
 
 
-def extract_zip(source_path, destination_path):
+def extract_zip(source_path, destination_path, verbose=1):
+    if verbose > 0:
+        print(f'unzip {source_path} to {destination_path}')
+
     """extract zip file
 
     :type source_path: str
