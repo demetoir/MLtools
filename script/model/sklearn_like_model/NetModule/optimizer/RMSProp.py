@@ -1,14 +1,22 @@
 import tensorflow as tf
 
 from script.model.sklearn_like_model.NetModule.BaseNetModule import BaseNetModule
-from script.model.sklearn_like_model.NetModule.TFDynamicLearningRate import TFDynamicLearningRate
+from script.model.sklearn_like_model.NetModule.DynamicVariable import DynamicVariable
 
 
-class RMSPropOptimizerModule(BaseNetModule):
+class RMSProp(BaseNetModule):
     def __init__(
-            self, loss, train_var_list, learning_rate=0.001, decay=0.9, momentum=0.0, epsilon=1e-8,
+            self,
+            loss,
+            train_var_list,
+            learning_rate=0.001,
+            decay=0.9,
+            momentum=0.0,
+            epsilon=1e-8,
             use_locking=False,
-            reuse=False, name=None, verbose=0
+            reuse=False,
+            name=None,
+            verbose=0
     ):
         super().__init__(verbose=verbose, name=name, reuse=reuse)
         self.loss = loss
@@ -18,6 +26,8 @@ class RMSPropOptimizerModule(BaseNetModule):
         self.momentum = momentum
         self.epsilon = epsilon
         self.use_locking = use_locking
+
+        self._lr_module = DynamicVariable(self._learning_rate, name='learning_rate')
 
     def __str__(self):
         s = f"{self.__class__.__name__}"
@@ -31,18 +41,14 @@ class RMSPropOptimizerModule(BaseNetModule):
     def build(self):
         self.log.info(f'build {self.name}')
         with tf.variable_scope(self.name):
-            self._lr_module = TFDynamicLearningRate(self._learning_rate).build()
+            self._lr_module.build()
 
-            self._optimizer = tf.train.RMSPropOptimizer(
-                learning_rate=self.lr_module.variable,
-                decay=self.decay,
-                momentum=self.momentum,
-                epsilon=self.epsilon,
-                use_locking=self.use_locking
+            self._optimizer = tf.train.GradientDescentOptimizer(
+                learning_rate=self._lr_module.variable,
             )
             self._train_op = self.optimizer.minimize(
                 loss=self.loss,
-                var_list=self.var_list
+                var_list=self.train_var_list
             )
 
         return self
@@ -70,4 +76,4 @@ class RMSPropOptimizerModule(BaseNetModule):
 
     @property
     def learning_rate(self):
-        return self.lr_module.leanring_rate
+        return self.lr_module.value
