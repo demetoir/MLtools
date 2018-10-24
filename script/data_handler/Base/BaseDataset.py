@@ -76,6 +76,12 @@ class BaseDataset(LoggerMixIn, PickleSelfMixIn, metaclass=MetaDataset):
         if hasattr(self, 'y_keys'):
             s += f"y_keys = {pformat(self.y_keys)}\n"
 
+        shapes = {
+            key: self.data[key].shape
+            for key in self.data
+        }
+        s += f"shapes = {pformat(shapes)}"
+
         return s
 
     def __repr__(self):
