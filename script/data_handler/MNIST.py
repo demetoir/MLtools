@@ -51,3 +51,11 @@ class MNIST(BaseDatasetPack):
         super().__init__()
         self.pack['train'] = MNIST_train()
         self.pack['test'] = MNIST_test()
+
+    @property
+    def train(self):
+        return self.pack['train']
+
+    @property
+    def test(self):
+        return self.pack['test']
