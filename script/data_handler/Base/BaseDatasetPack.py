@@ -9,6 +9,18 @@ class BaseDatasetPack(LoggerMixIn):
         self.caching = caching
         self.pack = {}
 
+    def __str__(self):
+        s = ""
+
+        s += f"{self.__class__.__name__}\n"
+
+        for key, val in self.pack.items():
+            s += f"{key} = [\n" \
+                 f"{val}\n" \
+                 f"]\n"
+
+        return s
+
     def __getitem__(self, item) -> BaseDataset:
         return self.pack.__getitem__(item)
 
