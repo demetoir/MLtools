@@ -92,7 +92,7 @@ class SemanticSegmentation(BaseModel):
 
         self.net_module.set_non_train(self.sess)
 
-    def _build_loss_function(self):
+    def _build_loss_ops(self):
         if self.loss_type == 'BCE+dice_soft':
             self.dice_soft_module = DiceSoftLoss(self.Ys_ph, self._proba)
             self.dice_soft_module.build()

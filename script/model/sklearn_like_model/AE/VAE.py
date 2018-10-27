@@ -198,7 +198,7 @@ class VAE(AE, VAE_loss_builder_MixIn):
         self.vars = collect_vars(join_scope(head, 'encoder'))
         self.vars += collect_vars(join_scope(head, 'decoder'))
 
-    def _build_loss_function(self):
+    def _build_loss_ops(self):
         X = flatten(self.Xs)
         X_out = flatten(self.Xs_recon)
         mean = self.mean

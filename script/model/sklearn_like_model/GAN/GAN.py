@@ -122,7 +122,7 @@ class GAN(BaseModel, basicGANPropertyMixIN, GAN_loss_builder_MixIn):
         self.G_vals = collect_vars(join_scope(get_scope(), 'generator'))
         self.D_vals = collect_vars(join_scope(get_scope(), 'discriminator'))
 
-    def _build_loss_function(self):
+    def _build_loss_ops(self):
         self.D_real_loss, self.D_gen_loss, self.D_loss, self.G_loss = \
             self._build_GAN_loss(self.D_real, self.D_gen, self.loss_type)
 

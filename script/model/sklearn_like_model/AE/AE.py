@@ -170,7 +170,7 @@ class AE(BaseModel, basicAEPropertyMixIn):
         self.vars = collect_vars(join_scope(head, 'encoder'))
         self.vars += collect_vars(join_scope(head, 'decoder'))
 
-    def _build_loss_function(self):
+    def _build_loss_ops(self):
         self.loss = tf.squared_difference(self.Xs, self.Xs_recon, name='loss')
         self.loss_mean = tf.reduce_mean(self.loss, name='loss_mean')
 
