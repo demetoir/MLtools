@@ -1,14 +1,13 @@
 import tensorflow as tf
 
-from script.model.sklearn_like_model.NetModule.BaseNetModule import BaseNetModule
 from script.model.sklearn_like_model.NetModule.DynamicVariable import DynamicVariable
+from script.model.sklearn_like_model.NetModule.optimizer.optimizer import optimizer
 
 
-class Adam(BaseNetModule):
+class Adam(optimizer):
+
     def __init__(
             self,
-            loss,
-            train_var_list,
             learning_rate=0.001,
             beta1=0.9,
             beta2=0.999,
@@ -18,10 +17,7 @@ class Adam(BaseNetModule):
             name=None,
             verbose=0
     ):
-        super().__init__(verbose=verbose, name=name, reuse=reuse)
-        self.loss = loss
-        self.train_var_list = train_var_list
-        self._learning_rate = learning_rate
+        super().__init__(learning_rate=learning_rate, verbose=verbose, name=name, reuse=reuse)
         self._beta1 = beta1
         self._beta2 = beta2
         self.epsilon = epsilon
@@ -38,42 +34,22 @@ class Adam(BaseNetModule):
         s += f"use_lock = {self.use_locking}\n"
         return s
 
-    @property
-    def learning_rate(self):
-        return self._lr_module.value
-
-    def build(self):
-        self.log.info(f'build {self.name}')
-        with tf.variable_scope(self.name):
-            self._lr_module.build()
-
-            self._optimizer = tf.train.AdamOptimizer(
-                learning_rate=self._lr_module.variable,
-                beta1=self._beta1,
-                beta2=self._beta2,
-                epsilon=self.epsilon,
-                use_locking=self.use_locking
-            )
-            self._train_op = self.optimizer.minimize(
-                loss=self.loss,
-                var_list=self.train_var_list
-            )
-
-        return self
-
-    def update_learning_rate(self, sess, lr):
-        self._lr_module.update(sess, lr)
-
     def reset_momentum(self, sess):
         if hasattr(self, 'init_momentum_op'):
             self.init_momentum_op = tf.initialize_variables(self.vars)
 
         sess.run(self.init_momentum_op)
 
-    @property
-    def train_op(self):
+    def _build(self):
+        self._optimizer = tf.train.AdamOptimizer(
+            learning_rate=self._lr_module.variable,
+            beta1=self._beta1,
+            beta2=self._beta2,
+            epsilon=self.epsilon,
+            use_locking=self.use_locking
+        )
+        self._train_op = self.optimizer.minimize(
+            loss=self.loss,
+            var_list=self.train_var_list
+        )
         return self._train_op
-
-    @property
-    def optimizer(self):
-        return self._optimizer
