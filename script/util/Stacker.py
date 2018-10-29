@@ -106,9 +106,9 @@ class Stacker(LoggerMixIn):
     def tanh(self):
         return self.add_layer(tanh)
 
-    def lrelu(self):
+    def lrelu(self, **kwargs):
         """add leaky relu layer"""
-        return self.add_layer(lrelu)
+        return self.add_layer(lrelu, **kwargs)
 
     def relu(self):
         """add relu layer"""
