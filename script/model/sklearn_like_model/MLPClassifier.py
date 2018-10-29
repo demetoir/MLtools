@@ -62,7 +62,7 @@ class MLPClassifier(BaseClassifierModel):
         self.acc = tf.cast(tf.equal(self.predict_index, self.label_index), tf.float64, name="acc")
         self.acc_mean = tf.reduce_mean(self.acc, name="acc_mean")
 
-    def _build_loss_function(self):
+    def _build_loss_ops(self):
         self.loss = tf.nn.softmax_cross_entropy_with_logits_v2(labels=self.Ys, logits=self.logit)
 
         self.l1_norm_penalty = L1_norm(self.vars, lambda_=self.l1_norm_lambda)

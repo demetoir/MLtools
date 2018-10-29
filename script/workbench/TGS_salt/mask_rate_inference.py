@@ -104,7 +104,7 @@ class MaskRateReg(
 
         self._predict_ops = self._predict
 
-    def _build_loss_function(self):
+    def _build_loss_ops(self):
         self.loss = self.loss_funcs[self.loss_type](self._predict, self.Ys)
 
         if self.use_l1_norm:

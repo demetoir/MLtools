@@ -1,12 +1,12 @@
 import numpy as np
+
 from script.model.sklearn_like_model.BaseModel import BaseModel
-from script.model.sklearn_like_model.NetModule.BCELoss import BCELoss
-from script.model.sklearn_like_model.NetModule.DiceSoftLoss import DiceSoftLoss
 from script.model.sklearn_like_model.NetModule.FusionNetStructure import FusionNetModule
 from script.model.sklearn_like_model.NetModule.InceptionUNetModule import InceptionUNetModule
-from script.model.sklearn_like_model.NetModule.PlaceHolderModule import PlaceHolderModule
-from script.model.sklearn_like_model.NetModule.TFDynamicLearningRate import TFDynamicLearningRate
 from script.model.sklearn_like_model.NetModule.UNetModule import UNetModule
+from script.model.sklearn_like_model.NetModule.loss.BCELoss import BCELoss
+from script.model.sklearn_like_model.NetModule.loss.DiceSoftLoss import DiceSoftLoss
+from script.model.sklearn_like_model.NetModule.optimizer.NAG import NAG
 from script.util.tensor_ops import *
 from script.workbench.TGS_salt.lovazs_loss import lovasz_hinge
 
@@ -46,28 +46,9 @@ class SemanticSegmentation(BaseModel):
         self.depth = depth
         self.dropout_rate = dropout_rate
 
-    def update_learning_rate(self, lr):
-        self.learning_rate = lr
-
-        if self.sess is not None:
-            self.drl.update(self.sess, self.learning_rate)
-
-    def update_dropout_rate(self, rate):
-        self.net_module.update_dropout_rate(self.sess, rate)
-        self.dropout_rate = rate
-
-    def _build_input_shapes(self, shapes):
-        self.xs_ph_module = PlaceHolderModule(shapes['x'], name='x').build()
-        self.ys_ph_module = PlaceHolderModule(shapes['y'], name='y').build()
-
-        ret = {}
-        ret.update(self.xs_ph_module.shape_dict)
-        ret.update(self.ys_ph_module.shape_dict)
-        return ret
-
     def _build_main_graph(self):
-        self.Xs_ph = self.xs_ph_module.placeholder
-        self.Ys_ph = self.ys_ph_module.placeholder
+        self.Xs_ph = self.Xs
+        self.Ys_ph = self.Ys
 
         net_class = self.net_structure_class_dict[self.net_type]
         self.net_module = net_class(
@@ -84,15 +65,7 @@ class SemanticSegmentation(BaseModel):
         self._predict_proba_ops = self._proba
         self._predict_ops = self._predict
 
-    def _train_iter(self, dataset, batch_size):
-        self.net_module.set_train(self.sess)
-
-        Xs, Ys = dataset.next_batch(batch_size, balanced_class=False)
-        self.sess.run(self.train_ops, feed_dict={self.Xs_ph: Xs, self.Ys_ph: Ys})
-
-        self.net_module.set_non_train(self.sess)
-
-    def _build_loss_function(self):
+    def _build_loss_ops(self):
         if self.loss_type == 'BCE+dice_soft':
             self.dice_soft_module = DiceSoftLoss(self.Ys_ph, self._proba)
             self.dice_soft_module.build()
@@ -138,44 +111,18 @@ class SemanticSegmentation(BaseModel):
 
         # self.small_mask_penalty = small_mask_penalty(self.Ys, self._predict)
         # self.loss += self.small_mask_penalty
-
-    def _build_train_ops(self):
-        self.drl = TFDynamicLearningRate(self.learning_rate)
-        self.drl.build()
-
-        self.train_ops = tf.train.AdamOptimizer(
-            self.drl.learning_rate
-        ).minimize(
-            self.loss, var_list=self.vars
-        )
-
-    @property
-    def predict_ops(self):
-        return self._predict_ops
-
-    @property
-    def predict_proba_ops(self):
-        return self._predict_proba_ops
-
-    @property
-    def score_ops(self):
-        return self.metric_ops
-
-    @property
-    def metric_ops(self):
         return self.loss
 
-    def init_adam_momentum(self):
-        self.sess.run(tf.variables_initializer(self.train_ops_var_list))
+    def _build_train_ops(self):
+        self.optimizer = NAG(self.loss, self.vars, learning_rate=self.learning_rate)
+        self.optimizer.build()
+        self.train_ops = self.optimizer.train_op
 
-    def _metric(self, x=None, y=None):
-        return self.batch_execute(self.loss, {self.Xs_ph: x, self.Ys_ph: y})
+        return self.train_ops
 
-    def predict_proba(self, x):
-        return self.batch_execute(self._predict_proba_ops, {self.Xs_ph: x})
+    def _build_metric_ops(self):
+        return []
+        pass
 
-    def predict(self, x):
-        return self.batch_execute(self._predict_ops, {self.Xs_ph: x})
-
-    def score(self, x, y):
-        return np.mean(self.batch_execute(self.score_ops, {self.Xs_ph: x, self.Ys_ph: y}))
+    def _build_predict_ops(self):
+        return []

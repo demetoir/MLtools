@@ -152,7 +152,7 @@ class post_process_AE(BaseModel):
 
         self.vars = self.UNetModule.vars
 
-    def _build_loss_function(self):
+    def _build_loss_ops(self):
         self.loss = tf.squared_difference(self.Ys_ph, self._recon, name='loss')
         self.loss_mean = tf.reduce_mean(self.loss, name='loss_mean')
 

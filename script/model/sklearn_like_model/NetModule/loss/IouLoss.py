@@ -1,4 +1,4 @@
-from script.model.sklearn_like_model.NetModule.BaseLossModule import BaseLossModule
+from script.model.sklearn_like_model.NetModule.loss.BaseLossModule import BaseLossModule
 from script.util.tensor_ops import *
 
 

@@ -7,6 +7,7 @@ from tqdm import trange, tqdm
 from env_settting import *
 from script.data_handler.Base.BaseDataset import BaseDataset
 from script.model.sklearn_like_model.Mixin import paramsMixIn, loss_packMixIn, slice_np_arr
+from script.model.sklearn_like_model.NetModule.PlaceHolderModule import PlaceHolderModule
 from script.model.sklearn_like_model.SessionManager import SessionManager
 from script.model.sklearn_like_model.callback.BaseEpochCallback import BaseEpochCallback
 from script.util.MixIn import LoggerMixIn
@@ -133,10 +134,6 @@ class BaseModel(
             id_=id_,
         )
 
-    @property
-    def id(self):
-        return self.metadata.id
-
     def __str__(self):
         s = ""
         s += "%s_%s\n" % (self.AUTHOR, self.__class__.__name__)
@@ -157,6 +154,10 @@ class BaseModel(
 
     def __del__(self):
         del self.sessionManager
+
+    @property
+    def id(self):
+        return self.metadata.id
 
     @property
     def sess(self):
@@ -212,17 +213,29 @@ class BaseModel(
                     self.log.debug("build_misc_ops")
                     self._build_misc_ops()
 
-                self.log.debug('build_main_graph')
                 with tf.variable_scope('main_graph'):
+                    self.log.debug('build_main_graph')
                     self._build_main_graph()
 
-                with tf.variable_scope('loss_function'):
-                    self.log.debug('build_loss_function')
-                    self._build_loss_function()
+                with tf.variable_scope('loss_ops'):
+                    self.log.debug('build_loss_ops')
+                    self._loss_ops = self._build_loss_ops()
+                    assert self._loss_ops is not None
+
+                with tf.variable_scope('predict_ops'):
+                    self.log.debug('build_predict_ops')
+                    self._predict_ops = self._build_predict_ops()
+                    assert self._predict_ops is not None
+
+                with tf.variable_scope('metric_ops'):
+                    self.log.debug('build_metric_ops')
+                    self._metric_ops = self._build_metric_ops()
+                    assert self._metric_ops is not None
 
                 with tf.variable_scope('train_ops'):
                     self.log.debug('build_train_ops')
-                    self._build_train_ops()
+                    self._train_ops = self._build_train_ops()
+                    assert self._train_ops is not None
 
             self._is_graph_built = True
             self.log.info("build success")
@@ -232,16 +245,30 @@ class BaseModel(
             print(error_trace(e))
             raise ModelBuildFailError("ModelBuildFailError")
 
-    def _build_input_shapes(self, shapes):
-        """load input shapes for tensor placeholder
+    def _build_input_shapes(self, x=None, y=None):
+        self.input_modules = {}
 
-        :type shapes: dict
-        :param shapes: input shapes for tensor placeholder
+        if type(x) is dict:
+            raise NotImplementedError
+        elif type(x) is tuple:
+            self.x_module = PlaceHolderModule(x, name='x').build()
+            self.Xs = self.x_module.placeholder
+            self.input_modules['x'] = self.x_module
 
-        :raise NotImplementError
-        if not Implemented
-        """
-        raise NotImplementedError
+        else:
+            raise ValueError(f'x expect tuple or dict, but x = {x}')
+
+        if type(y) is dict:
+            raise NotImplementedError
+        elif type(y) is tuple:
+            self.y_module = PlaceHolderModule(y, name='y').build()
+            self.Ys = self.y_module.placeholder
+            self.input_modules['y'] = self.y_module
+        else:
+            raise ValueError(f'y expect tuple or dict, but y = {y}')
+
+    def get_inputs_module(self, name):
+        return self.input_modules[name]
 
     def _build_main_graph(self):
         """load main tensor graph
@@ -251,7 +278,7 @@ class BaseModel(
         """
         raise NotImplementedError
 
-    def _build_loss_function(self):
+    def _build_loss_ops(self):
         """load loss function of model
 
         :raise NotImplementError
@@ -280,15 +307,22 @@ class BaseModel(
         """
         raise NotImplementedError
 
-    def build(self, **inputs):
+    def _build_metric_ops(self):
+        raise NotImplementedError
+
+    def _build_predict_ops(self):
+        raise NotImplementedError
+
+    def build(self, x=None, y=None):
         if not self._is_input_shape_built:
             try:
-                self.inputs = inputs
-                self._build_input_shapes(inputs)
+                self.inputs_x = x
+                self.inputs_y = y
+                self._build_input_shapes(x, y)
                 self._is_input_shape_built = True
             except BaseException as e:
                 print(error_trace(e))
-                raise ModelBuildFailError(f'input_shape build fail, {inputs}')
+                raise ModelBuildFailError(f'input_shape build fail, x={x}, y={y}')
 
         self._build_graph()
 
@@ -346,6 +380,37 @@ class BaseModel(
     def reset_global_epoch(self):
         self.sess.run(tf.initialize_variables([self.global_step]))
 
+    def batch_execute(self, op, inputs):
+        batch_size = getattr(self, 'batch_size', 32)
+        size = 0
+        for val in inputs.values():
+            size = len(val)
+
+        if size > batch_size:
+            partial = {}
+            for key, val in inputs.items():
+                for idx, part in enumerate(slice_np_arr(val, batch_size)):
+                    if idx not in partial:
+                        partial[idx] = {}
+
+                    partial[idx][key] = part
+
+            partial = list(partial.values())
+
+            with tqdm(partial) as partials:
+                partials.set_description(f'batch execute')
+                batchs = [
+                    self.sess.run(op, feed_dict=x_partial)
+                    for x_partial in partials
+                ]
+
+            try:
+                return np.concatenate(batchs)
+            except:
+                return batchs
+        else:
+            return self.sess.run(op, feed_dict=inputs)
+
     def _loss_check(self, loss_pack):
         for key, item, in loss_pack.items():
             if any(np.isnan(item)):
@@ -354,9 +419,6 @@ class BaseModel(
             if any(np.isinf(item)):
                 self.log.error(f'{key} is inf')
                 raise TrainFailError(f'{key} is inf')
-
-    def _train_iter(self, dataset, batch_size):
-        raise NotImplementedError
 
     def _is_fine_metric(self, metric):
         if metric in (np.nan, np.inf, -np.inf):
@@ -376,31 +438,52 @@ class BaseModel(
     def train(
             self, x=None, y=None, epoch=1, batch_size=None,
             dataset_callback=None, epoch_pbar=True, iter_pbar=True, epoch_callbacks=None,
+            validation_data=None,
     ):
-
         if not self.is_built:
             raise RuntimeError(f'{self} not built')
 
         batch_size = getattr(self, 'batch_size') if batch_size is None else batch_size
+        self.batch_size = batch_size
         dataset = dataset_callback if dataset_callback else BaseDataset(x=x, y=y)
 
         metric = None
         epoch_pbar = tqdm([i for i in range(1, epoch + 1)]) if epoch_pbar else None
-        for _ in range(1, epoch + 1):
+        for i_epoch in range(1, epoch + 1):
+            epoch_pbar.set_description(f'epoch {i_epoch}/{epoch}')
+
             dataset.shuffle()
 
-            iter_pbar = trange if iter_pbar else range
-            for _ in iter_pbar(int(dataset.size / batch_size)):
-                self._train_iter(dataset, batch_size)
+            loss_mean = 0
+            iter_size = int(dataset.size / batch_size)
+            with trange(iter_size) as iter_trange:
+                for i in range(iter_size):
+                    batch_x, batch_y = dataset.next_batch(batch_size)
+                    self._train_iter(batch_x, batch_y)
+
+                    batch_loss = self.loss(batch_x, batch_y)
+                    loss_mean = (loss_mean * i + batch_loss) / (i + 1)
+
+                    iter_trange.set_description(f'iter {i}/{iter_size}')
+                    iter_trange.set_postfix(loss=loss_mean)
+                    iter_trange.update(1)
 
             self.sess.run(self.op_inc_global_epoch)
             global_epoch = self.sess.run(self.global_epoch)
             if epoch_pbar: epoch_pbar.update(1)
 
-            metric = np.mean(getattr(self, 'metric', None)(x=x, y=y))
-            tqdm.write(f"\nepoch:{global_epoch}, metric : {np.mean(metric)}\n")
-            if self._is_fine_metric(metric):
-                break
+            metric = self.metric(x, y)
+
+            msg = f"epoch:{global_epoch}"
+            msg += f', loss={loss_mean:0.6f}'
+            msg += f', metric={np.mean(metric):0.6f}'
+            if validation_data:
+                val_loss = self.loss(*validation_data)
+                val_metric = self.metric(*validation_data)
+
+                msg += f', val_loss={np.mean(val_loss):0.6f}'
+                msg += f', val_metric={np.mean(val_metric):0.6f}'
+            tqdm.write(msg)
 
             break_epoch = False
             if epoch_callbacks:
@@ -422,41 +505,23 @@ class BaseModel(
 
         return metric
 
-    def _metric(self, x=None, y=None):
-        raise NotImplementedError
-
     def metric(self, x=None, y=None, mean=True):
-        metric = self._metric(x, y)
+        metric = self.batch_execute(self._metric_ops, {self.Xs: x, self.Ys: y})
         if mean:
             metric = np.mean(metric)
         return metric
 
-    def batch_execute(self, op, inputs):
-        batch_size = getattr(self, 'batch_size', None)
-        size = 0
-        for val in inputs.values():
-            size = len(val)
+    def loss(self, x=None, y=None, mean=True):
+        loss = self.batch_execute(self._loss_ops, {self.Xs: x, self.Ys: y})
+        if mean:
+            loss = np.mean(loss)
+        return loss
 
-        if size > batch_size:
-            partial = {}
-            for key, val in inputs.items():
-                for idx, part in enumerate(slice_np_arr(val, batch_size)):
-                    if idx not in partial:
-                        partial[idx] = {}
+    def predict(self, x=None, y=None):
+        return self.batch_execute(self._predict_ops, {self.Xs: x, self.Ys: y})
 
-                    partial[idx][key] = part
+    def evaluate(self, x=None, y=None):
+        return self.batch_execute(self._metric_ops, {self.Xs: x, self.Ys: y})
 
-            partial = list(partial.values())
-
-            tqdm.write('batch predict')
-            batchs = [
-                self.sess.run(op, feed_dict=x_partial)
-                for x_partial in tqdm(partial)
-            ]
-
-            try:
-                return np.concatenate(batchs)
-            except:
-                return batchs
-        else:
-            return self.sess.run(op, feed_dict=inputs)
+    def _train_iter(self, x=None, y=None):
+        self.sess.run(self._train_ops, feed_dict={self.Xs: x, self.Ys: y})

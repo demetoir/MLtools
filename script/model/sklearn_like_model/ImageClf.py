@@ -1,31 +1,22 @@
-from script.model.sklearn_like_model.NetModule.MLPNetModule import MLPNetModule
-from script.model.sklearn_like_model.NetModule.PlaceHolderModule import PlaceHolderModule
-from script.model.sklearn_like_model.NetModule.TFDynamicLearningRate import TFDynamicLearningRate
-from script.model.sklearn_like_model.NetModule.TFNormalize import TFL1Normalize, TFL2Normalize
 from script.model.sklearn_like_model.BaseModel import BaseModel
-from script.model.sklearn_like_model.Mixin import Xs_MixIn, Ys_MixIn, supervised_trainMethodMixIn, predictMethodMixIn, \
-    predict_probaMethodMixIn, scoreMethodMixIn, supervised_metricMethodMixIn
 from script.model.sklearn_like_model.NetModule.InceptionSructure.InceptionV1Structure import InceptionV1NetModule
 from script.model.sklearn_like_model.NetModule.InceptionSructure.InceptionV2Structure import InceptionV2NetModule
 from script.model.sklearn_like_model.NetModule.InceptionSructure.InceptionV4Structure import InceptionV4NetModule
+from script.model.sklearn_like_model.NetModule.MLPNetModule import MLPNetModule
+from script.model.sklearn_like_model.NetModule.PlaceHolderModule import PlaceHolderModule
 from script.model.sklearn_like_model.NetModule.ResNetStructure.ResNet101NetModule import ResNet101Structure
 from script.model.sklearn_like_model.NetModule.ResNetStructure.ResNet152NetModule import ResNet152Structure
 from script.model.sklearn_like_model.NetModule.ResNetStructure.ResNet18NetModule import ResNet18NetModule
 from script.model.sklearn_like_model.NetModule.ResNetStructure.ResNet34NetModule import ResNet34NetModule
 from script.model.sklearn_like_model.NetModule.ResNetStructure.ResNet50NetModule import ResNet50Structure
+from script.model.sklearn_like_model.NetModule.TFNormalize import TFL1Normalize, TFL2Normalize
 from script.model.sklearn_like_model.NetModule.VGG16NetModule import VGG16NetModule
+from script.model.sklearn_like_model.NetModule.optimizer.Adam import Adam
 from script.util.tensor_ops import *
 
 
 class ImageClf(
     BaseModel,
-    Xs_MixIn,
-    Ys_MixIn,
-    supervised_trainMethodMixIn,
-    predictMethodMixIn,
-    predict_probaMethodMixIn,
-    scoreMethodMixIn,
-    supervised_metricMethodMixIn,
 ):
     net_structure_class_dict = {
         'VGG16': VGG16NetModule,
@@ -58,13 +49,6 @@ class ImageClf(
             **kwargs
     ):
         BaseModel.__init__(self, verbose, **kwargs)
-        Xs_MixIn.__init__(self)
-        Ys_MixIn.__init__(self)
-        supervised_trainMethodMixIn.__init__(self, None)
-        predictMethodMixIn.__init__(self)
-        predict_probaMethodMixIn.__init__(self)
-        scoreMethodMixIn.__init__(self)
-        supervised_metricMethodMixIn.__init__(self)
 
         self.n_classes = n_classes
         self.net_type = net_type
@@ -83,11 +67,6 @@ class ImageClf(
     def _build_input_shapes(self, shapes):
         self.x_module = PlaceHolderModule(shapes['x'], name='x').build()
         self.y_module = PlaceHolderModule(shapes['y'], name='y').build()
-
-        ret = {}
-        ret.update(self.x_module.shape_dict)
-        ret.update(self.y_module.shape_dict)
-        return ret
 
     def _build_main_graph(self):
         self.Xs = self.x_module.placeholder
@@ -124,7 +103,7 @@ class ImageClf(
         self.acc = tf.cast(tf.equal(self._predict, self.Ys_label), tf.float64, name="acc")
         self.acc_mean = tf.reduce_mean(self.acc, name="acc_mean")
 
-    def _build_loss_function(self):
+    def _build_loss_ops(self):
         self.loss = tf.nn.softmax_cross_entropy_with_logits_v2(labels=self.Ys, logits=self._logit)
 
         if self.use_l1_norm:
@@ -145,55 +124,28 @@ class ImageClf(
         self._metric_ops = self.loss
 
     def _build_train_ops(self):
-        self.drl = TFDynamicLearningRate(self.learning_rate)
-        self.drl.build()
-
-        self._train_ops = tf.train.AdamOptimizer(
-            learning_rate=self.drl.learning_rate, beta1=self.beta1
-        ).minimize(
-            self.loss, var_list=self.vars
-        )
+        self.optimizer = Adam(self.loss, self.vars, self.learning_rate).build()
+        self.train_ops = self.optimizer.train_op
 
     def _train_iter(self, dataset, batch_size):
         self.set_train(self.sess)
         Xs, Ys = dataset.next_batch(batch_size, balanced_class=False)
         self.sess.run(self.train_ops, feed_dict={self.Xs: Xs, self.Ys: Ys})
-        self.set_predict(self.sess)
+        self.set_non_train(self.sess)
 
     def _metric(self, x=None, y=None):
         return self.batch_execute(self.loss, {self.Xs: x, self.Ys: y})
 
-    @property
-    def train_ops(self):
-        return self._train_ops
-
-    @property
-    def predict_ops(self):
-        return self._predict_ops
-
-    @property
-    def predict_proba_ops(self):
-        return self._predict_proba_ops
-
-    @property
-    def score_ops(self):
-        return self.acc_mean
-
-    @property
-    def metric_ops(self):
-        return self._metric_ops
-
     def update_learning_rate(self, lr):
-        self.learning_rate = lr
-
         if self.sess is not None:
-            self.drl.update(self.sess, self.learning_rate)
+            self.optimizer.update_learning_rate(self.sess, self.learning_rate)
 
     def set_train(self, sess):
         self.mlp_net_module.set_train(sess)
 
-    def set_predict(self, sess):
+    def set_non_train(self, sess):
         self.mlp_net_module.set_non_train(sess)
 
     def init_adam_momentum(self):
         self.sess.run(tf.variables_initializer(self.train_ops_var_list))
+

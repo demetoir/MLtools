@@ -41,6 +41,184 @@ def bn(x, is_training=True, name='bn'):
                                         scope=name)
 
 
+class SingletonNameScope:
+    @property
+    def name_counts(self):
+        cls = self.__class__
+
+        if not hasattr(cls, 'name_count'):
+            setattr(cls, 'name_count', {})
+
+        return getattr(cls, 'name_count')
+
+    @property
+    def name_dict(self):
+        cls = self.__class__
+        if not hasattr(cls, 'name_dict'):
+            setattr(cls, 'name_dict', {})
+        return getattr(cls, 'name_dict')
+
+    def new_name(self, name):
+        name_counts = self.name_counts
+        if name not in name_counts:
+            name_counts[name] = 0
+
+        name_counts[name] += 1
+        return name + str(name_counts[name])
+
+
+class tensor_op:
+    def __init__(self, name=None, reuse=None):
+        if name is None:
+            name = self.__class__.__name__
+        self._name = name
+        self._reuse = reuse
+        self.is_build = False
+        self.singleton_name_scope = SingletonNameScope()
+        self.name_scope = None
+
+    @property
+    def __name__(self):
+        return self.name
+
+    @property
+    def name(self):
+        return self._name
+
+    @property
+    def reuse(self):
+        return self._reuse
+
+    def call(self, inputs, *args, **kwargs):
+        raise NotImplementedError
+
+    def __call__(self, *args, **kwargs):
+        self.name_scope = self.singleton_name_scope.new_name(join_scope(get_scope(), self.name))
+
+        with tf.variable_scope(self.name_scope, self.reuse):
+            self.node = self.call(*args, **kwargs)
+
+        self.is_build = True
+        return self.node
+
+
+class BN(tensor_op):
+    def call(self, inputs, *args, **kwargs):
+        return tf.contrib.layers.batch_norm(
+            inputs,
+            decay=0.9,
+            updates_collections=None,
+            epsilon=1e-5,
+            scale=True,
+            is_training=True,
+        )
+
+
+class Sigmoid(tensor_op):
+    def call(self, inputs, *args, **kwargs):
+        return tf.sigmoid(inputs)
+
+
+class LRelu(tensor_op):
+    def __init__(self, alpha=0.1, name=None, reuse=None):
+        super().__init__(name, reuse)
+        self.alpha = alpha
+
+    def call(self, inputs, *args, **kwargs):
+        return tf.maximum(inputs, self.alpha * inputs)
+
+
+class Tanh(tensor_op):
+    def call(self, inputs, *args, **kwargs):
+        return tf.tanh(inputs)
+
+
+class Relu(tensor_op):
+    def call(self, inputs, *args, **kwargs):
+        return tf.nn.relu(inputs)
+
+
+class Softmax(tensor_op):
+    def call(self, inputs, *args, **kwargs):
+        return tf.nn.softmax(inputs)
+
+
+class Linear(tensor_op):
+
+    def __init__(self, output_size, init_bias=0.0, name=None, reuse=None):
+        super().__init__(name, reuse)
+        self.output_size = output_size
+        self.init_bias = init_bias
+
+    def call(self, inputs, *args, **kwargs):
+        shape = inputs.get_shape().as_list()
+
+        weight = tf.get_variable(
+            "weight",
+            [shape[1], self.output_size],
+            tf.float32,
+            initializer=tf.contrib.layers.xavier_initializer()
+        )
+        bias = tf.get_variable(
+            "bias",
+            [self.output_size],
+            initializer=tf.constant_initializer(self.init_bias)
+        )
+        return tf.matmul(inputs, weight) + bias
+
+
+class Conv2d(tensor_op):
+    def __init__(self, filters, kernel, stride=(1, 1), padding='SAME', name=None, reuse=None):
+        super().__init__(name, reuse)
+        self.filters = filters
+        self.kernel = kernel
+        self.padding = padding
+        self.stride = stride
+
+    def call(self, inputs, *args, **kwargs):
+        k_h, k_w = self.kernel
+        d_h, d_w = self.stride
+
+        weight = tf.get_variable(
+            'weight',
+            [k_h, k_w, inputs.get_shape()[-1], self.filters],
+            initializer=tf.contrib.layers.xavier_initializer_conv2d()
+        )
+        # initializer=tf.truncated_normal_initializer(stddev=stddev))
+        conv = tf.nn.conv2d(
+            inputs,
+            weight,
+            strides=[1, d_h, d_w, 1],
+            padding=self.padding
+        )
+
+        bias = tf.get_variable(
+            'bias',
+            [self.filters],
+            initializer=tf.constant_initializer(0.0)
+        )
+        conv = tf.nn.bias_add(conv, bias)
+        return conv
+
+
+class MaxPooling2d(tensor_op):
+
+    def __init__(self, pool_size, padding='SAME', name=None, reuse=None):
+        super().__init__(name, reuse)
+        self.padding = padding
+        self.pool_size = pool_size
+
+    def call(self, inputs, *args, **kwargs):
+        kH, kW = self.pool_size
+        sH, sW = self.pool_size
+        return tf.nn.max_pool(
+            inputs,
+            ksize=[1, kH, kW, 1],
+            strides=[1, sH, sW, 1],
+            padding=self.padding
+        )
+
+
 # activation function
 def sigmoid(x, name='sigmoid'):
     """sigmoid activation function layer"""

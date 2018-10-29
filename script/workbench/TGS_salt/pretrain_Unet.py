@@ -64,7 +64,7 @@ class pre_train_Unet(BaseModel):
         self.vars = self.net_module.vars
         self.vars += self.recon_module.vars
 
-    def _build_loss_function(self):
+    def _build_loss_ops(self):
         self.loss = tf.squared_difference(self.Xs, self._recon, name='loss')
         self.loss_mean = tf.reduce_mean(self.loss, name='loss_mean')
 

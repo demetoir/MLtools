@@ -245,7 +245,7 @@ class AAE(BaseModel, basicAAEPropertyMixIn, GAN_loss_builder_MixIn):
         # self.acc = tf.cast(tf.equal(self.predict_index, self.label_index), tf.float64, name="acc")
         # self.acc_mean = tf.reduce_mean(self.acc, name="acc_mean")
 
-    def _build_loss_function(self):
+    def _build_loss_ops(self):
         # AE loss
         self.loss_AE = tf.squared_difference(self.Xs, self.Xs_recon, name="loss_AE")
         self.loss_AE_mean = tf.reduce_sum(self.loss_AE, name="loss_AE_mean")

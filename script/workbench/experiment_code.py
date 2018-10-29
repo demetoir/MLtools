@@ -1000,7 +1000,7 @@ class autoOnehot(BaseModel, CVAE_MixIn):
 
         self.vars = self.vars_encoder + self.vars_decoder
 
-    def _build_loss_function(self):
+    def _build_loss_ops(self):
         X = flatten(self.Xs)
         X_out = flatten(self.Xs_recon)
 

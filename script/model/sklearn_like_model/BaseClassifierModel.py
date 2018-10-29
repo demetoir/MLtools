@@ -46,7 +46,7 @@ class BaseClassifierModel(BaseModel, basicClfProperty):
     def _build_main_graph(self):
         raise NotImplementedError
 
-    def _build_loss_function(self):
+    def _build_loss_ops(self):
         raise NotImplementedError
 
     def _build_train_ops(self):
