@@ -11,7 +11,6 @@ from script.model.sklearn_like_model.callback.BaseEpochCallback import BaseEpoch
 from script.model.sklearn_like_model.callback.BestSave import BestSave
 from script.model.sklearn_like_model.callback.EarlyStop import EarlyStop
 from script.model.sklearn_like_model.callback.ReduceLrOnPlateau import ReduceLrOnPlateau
-from script.model.sklearn_like_model.callback.Top_k_save import Top_k_save
 from script.util.misc_util import time_stamp, path_join, to_dict
 from script.workbench.TGS_salt.TGS_salt_inference import plot, TGS_salt_DataHelper, \
     masks_rate, Metrics
@@ -39,31 +38,31 @@ class CollectDataCallback(BaseDataCollector):
 
         self.train_loss = metric
 
-        train_x_enc, train_y_enc = dataset.next_batch(500, update_cursor=False)
-        self.train_x_enc = train_x_enc
-        self.train_x_dec = decode(self.train_x_enc)
-        self.train_y_enc = train_y_enc
-        self.train_y_dec = decode(self.train_y_enc)
+        # train_x_enc, train_y_enc = dataset.next_batch(500)
+        # self.train_x_enc = train_x_enc
+        # self.train_x_dec = decode(self.train_x_enc)
+        # self.train_y_enc = train_y_enc
+        # self.train_y_dec = decode(self.train_y_enc)
 
-        self.train_predict_enc = model.predict(self.train_x_enc)
-        self.train_predict_dec = decode(self.train_predict_enc)
+        # self.train_predict_enc = model.predict(self.train_x_enc)
+        # self.train_predict_dec = decode(self.train_predict_enc)
 
         self.test_predict_enc = model.predict(self.test_x_enc)
         self.test_predict_dec = decode(self.test_predict_enc)
 
-        self.train_score = Metrics.TGS_salt_score(self.train_y_enc, self.train_predict_enc)
+        # self.train_score = Metrics.TGS_salt_score(self.train_y_enc, self.train_predict_enc)
         self.test_score = Metrics.TGS_salt_score(self.test_y_enc, self.test_predict_enc)
+        #
+        # self.train_iou_score = Metrics.miou(self.train_y_enc, self.train_predict_enc)
+        # self.test_iou_score = Metrics.miou(self.test_y_enc, self.test_predict_enc)
+        #
+        # self.train_predict_sample = self.train_predict_dec[:20]
 
-        self.train_iou_score = Metrics.miou(self.train_y_enc, self.train_predict_enc)
-        self.test_iou_score = Metrics.miou(self.test_y_enc, self.test_predict_enc)
+        # self.train_non_empty_iou_score = Metrics.miou_non_empty(self.train_y_enc, self.train_predict_enc)
+        # self.test_non_empty_iou_score = Metrics.miou_non_empty(self.test_y_enc, self.test_predict_enc)
 
-        self.train_predict_sample = self.train_predict_dec[:20]
-
-        self.train_non_empty_iou_score = Metrics.miou_non_empty(self.train_y_enc, self.train_predict_enc)
-        self.test_non_empty_iou_score = Metrics.miou_non_empty(self.test_y_enc, self.test_predict_enc)
-
-        self.train_non_empty_TGS_score = Metrics.TGS_salt_score_non_empty(self.train_y_enc, self.train_predict_enc)
-        self.test_non_empty_TGS_score = Metrics.TGS_salt_score_non_empty(self.test_y_enc, self.test_predict_enc)
+        # self.train_non_empty_TGS_score = Metrics.TGS_salt_score_non_empty(self.train_y_enc, self.train_predict_enc)
+        # self.test_non_empty_TGS_score = Metrics.TGS_salt_score_non_empty(self.test_y_enc, self.test_predict_enc)
 
 
 class LoggingCallback(BaseEpochCallback):
@@ -76,23 +75,23 @@ class LoggingCallback(BaseEpochCallback):
         msg = f'\n'
         msg += f'e:{epoch}, '
 
-        msg += f'TGS_salt_metric score\n'
-        msg += f'train        = {self.dc.train_score}\n'
+        # msg += f'TGS_salt_metric score\n'
+        # msg += f'train        = {self.dc.train_score}\n'
         msg += f'test         = {self.dc.test_score}\n'
 
-        msg += f'iou score\n'
-        msg += f'train        = {self.dc.train_iou_score}\n'
-        msg += f'test         = {self.dc.test_iou_score}\n'
-        msg += f'\n'
+        # msg += f'iou score\n'
+        # msg += f'train        = {self.dc.train_iou_score}\n'
+        # msg += f'test         = {self.dc.test_iou_score}\n'
+        # msg += f'\n'
 
-        msg += f'non empty TGS_salt_metric score\n'
-        msg += f'train        = {self.dc.train_non_empty_TGS_score}\n'
-        msg += f'test         = {self.dc.test_non_empty_TGS_score}\n'
-
-        msg += f'non empty iou score\n'
-        msg += f'train        = {self.dc.train_non_empty_iou_score}\n'
-        msg += f'test         = {self.dc.test_non_empty_iou_score}\n'
-        msg += f'\n'
+        # msg += f'non empty TGS_salt_metric score\n'
+        # msg += f'train        = {self.dc.train_non_empty_TGS_score}\n'
+        # msg += f'test         = {self.dc.test_non_empty_TGS_score}\n'
+        #
+        # msg += f'non empty iou score\n'
+        # msg += f'train        = {self.dc.train_non_empty_iou_score}\n'
+        # msg += f'test         = {self.dc.test_non_empty_iou_score}\n'
+        # msg += f'\n'
 
         tqdm.write(msg)
 
@@ -112,25 +111,25 @@ class TFSummaryCallback(BaseEpochCallback):
         self.test_path = test_path
         self.train_path = train_path
         self.summary_train_loss = TFSummaryScalar(train_path, 'train_loss')
-        self.summary_train_acc = TFSummaryScalar(train_path, 'train_acc')
+        # self.summary_train_acc = TFSummaryScalar(train_path, 'train_acc')
         self.summary_test_acc = TFSummaryScalar(test_path, 'test_acc')
-        self.summary_iou_train_score = TFSummaryScalar(train_path, 'train_iou')
-        self.summary_iou_test_score = TFSummaryScalar(test_path, 'test_iou')
+        # self.summary_iou_train_score = TFSummaryScalar(train_path, 'train_iou')
+        # self.summary_iou_test_score = TFSummaryScalar(test_path, 'test_iou')
 
     def __call__(self, model, dataset, metric, epoch):
         sess = model.sess
         train_loss = self.data_collection.train_loss
-        train_score = self.data_collection.train_score
+        # train_score = self.data_collection.train_score
         test_score = self.data_collection.test_score
 
-        train_iou_score = self.data_collection.train_iou_score
-        test_iou_score = self.data_collection.test_iou_score
+        # train_iou_score = self.data_collection.train_iou_score
+        # test_iou_score = self.data_collection.test_iou_score
 
         self.summary_train_loss.update(sess, train_loss, epoch)
-        self.summary_train_acc.update(sess, train_score, epoch)
+        # self.summary_train_acc.update(sess, train_score, epoch)
         self.summary_test_acc.update(sess, test_score, epoch)
-        self.summary_iou_train_score.update(sess, train_iou_score, epoch)
-        self.summary_iou_test_score.update(sess, test_iou_score, epoch)
+        # self.summary_iou_train_score.update(sess, train_iou_score, epoch)
+        # self.summary_iou_test_score.update(sess, test_iou_score, epoch)
 
 
 class SummaryAllCallback(BaseEpochCallback):
@@ -153,17 +152,17 @@ class SummaryAllCallback(BaseEpochCallback):
     def __call__(self, model, dataset, metric, epoch):
         sess = model.sess
         train_loss = self.data_collection.train_loss
-        train_score = self.data_collection.train_score
+        # train_score = self.data_collection.train_score
         test_score = self.data_collection.test_score
 
-        train_iou_score = self.data_collection.train_iou_score
-        test_iou_score = self.data_collection.test_iou_score
+        # train_iou_score = self.data_collection.train_iou_score
+        # test_iou_score = self.data_collection.test_iou_score
 
         self.summary_train_loss.update(sess, train_loss, epoch)
-        self.summary_train_acc.update(sess, train_score, epoch)
+        # self.summary_train_acc.update(sess, train_score, epoch)
         self.summary_test_acc.update(sess, test_score, epoch)
-        self.summary_iou_train_score.update(sess, train_iou_score, epoch)
-        self.summary_iou_test_score.update(sess, test_iou_score, epoch)
+        # self.summary_iou_train_score.update(sess, train_iou_score, epoch)
+        # self.summary_iou_test_score.update(sess, test_iou_score, epoch)
 
 
 class PlotToolsCallback(BaseEpochCallback):
@@ -249,12 +248,12 @@ class SS_baseline:
             verbose=10,
             learning_rate=0.01,
             beta1=0.9,
-            batch_size=64,
+            batch_size=32,
             stage=4,
             loss_type='BCE+dice_soft',
             n_classes=1,
             net_type='FusionNet',
-            capacity=14,
+            capacity=16,
             depth=2,
             dropout_rate=0.5,
             comment=''
@@ -292,9 +291,12 @@ class SS_baseline:
         # train_set = helper.lr_flip(train_set, x_key='x_with_depth')
         train_set = helper.get_non_empty_mask(train_set)
         train_set = helper.lr_flip(train_set)
-        train_set, hold_out = helper.split_hold_out(train_set)
-        kfold_sets = helper.k_fold_split(train_set, k=k)
-        train_set_fold1, valid_set_fold1 = kfold_sets[index]
+
+        train_set, hold_out = helper.split_hold_out(train_set, ratio=(7, 3))
+        train_set_fold1, valid_set_fold1 = train_set, hold_out
+
+        # kfold_sets = helper.k_fold_split(train_set, k=k)
+        # train_set_fold1, valid_set_fold1 = kfold_sets[index]
 
         print('train_set')
         print(train_set_fold1)
@@ -303,6 +305,8 @@ class SS_baseline:
 
         train_x, train_y = train_set_fold1.full_batch()
         valid_x, valid_y = valid_set_fold1.full_batch()
+        import gc
+        gc.collect()
 
         return train_x, train_y, valid_x, valid_y
 
@@ -315,6 +319,9 @@ class SS_baseline:
         train_y_enc = encode(train_y)
         valid_x_enc = encode(valid_x)
         valid_y_enc = encode(valid_y)
+
+        import gc
+        gc.collect()
 
         return train_x_enc, train_y_enc, valid_x_enc, valid_y_enc
 
@@ -340,11 +347,11 @@ class SS_baseline:
                 # PlotToolsCallback(dc_callback),
 
                 EarlyStop(
-                    30, min_best=False
+                    15, min_best=False
                 ).trace_on(
-                    dc_callback, 'test_iou_score'
+                    dc_callback, 'test_score'
                 ),
-                ReduceLrOnPlateau(0.5, 5, 0.0001, min_best=False).trace_on(dc_callback, 'test_iou_score'),
+                ReduceLrOnPlateau(0.5, 5, 0.0001, min_best=False).trace_on(dc_callback, 'test_score'),
                 # TriangleLRScheduler(10, 0.01, 0.001),
             ]
 
@@ -354,7 +361,10 @@ class SS_baseline:
         # model.update_dropout_rate(1)
         pprint(model)
 
-        epoch = 200
+        import gc
+        gc.collect()
+
+        epoch = 120
         model.train(
             train_x_enc, train_y_enc, epoch=epoch,
             epoch_callbacks=callbacks,
@@ -392,7 +402,7 @@ class SS_baseline:
             ]
 
             # model.init_adam_momentum()
-            model.update_learning_rate(0.01)
+            # model.update_learning_rate(0.01)
             pprint(model)
 
             epoch = 50
