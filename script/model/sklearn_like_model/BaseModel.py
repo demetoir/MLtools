@@ -134,10 +134,6 @@ class BaseModel(
             id_=id_,
         )
 
-    @property
-    def id(self):
-        return self.metadata.id
-
     def __str__(self):
         s = ""
         s += "%s_%s\n" % (self.AUTHOR, self.__class__.__name__)
@@ -158,6 +154,10 @@ class BaseModel(
 
     def __del__(self):
         del self.sessionManager
+
+    @property
+    def id(self):
+        return self.metadata.id
 
     @property
     def sess(self):
@@ -397,11 +397,12 @@ class BaseModel(
 
             partial = list(partial.values())
 
-            tqdm.write('batch predict')
-            batchs = [
-                self.sess.run(op, feed_dict=x_partial)
-                for x_partial in tqdm(partial)
-            ]
+            with tqdm(partial) as partials:
+                partials.set_description(f'batch execute')
+                batchs = [
+                    self.sess.run(op, feed_dict=x_partial)
+                    for x_partial in partials
+                ]
 
             try:
                 return np.concatenate(batchs)
@@ -437,8 +438,8 @@ class BaseModel(
     def train(
             self, x=None, y=None, epoch=1, batch_size=None,
             dataset_callback=None, epoch_pbar=True, iter_pbar=True, epoch_callbacks=None,
+            validation_data=None,
     ):
-
         if not self.is_built:
             raise RuntimeError(f'{self} not built')
 
@@ -448,22 +449,41 @@ class BaseModel(
 
         metric = None
         epoch_pbar = tqdm([i for i in range(1, epoch + 1)]) if epoch_pbar else None
-        for _ in range(1, epoch + 1):
+        for i_epoch in range(1, epoch + 1):
+            epoch_pbar.set_description(f'epoch {i_epoch}/{epoch}')
+
             dataset.shuffle()
 
-            iter_pbar = trange if iter_pbar else range
-            for _ in iter_pbar(int(dataset.size / batch_size)):
-                self._train_iter(dataset, batch_size)
+            loss_mean = 0
+            iter_size = int(dataset.size / batch_size)
+            with trange(iter_size) as iter_trange:
+                for i in range(iter_size):
+                    batch_x, batch_y = dataset.next_batch(batch_size)
+                    self._train_iter(batch_x, batch_y)
+
+                    batch_loss = self.loss(batch_x, batch_y)
+                    loss_mean = (loss_mean * i + batch_loss) / (i + 1)
+
+                    iter_trange.set_description(f'iter {i}/{iter_size}')
+                    iter_trange.set_postfix(loss=loss_mean)
+                    iter_trange.update(1)
 
             self.sess.run(self.op_inc_global_epoch)
             global_epoch = self.sess.run(self.global_epoch)
             if epoch_pbar: epoch_pbar.update(1)
 
             metric = self.metric(x, y)
-            loss = self.loss(x, y)
-            tqdm.write(f"epoch:{global_epoch}, loss={loss}, metric={np.mean(metric)}\n")
-            if self._is_fine_metric(metric):
-                break
+
+            msg = f"epoch:{global_epoch}"
+            msg += f', loss={loss_mean:0.6f}'
+            msg += f', metric={np.mean(metric):0.6f}'
+            if validation_data:
+                val_loss = self.loss(*validation_data)
+                val_metric = self.metric(*validation_data)
+
+                msg += f', val_loss={np.mean(val_loss):0.6f}'
+                msg += f', val_metric={np.mean(val_metric):0.6f}'
+            tqdm.write(msg)
 
             break_epoch = False
             if epoch_callbacks:
@@ -503,6 +523,5 @@ class BaseModel(
     def evaluate(self, x=None, y=None):
         return self.batch_execute(self._metric_ops, {self.Xs: x, self.Ys: y})
 
-    def _train_iter(self, dataset, batch_size):
-        Xs, Ys = dataset.next_batch(batch_size)
-        self.sess.run(self._train_ops, feed_dict={self.Xs: Xs, self.Ys: Ys})
+    def _train_iter(self, x=None, y=None):
+        self.sess.run(self._train_ops, feed_dict={self.Xs: x, self.Ys: y})
