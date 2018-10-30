@@ -13,7 +13,7 @@ from script.model.sklearn_like_model.callback.BaseEpochCallback import BaseEpoch
 from script.util.MixIn import LoggerMixIn
 from script.util.misc_util import setup_directory, setup_file, dump_json, load_json
 from script.util.misc_util import time_stamp, path_join, error_trace
-from script.util.tensor_ops import join_scope
+from script.util.tensor_ops import join_scope, SingletonDropout, SingletonBN
 
 
 class ModelBuildFailError(BaseException):
@@ -134,6 +134,24 @@ class BaseModel(
             id_=id_,
         )
 
+        self.singleton_dropout = SingletonDropout()
+        self.singleton_bn = SingletonBN()
+        self.is_train_phase = True
+
+    def set_train_phase(self):
+        if self.is_train_phase:
+            return
+
+        self.is_train_phase = True
+        self.sess.run(self.set_train_op)
+
+    def set_non_train_phase(self):
+        if not self.is_train_phase:
+            return
+
+        self.is_train_phase = False
+        self.sess.run(self.set_non_train_op)
+
     def __str__(self):
         s = ""
         s += "%s_%s\n" % (self.AUTHOR, self.__class__.__name__)
@@ -233,9 +251,26 @@ class BaseModel(
                     assert self._metric_ops is not None
 
                 with tf.variable_scope('train_ops'):
-                    self.log.debug('build_train_ops')
-                    self._train_ops = self._build_train_ops()
+                    self.log.debug('build train_ops')
+
+                    update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
+                    with tf.control_dependencies(update_ops):
+                        self._train_ops = self._build_train_ops()
                     assert self._train_ops is not None
+
+                with tf.variable_scope('phase_controller'):
+                    self.log.debug('build phase_controller')
+                    scope = str(self.metadata.id)
+
+                    dropout_set_train_ops = self.singleton_dropout.collect_set_train_ops(scope)
+                    bn_set_train_ops = self.singleton_bn.collect_set_train_ops(scope)
+                    set_train_ops = dropout_set_train_ops + bn_set_train_ops
+                    self.set_train_op = tf.group(*set_train_ops)
+
+                    dropout_set_non_train_ops = self.singleton_dropout.collect_set_non_train_ops(scope)
+                    bn_set_non_train_ops = self.singleton_bn.collect_set_non_train_ops(scope)
+                    set_non_train_ops = dropout_set_non_train_ops + bn_set_non_train_ops
+                    self.set_non_train_op = tf.group(*set_non_train_ops)
 
             self._is_graph_built = True
             self.log.info("build success")
@@ -343,7 +378,7 @@ class BaseModel(
 
         check_point_path = path_join(path, 'check_point', 'instance.ckpt')
         setup_file(check_point_path)
-        saver = tf.train.Saver(self.var_list)
+        saver = tf.train.Saver(self.main_graph_var_list + self.misc_ops_var_list)
         saver.save(self.sess, check_point_path)
 
     def save(self, path=None):
@@ -380,7 +415,7 @@ class BaseModel(
     def reset_global_epoch(self):
         self.sess.run(tf.initialize_variables([self.global_step]))
 
-    def batch_execute(self, op, inputs):
+    def _batch_execute(self, op, inputs):
         batch_size = getattr(self, 'batch_size', 32)
         size = 0
         for val in inputs.values():
@@ -403,7 +438,6 @@ class BaseModel(
                     self.sess.run(op, feed_dict=x_partial)
                     for x_partial in partials
                 ]
-
             try:
                 return np.concatenate(batchs)
             except:
@@ -411,26 +445,27 @@ class BaseModel(
         else:
             return self.sess.run(op, feed_dict=inputs)
 
-    def _loss_check(self, loss_pack):
-        for key, item, in loss_pack.items():
-            if any(np.isnan(item)):
-                self.log.error(f'{key} is nan')
-                raise TrainFailError(f'{key} is nan')
-            if any(np.isinf(item)):
-                self.log.error(f'{key} is inf')
-                raise TrainFailError(f'{key} is inf')
-
-    def _is_fine_metric(self, metric):
-        if metric in (np.nan, np.inf, -np.inf):
-            print('metric is {metric}')
-            return True
-
-        if metric == getattr(self, 'recent_metric', None):
-            return True
-        else:
-            setattr(self, 'recent_metric', metric)
-
-        return False
+    def batch_execute(self, ops, inputs, mean=False):
+        result = None
+        if type(ops) is list:
+            result = [
+                self._batch_execute(op, inputs)
+                for op in ops
+            ]
+            if mean:
+                result = [np.mean(v) for v in result]
+        elif type(ops) is dict:
+            result = {
+                key: self._batch_execute(op, inputs)
+                for key, op in ops.items()
+            }
+            if mean:
+                result = {key: np.mean(val) for key, val in result.items()}
+        elif type(ops) is tf.Tensor:
+            result = self._batch_execute(ops, inputs)
+            if mean:
+                result = np.mean(result)
+        return result
 
     def train_iter(self, x=None, y=None, batch_size=None):
         self._train_iter(BaseDataset(x=x, y=y), batch_size)
@@ -489,7 +524,7 @@ class BaseModel(
             if epoch_callbacks:
                 try:
                     results = [
-                        callback(self, dataset, metric, global_epoch)
+                        callback(self, dataset, loss_mean, global_epoch)
                         for callback in epoch_callbacks
                     ]
                 except BaseException as e:
@@ -506,22 +541,21 @@ class BaseModel(
         return metric
 
     def metric(self, x=None, y=None, mean=True):
-        metric = self.batch_execute(self._metric_ops, {self.Xs: x, self.Ys: y})
-        if mean:
-            metric = np.mean(metric)
-        return metric
+        self.set_non_train_phase()
+        return self.batch_execute(self._metric_ops, {self.Xs: x, self.Ys: y}, mean=mean)
 
     def loss(self, x=None, y=None, mean=True):
-        loss = self.batch_execute(self._loss_ops, {self.Xs: x, self.Ys: y})
-        if mean:
-            loss = np.mean(loss)
-        return loss
+        self.set_non_train_phase()
+        return self.batch_execute(self._loss_ops, {self.Xs: x, self.Ys: y}, mean=mean)
 
     def predict(self, x=None, y=None):
-        return self.batch_execute(self._predict_ops, {self.Xs: x, self.Ys: y})
+        self.set_non_train_phase()
+        return self.batch_execute(self._predict_ops, {self.Xs: x}, mean=False)
 
     def evaluate(self, x=None, y=None):
+        self.set_non_train_phase()
         return self.batch_execute(self._metric_ops, {self.Xs: x, self.Ys: y})
 
     def _train_iter(self, x=None, y=None):
+        self.set_train_phase()
         self.sess.run(self._train_ops, feed_dict={self.Xs: x, self.Ys: y})
