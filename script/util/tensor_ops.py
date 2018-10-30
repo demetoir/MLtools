@@ -1,4 +1,5 @@
 """operation util for tensorflow"""
+
 import tensorflow as tf
 from tensorflow.python.ops.image_ops_impl import ResizeMethod
 
@@ -102,16 +103,92 @@ class tensor_op:
         return self.node
 
 
+class SingletonBN:
+    @property
+    def set_train_ops(self):
+        cls = self.__class__
+
+        if not hasattr(cls, '__set_train_ops'):
+            setattr(cls, '__set_train_ops', {})
+
+        return getattr(cls, '__set_train_ops')
+
+    @property
+    def set_non_train_ops(self):
+        cls = self.__class__
+
+        if not hasattr(cls, '__set_non_train_ops'):
+            setattr(cls, '__set_non_train_ops', {})
+
+        return getattr(cls, '__set_non_train_ops')
+
+    @property
+    def is_train_var_collection(self):
+        cls = self.__class__
+
+        if not hasattr(cls, '__is_train_var_collection'):
+            setattr(cls, '__is_train_var_collection', {})
+
+        return getattr(cls, '__is_train_var_collection')
+
+    def collect_set_train_ops(self, scope):
+        set_train_ops = self.set_train_ops
+        ops = [
+            v
+            for k, v in set_train_ops.items()
+            if scope in k
+        ]
+        return ops
+
+    def collect_set_non_train_ops(self, scope):
+        set_non_train_ops = self.set_non_train_ops
+        ops = [
+            v
+            for k, v in set_non_train_ops.items()
+            if scope in k
+        ]
+        return ops
+
+    def add_set_train_op(self, op):
+        set_train_ops = self.set_train_ops
+        set_train_ops[op.name] = op
+
+    def add_set_non_train_op(self, op):
+        set_non_train_ops = self.set_non_train_ops
+        set_non_train_ops[op.name] = op
+
+    def get_is_train_variable(self):
+        head = split_scope(get_scope())[0]
+
+        var_collection = self.is_train_var_collection
+        if head not in var_collection:
+            is_train_var = tf.Variable(True, dtype=tf.bool, name=f'{head}_BN_is_train')
+            set_train_op = tf.assign(is_train_var, True, name=f'{head}_BN_set_train_op')
+            set_non_train_op = tf.assign(is_train_var, False, name=f'{head}_BN_set_non_train_op')
+
+            self.add_set_non_train_op(set_non_train_op)
+            self.add_set_train_op(set_train_op)
+            var_collection[head] = is_train_var
+
+        return var_collection[head]
+
+
 class BN(tensor_op):
+    def __init__(self, momentum=0.99, trainable=True, name=None, reuse=None):
+        super().__init__(name, reuse)
+        self.singleton_bn = SingletonBN()
+        self.momentum = momentum
+        self.trainable = trainable
+
     def call(self, inputs, *args, **kwargs):
-        return tf.contrib.layers.batch_norm(
+        self.is_train_var = self.singleton_bn.get_is_train_variable()
+
+        bn = tf.layers.batch_normalization(
             inputs,
-            decay=0.9,
-            updates_collections=None,
-            epsilon=1e-5,
-            scale=True,
-            is_training=True,
+            momentum=self.momentum,
+            training=self.is_train_var,
         )
+        return bn
 
 
 class Sigmoid(tensor_op):
@@ -126,6 +203,11 @@ class LRelu(tensor_op):
 
     def call(self, inputs, *args, **kwargs):
         return tf.maximum(inputs, self.alpha * inputs)
+
+
+class Elu(tensor_op):
+    def call(self, inputs, *args, **kwargs):
+        return tf.nn.elu(features=inputs)
 
 
 class Tanh(tensor_op):
@@ -176,47 +258,127 @@ class Conv2d(tensor_op):
         self.stride = stride
 
     def call(self, inputs, *args, **kwargs):
-        k_h, k_w = self.kernel
-        d_h, d_w = self.stride
+        return tf.layers.conv2d(inputs, self.filters, self.kernel, self.stride, self.padding)
 
-        weight = tf.get_variable(
-            'weight',
-            [k_h, k_w, inputs.get_shape()[-1], self.filters],
-            initializer=tf.contrib.layers.xavier_initializer_conv2d()
-        )
-        # initializer=tf.truncated_normal_initializer(stddev=stddev))
-        conv = tf.nn.conv2d(
-            inputs,
-            weight,
-            strides=[1, d_h, d_w, 1],
-            padding=self.padding
-        )
 
-        bias = tf.get_variable(
-            'bias',
-            [self.filters],
-            initializer=tf.constant_initializer(0.0)
-        )
-        conv = tf.nn.bias_add(conv, bias)
-        return conv
+class ConvTranspose2d(tensor_op):
+    def __init__(self, filters, kernel, stride=(1, 1), padding='valid', name=None, reuse=None):
+        super().__init__(name, reuse)
+        self.filters = filters
+        self.kernel = kernel
+        self.stride = stride
+        self.padding = padding
+
+    def call(self, inputs, *args, **kwargs):
+        return tf.layers.conv2d_transpose(inputs, self.filters, self.stride, self.padding)
 
 
 class MaxPooling2d(tensor_op):
-
-    def __init__(self, pool_size, padding='SAME', name=None, reuse=None):
+    def __init__(self, pool_size, strides, padding='valid', name=None, reuse=None):
         super().__init__(name, reuse)
         self.padding = padding
+        self.strides = strides
         self.pool_size = pool_size
 
     def call(self, inputs, *args, **kwargs):
-        kH, kW = self.pool_size
-        sH, sW = self.pool_size
-        return tf.nn.max_pool(
-            inputs,
-            ksize=[1, kH, kW, 1],
-            strides=[1, sH, sW, 1],
-            padding=self.padding
-        )
+        return tf.layers.max_pooling2d(inputs, self.pool_size, self.strides, self.padding)
+
+
+class AveragePooling2d(tensor_op):
+    def __init__(self, pool_size, strides, padding='valid', name=None, reuse=None):
+        super().__init__(name, reuse)
+        self.pool_size = pool_size
+        self.strides = strides
+        self.padding = padding
+
+    def call(self, inputs, *args, **kwargs):
+        return tf.layers.average_pooling2d(inputs, self.pool_size, self.strides, self.padding)
+
+
+class Flatten(tensor_op):
+    def call(self, inputs, *args, **kwargs):
+        tf.layers.flatten(inputs)
+
+
+class SingletonDropout:
+    @property
+    def set_train_ops(self):
+        cls = self.__class__
+
+        if not hasattr(cls, '__set_train_ops'):
+            setattr(cls, '__set_train_ops', {})
+
+        return getattr(cls, '__set_train_ops')
+
+    @property
+    def set_non_train_ops(self):
+        cls = self.__class__
+
+        if not hasattr(cls, '__set_non_train_ops'):
+            setattr(cls, '__set_non_train_ops', {})
+
+        return getattr(cls, '__set_non_train_ops')
+
+    def collect_set_train_ops(self, scope):
+        set_train_ops = self.set_train_ops
+        ops = [
+            v
+            for k, v in set_train_ops.items()
+            if scope in k
+        ]
+        return ops
+
+    def collect_set_non_train_ops(self, scope):
+        set_non_train_ops = self.set_non_train_ops
+        ops = [
+            v
+            for k, v in set_non_train_ops.items()
+            if scope in k
+        ]
+        return ops
+
+    def add_set_train_op(self, op):
+        set_train_ops = self.set_train_ops
+        set_train_ops[op.name] = op
+
+    def add_set_non_train_op(self, op):
+        set_non_train_ops = self.set_non_train_ops
+        set_non_train_ops[op.name] = op
+
+    @property
+    def is_train_var_collection(self):
+        cls = self.__class__
+
+        if not hasattr(cls, '__is_train_var_collection'):
+            setattr(cls, '__is_train_var_collection', {})
+
+        return getattr(cls, '__is_train_var_collection')
+
+    def get_is_train_variable(self):
+        head = split_scope(get_scope())[0]
+        var_collection = self.is_train_var_collection
+        if head not in var_collection:
+            is_train_var = tf.Variable(True, dtype=tf.bool, name=f'{head}_Dropout_is_train')
+            set_train_op = tf.assign(is_train_var, True, name=f'{head}_Dropout_set_train_op')
+            set_non_train_op = tf.assign(is_train_var, False, name=f'{head}_Dropout_set_non_train_op')
+
+            self.add_set_non_train_op(set_non_train_op)
+            self.add_set_train_op(set_train_op)
+            var_collection[head] = is_train_var
+
+        return var_collection[head]
+
+
+class Dropout(tensor_op):
+    def __init__(self, dropout_rate, name=None, reuse=None):
+        super().__init__(name, reuse)
+        self.dropout_rate = dropout_rate
+        self.singletonDropout = SingletonDropout()
+
+    def call(self, inputs, *args, **kwargs):
+        self.is_train_var = self.singletonDropout.get_is_train_variable()
+        dropout = tf.layers.dropout(inputs, self.dropout_rate, training=self.is_train_var)
+        return dropout
 
 
 # activation function
