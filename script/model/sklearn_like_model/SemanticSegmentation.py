@@ -6,9 +6,40 @@ from script.model.sklearn_like_model.NetModule.InceptionUNetModule import Incept
 from script.model.sklearn_like_model.NetModule.UNetModule import UNetModule
 from script.model.sklearn_like_model.NetModule.loss.BCELoss import BCELoss
 from script.model.sklearn_like_model.NetModule.loss.DiceSoftLoss import DiceSoftLoss
-from script.model.sklearn_like_model.NetModule.optimizer.NAG import NAG
+from script.model.sklearn_like_model.NetModule.optimizer.Adam import Adam
 from script.util.tensor_ops import *
 from script.workbench.TGS_salt.lovazs_loss import lovasz_hinge
+
+
+def get_iou_vector(A, B):
+    batch_size = A.shape[0]
+    metric = []
+    for batch in range(batch_size):
+        t, p = A[batch] > 0, B[batch] > 0
+        #         if np.count_nonzero(t) == 0 and np.count_nonzero(p) > 0:
+        #             metric.append(0)
+        #             continue
+        #         if np.count_nonzero(t) >= 1 and np.count_nonzero(p) == 0:
+        #             metric.append(0)
+        #             continue
+        #         if np.count_nonzero(t) == 0 and np.count_nonzero(p) == 0:
+        #             metric.append(1)
+        #             continue
+
+        intersection = np.logical_and(t, p)
+        union = np.logical_or(t, p)
+        iou = (np.sum(intersection > 0) + 1e-10) / (np.sum(union > 0) + 1e-10)
+        thresholds = np.arange(0.5, 1, 0.05)
+        s = []
+        for thresh in thresholds:
+            s.append(iou > thresh)
+        metric.append(np.mean(s))
+
+    return np.mean(metric)
+
+
+def my_iou_metric(label, pred):
+    return tf.py_func(get_iou_vector, [label, pred > 0.5], tf.float64)
 
 
 class SemanticSegmentation(BaseModel):
@@ -63,7 +94,6 @@ class SemanticSegmentation(BaseModel):
         self._predict = tf.round(self._proba)
 
         self._predict_proba_ops = self._proba
-        self._predict_ops = self._predict
 
     def _build_loss_ops(self):
         if self.loss_type == 'BCE+dice_soft':
@@ -75,8 +105,8 @@ class SemanticSegmentation(BaseModel):
             self.BCE_module.build()
             self.BCE = self.BCE_module.loss
 
-            self.loss = self.dice_soft + self.BCE
-            self.loss = self.BCE
+            # self.loss_ops = self.dice_soft + self.BCE
+            self.loss_ops = self.BCE
             # self.loss = self.BCE
 
             lovasz = lovasz_hinge(self._logit, self.Ys_ph)
@@ -111,18 +141,22 @@ class SemanticSegmentation(BaseModel):
 
         # self.small_mask_penalty = small_mask_penalty(self.Ys, self._predict)
         # self.loss += self.small_mask_penalty
-        return self.loss
+        return self.loss_ops
 
     def _build_train_ops(self):
-        self.optimizer = NAG(self.loss, self.vars, learning_rate=self.learning_rate)
+        self.optimizer = Adam(learning_rate=self.learning_rate).minimize(self.loss_ops, self.vars)
         self.optimizer.build()
         self.train_ops = self.optimizer.train_op
 
         return self.train_ops
 
     def _build_metric_ops(self):
-        return []
-        pass
+        metric = my_iou_metric(self.Ys_ph, self._predict)
+
+        return metric
 
     def _build_predict_ops(self):
-        return []
+        return self._predict
+
+    def update_learning_rate(self, lr):
+        self.optimizer.update_learning_rate(self.sess, lr)
