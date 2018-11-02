@@ -289,10 +289,10 @@ class SS_baseline:
         # train_set = helper.add_depth_image_channel(train_set)
         # train_set.x_keys = ['x_with_depth']
         # train_set = helper.lr_flip(train_set, x_key='x_with_depth')
-        train_set = helper.get_non_empty_mask(train_set)
+        # train_set = helper.get_non_empty_mask(train_set)
         train_set = helper.lr_flip(train_set)
 
-        train_set, hold_out = helper.split_hold_out(train_set, ratio=(7, 3))
+        train_set, hold_out = helper.split_hold_out(train_set, ratio=(8, 2))
         train_set_fold1, valid_set_fold1 = train_set, hold_out
 
         # kfold_sets = helper.k_fold_split(train_set, k=k)
@@ -305,6 +305,10 @@ class SS_baseline:
 
         train_x, train_y = train_set_fold1.full_batch()
         valid_x, valid_y = valid_set_fold1.full_batch()
+
+        # train_x, train_y = train_set_fold1.next_batch(100)
+        # valid_x, valid_y = valid_set_fold1.next_batch(100)
+
         import gc
         gc.collect()
 
@@ -337,11 +341,11 @@ class SS_baseline:
             dc_callback = CollectDataCallback(valid_x_enc, valid_y_enc)
             callbacks = [
                 dc_callback,
-                BestSave(
-                    path_join(INSTANCE_PATH, run_id),
-                    name='test_score',
-                    max_best=True
-                ).trace_on(dc_callback, 'test_score'),
+                # BestSave(
+                #     path_join(INSTANCE_PATH, run_id),
+                #     name='test_score',
+                #     max_best=True
+                # ).trace_on(dc_callback, 'test_score'),
                 LoggingCallback(dc_callback),
                 TFSummaryCallback(dc_callback, run_id),
                 # PlotToolsCallback(dc_callback),
@@ -351,13 +355,12 @@ class SS_baseline:
                 ).trace_on(
                     dc_callback, 'test_score'
                 ),
-                ReduceLrOnPlateau(0.5, 5, 0.0001, min_best=False).trace_on(dc_callback, 'test_score'),
+                ReduceLrOnPlateau(0.5, 7, 0.0001, min_best=False).trace_on(dc_callback, 'test_score'),
                 # TriangleLRScheduler(10, 0.01, 0.001),
             ]
 
         # model.init_adam_momentum()
         # model.update_learning_rate(0.01)
-        model.update_learning_rate(0.01)
         # model.update_dropout_rate(1)
         pprint(model)
 
@@ -368,6 +371,7 @@ class SS_baseline:
         model.train(
             train_x_enc, train_y_enc, epoch=epoch,
             epoch_callbacks=callbacks,
+            validation_data=[valid_x_enc, valid_y_enc]
         )
 
     def fold_train(self, k=5):
