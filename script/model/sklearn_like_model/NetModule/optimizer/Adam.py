@@ -1,6 +1,5 @@
 import tensorflow as tf
 
-from script.model.sklearn_like_model.NetModule.DynamicVariable import DynamicVariable
 from script.model.sklearn_like_model.NetModule.optimizer.optimizer import optimizer
 
 
@@ -23,8 +22,6 @@ class Adam(optimizer):
         self.epsilon = epsilon
         self.use_locking = use_locking
 
-        self._lr_module = DynamicVariable(self._learning_rate, name='learning_rate')
-
     def __str__(self):
         s = f"{self.__class__.__name__}"
         s += f"learning rate = {self.learning_rate}\n"
@@ -33,12 +30,6 @@ class Adam(optimizer):
         s += f"epsilon = {self.epsilon}\n"
         s += f"use_lock = {self.use_locking}\n"
         return s
-
-    def reset_momentum(self, sess):
-        if hasattr(self, 'init_momentum_op'):
-            self.init_momentum_op = tf.initialize_variables(self.vars)
-
-        sess.run(self.init_momentum_op)
 
     def _build(self):
         self._optimizer = tf.train.AdamOptimizer(
@@ -53,3 +44,9 @@ class Adam(optimizer):
             var_list=self.train_var_list
         )
         return self._train_op
+
+    def reset_momentum(self, sess):
+        if hasattr(self, 'init_momentum_op'):
+            self.init_momentum_op = tf.initialize_variables(self.vars)
+
+        sess.run(self.init_momentum_op)

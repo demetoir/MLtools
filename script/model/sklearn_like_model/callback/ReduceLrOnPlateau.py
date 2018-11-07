@@ -49,7 +49,7 @@ class ReduceLrOnPlateau(BaseEpochCallback):
 
         if self.patience_count >= self.patience:
             self.reset_patience_count()
-            lr = model.learning_rate
+            lr = model.optimizer.learning_rate
             new_lr = max(lr * self.reduce_rate, self.min_lr)
-            model.update_learning_rate(new_lr)
+            model.optimizer.update_learning_rate(model.sess, new_lr)
             self.log(f'in {self.name}, reduce learning rate from {lr} to {new_lr}')
