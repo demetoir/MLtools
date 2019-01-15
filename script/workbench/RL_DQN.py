@@ -83,20 +83,30 @@ class QNetwork:
         self.discount_factor = discount_factor
         self.state_space = state_space
         self.action_space = action_space
-        self.decay = decay
+
         self.sess = sess
+        if self.sess is None:
+            self.sess = tf.Session()
         self.e = 1
 
-        init = tf.global_variables_initializer()
+        self.build_network()
+
+        init_op = tf.global_variables_initializer()
+        self.sess.run(init_op)
+
+    def close(self):
+        if self.sess is not None:
+            self.sess.close()
+            self.sess = None
 
     def update(self, state, action, new_state, reward):
-        # 새로운 상태를 우리 신경망에 넣어서 Q' 값을 얻음 (1x4) (여기의 max 값이 Q value 에 더해져 target이 됨)
+
         Q_prime = self.sess.run(self.Qout, feed_dict={self.inputs1: np.identity(16)[new_state:new_state + 1]})
         # 선택된 액션에 대한 타겟값과 maxq' 를 얻음
         maxQ1 = np.max(Q_prime)
 
         # target이 될 Q table을 업데이트 해줌
-        targetQ = self.proba(state)
+        targetQ = self.Q_S(state)
         targetQ[0, action] = reward + self.discount_factor * maxQ1
 
         # 예측된 Q 값과 target Q 값을 이용해 신경망을 학습함
@@ -111,7 +121,7 @@ class QNetwork:
     def decay_e(self, episode):
         self.e = 1. / ((episode / 50) + 10)
 
-    def proba(self, state):
+    def Q_S(self, state):
         allQ = self.sess.run(self.Qout, feed_dict={self.inputs1: np.identity(16)[state:state + 1]})
 
         return allQ
@@ -127,10 +137,6 @@ class QNetwork:
         return action
 
     def build_network(self):
-        # 텐서플로 내의 그래프를 초기화해준다.
-        # 초기화를 하지 않으면 동일 이름이 있는 경우에 에러가 나게 됨.
-        tf.reset_default_graph()
-
         self.inputs1 = tf.placeholder(shape=[1, 16], dtype=tf.float32)
         self.W = tf.Variable(tf.random_uniform([16, 4], 0, 0.01))
 
@@ -143,41 +149,44 @@ class QNetwork:
         trainer = tf.train.GradientDescentOptimizer(learning_rate=0.1)
         self.train_op = trainer.minimize(self.loss)
 
-
 def qnetwork_frozenlake():
     env = gym.make('FrozenLake-v0', )
 
     lr = .85
     discount_factor = .99
     num_episodes = 2000
-    qnetwork = QNetwork(lr, discount_factor, env.observation_space.n, env.action_space.n)
 
-    rList = []
-    for episode in tqdm.trange(num_episodes):
-        state = env.reset()
+    tf.reset_default_graph()
+    with tf.Session() as sess:
+        qnetwork = QNetwork(lr, discount_factor, env.observation_space.n, env.action_space.n, sess=sess)
+        rList = []
+        for episode in tqdm.trange(num_episodes):
+            state = env.reset()
 
-        reward_sum = 0
-        done = False
-        for move_count in range(99):
-            action = qnetwork.chose(state, episode)
+            reward_sum = 0
+            done = False
 
-            # env.step은 주어진 행동에 대한 다음 상태와 보상, 끝났는지 여부, 추가정보를 제공함
-            next_state, reward, done, _ = env.step(action)
+            for move_count in range(99):
+                action = qnetwork.chose(state, env)
 
-            qnetwork.update(state, action, next_state, reward)
+                # env.step은 주어진 행동에 대한 다음 상태와 보상, 끝났는지 여부, 추가정보를 제공함
+                next_state, reward, done, _ = env.step(action)
 
-            reward_sum += reward
+                qnetwork.update(state, action, next_state, reward)
 
-            state = next_state
+                reward_sum += reward
 
-            if done:
-                break
+                state = next_state
 
-        qnetwork.decay_e()
+                if done:
+                    print(move_count, reward_sum)
+                    break
 
-        rList.append(reward_sum)
+            qnetwork.decay_e(episode)
 
-    print("Score over time: " + str(sum(rList) / num_episodes))
+            rList.append(reward_sum)
+
+        print("Score over time: " + str(sum(rList) / num_episodes))
 
 
 # def q_table_algorithm():
