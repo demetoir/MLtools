@@ -1,9 +1,114 @@
 from queue import Queue
 
 import gym
-import numpy as np
 import tensorflow as tf
 import tqdm
+import numpy as np
+
+
+def moving_average(a, n=3):
+    ret = np.cumsum(a, dtype=float)
+    ret[n:] = ret[n:] - ret[:-n]
+    return ret[n - 1:] / n
+
+
+class env_wrapper:
+    def __init__(self):
+        pass
+
+    @property
+    def action_space(self):
+        raise NotImplementedError
+
+    @property
+    def state_space(self):
+        raise NotImplementedError
+
+    @property
+    def action_space_sample(self):
+        raise NotImplementedError
+
+    def reset(self):
+        # return state
+        raise NotImplementedError
+
+    def step(self, action):
+        # retun state, reward, done, info
+        raise NotImplementedError
+
+
+class gym_frozenlake_v0_wrapper(env_wrapper):
+    def __init__(self, is_slippery=True):
+        super().__init__()
+        env = gym.make('FrozenLake-v0', )
+        from gym.envs.registration import register
+        register(
+            id='FrozenLakeNotSlippery-v0',
+            entry_point='gym.envs.toy_text:FrozenLakeEnv',
+            kwargs={'map_name': '4x4', 'is_slippery': is_slippery},
+            max_episode_steps=100,
+            reward_threshold=0.78,  # optimum = .8196
+        )
+        self.__env = env
+
+    @property
+    def env(self):
+        return self.__env
+
+    @property
+    def action_space(self):
+        return self.env.action_space
+
+    @property
+    def state_space(self):
+        return self.env.observation_space
+
+    def reset(self):
+        observation = self.env.reset()
+
+        observation = np.identity(16)[observation:observation + 1]
+
+        return observation
+
+    def step(self, action):
+        observation, reward, done, info = self.env.step(action)
+
+        observation = np.identity(16)[observation:observation + 1]
+
+        return observation, reward, done, info
+
+
+class gym_cartpole_v1_wrapper(env_wrapper):
+    def __init__(self):
+        super().__init__()
+        self.__env = gym.make("CartPole-v1")
+
+    @property
+    def env(self):
+        return self.__env
+
+    @property
+    def action_space(self):
+        return self.env.action_space
+
+    @property
+    def state_space(self):
+        return self.env.observation_space
+
+    @property
+    def action_space_sample(self):
+        return self.env.action_space.sample()
+
+    def reset(self):
+        state = self.env.reset()
+        state = np.reshape(state, [1, len(state)])
+        return state
+
+    def step(self, action):
+        s, r, d, info = self.env.step(action)
+
+        s = np.reshape(s, [1, len(s)])
+        return s, r, d, info
 
 
 class QNetwork:
@@ -38,8 +143,12 @@ class QNetwork:
             self.sess = None
 
     def update(self, state, action, new_state, reward):
-
-        Q_prime = self.sess.run(self.Qout, feed_dict={self.inputs1: np.identity(16)[new_state:new_state + 1]})
+        Q_prime = self.sess.run(
+            self.Qout,
+            feed_dict={
+                self.ph_state_space: new_state
+            }
+        )
         # 선택된 액션에 대한 타겟값과 maxq' 를 얻음
         maxQ1 = np.max(Q_prime)
 
@@ -51,7 +160,7 @@ class QNetwork:
         _, W1 = self.sess.run(
             [self.train_op, self.W],
             feed_dict={
-                self.inputs1: np.identity(16)[state:state + 1],
+                self.ph_state_space: state,
                 self.nextQ: targetQ
             }
         )
@@ -60,12 +169,20 @@ class QNetwork:
         self._e = 1. / ((episode / 50) + 10)
 
     def Q_S(self, state):
-        allQ = self.sess.run(self.Qout, feed_dict={self.inputs1: np.identity(16)[state:state + 1]})
-
-        return allQ
+        return self.sess.run(
+            self.Qout,
+            feed_dict={
+                self.ph_state_space: state
+            }
+        )
 
     def chose(self, state, env, random=True):
-        a = self.sess.run(self.predict, feed_dict={self.inputs1: np.identity(16)[state:state + 1]})
+        a = self.sess.run(
+            self.predict,
+            feed_dict={
+                self.ph_state_space: state
+            }
+        )
 
         if np.random.rand(1) < self._e and random:
             a[0] = env.action_space.sample()
@@ -75,28 +192,26 @@ class QNetwork:
         return action
 
     def build_network(self):
-        self.inputs1 = tf.placeholder(shape=[1, 16], dtype=tf.float32)
-        self.W = tf.Variable(tf.random_uniform([16, 4], 0, 0.01))
-
-        self.Qout = tf.matmul(self.inputs1, self.W)
+        self.ph_state_space = tf.placeholder(shape=[1, self.state_space], dtype=tf.float32)
+        self.W = tf.Variable(tf.random_uniform([self.state_space, self.action_space], 0, 0.01))
+        self.Qout = tf.matmul(self.ph_state_space, self.W)
         self.predict = tf.argmax(self.Qout, 1)
 
-        self.nextQ = tf.placeholder(shape=[1, 4], dtype=tf.float32)
+        self.nextQ = tf.placeholder(shape=[1, self.action_space], dtype=tf.float32)
 
         self.loss = tf.reduce_sum(tf.square(self.nextQ - self.Qout))
         trainer = tf.train.GradientDescentOptimizer(learning_rate=0.1)
         self.train_op = trainer.minimize(self.loss)
 
-    def learn(self, n_episodes, max_move_count=99, n_windows=100):
+    def learn(self, n_episodes, n_windows=100):
         que = Queue(n_windows)
         windows_sum = 0
 
         reward_sums = []
         for episode in tqdm.trange(n_episodes):
             state = self.env.reset()
-
             reward_sum = 0
-            for move_count in range(max_move_count):
+            while True:
                 action = self.chose(state, self.env)
 
                 next_state, reward, done, _ = self.env.step(action)
@@ -127,28 +242,13 @@ class QNetwork:
         return reward_sums
 
 
-def moving_average(a, n=3):
-    ret = np.cumsum(a, dtype=float)
-    ret[n:] = ret[n:] - ret[:-n]
-    return ret[n - 1:] / n
-
-
 def qnetwork_frozenlake():
-    is_slippery = True
-    env = gym.make('FrozenLake-v0', )
-    from gym.envs.registration import register
-    register(
-        id='FrozenLakeNotSlippery-v0',
-        entry_point='gym.envs.toy_text:FrozenLakeEnv',
-        kwargs={'map_name': '4x4', 'is_slippery': is_slippery},
-        max_episode_steps=100,
-        reward_threshold=0.78,  # optimum = .8196
-    )
+    env = gym_frozenlake_v0_wrapper()
 
     lr = 0.85
     discount_factor = 0.99
     max_episodes = 2000
-    qnetwork = QNetwork(env, lr, discount_factor, env.observation_space.n, env.action_space.n)
+    qnetwork = QNetwork(env, lr, discount_factor, 16, 4)
     reward_sums = qnetwork.learn(max_episodes)
 
     reward_sums = moving_average(reward_sums, 100)
@@ -160,17 +260,20 @@ def qnetwork_frozenlake():
 
 
 def qnetwork_cartpole():
-    env = gym.make('CartPole-v0')
+    env = gym_cartpole_v1_wrapper()
+
+    observation_space = 4
+    action_space = 2
 
     lr = 0.85
     discount_factor = 0.99
     max_episodes = 2000
-    qnetwork = QNetwork(env, lr, discount_factor, env.observation_space.n, env.action_space.n)
+    qnetwork = QNetwork(env, lr, discount_factor, observation_space, action_space)
     reward_sums = qnetwork.learn(max_episodes)
 
     reward_sums = moving_average(reward_sums, 100)
     from script.util.PlotTools import PlotTools
     plot = PlotTools(save=False, show=True)
     plot.plot(reward_sums)
-    # print(reward_sums)
+    print(reward_sums)
     print("Score over time: " + str(sum(reward_sums) / max_episodes))
