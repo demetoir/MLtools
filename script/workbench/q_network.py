@@ -1,114 +1,15 @@
 from queue import Queue
 
-import gym
 import tensorflow as tf
 import tqdm
 import numpy as np
 
+from script.workbench.gym_wrapper import gym_frozenlake_v0_wrapper, gym_cartpole_v1_wrapper
 
 def moving_average(a, n=3):
     ret = np.cumsum(a, dtype=float)
     ret[n:] = ret[n:] - ret[:-n]
     return ret[n - 1:] / n
-
-
-class env_wrapper:
-    def __init__(self):
-        pass
-
-    @property
-    def action_space(self):
-        raise NotImplementedError
-
-    @property
-    def state_space(self):
-        raise NotImplementedError
-
-    @property
-    def action_space_sample(self):
-        raise NotImplementedError
-
-    def reset(self):
-        # return state
-        raise NotImplementedError
-
-    def step(self, action):
-        # retun state, reward, done, info
-        raise NotImplementedError
-
-
-class gym_frozenlake_v0_wrapper(env_wrapper):
-    def __init__(self, is_slippery=True):
-        super().__init__()
-        env = gym.make('FrozenLake-v0', )
-        from gym.envs.registration import register
-        register(
-            id='FrozenLakeNotSlippery-v0',
-            entry_point='gym.envs.toy_text:FrozenLakeEnv',
-            kwargs={'map_name': '4x4', 'is_slippery': is_slippery},
-            max_episode_steps=100,
-            reward_threshold=0.78,  # optimum = .8196
-        )
-        self.__env = env
-
-    @property
-    def env(self):
-        return self.__env
-
-    @property
-    def action_space(self):
-        return self.env.action_space
-
-    @property
-    def state_space(self):
-        return self.env.observation_space
-
-    def reset(self):
-        observation = self.env.reset()
-
-        observation = np.identity(16)[observation:observation + 1]
-
-        return observation
-
-    def step(self, action):
-        observation, reward, done, info = self.env.step(action)
-
-        observation = np.identity(16)[observation:observation + 1]
-
-        return observation, reward, done, info
-
-
-class gym_cartpole_v1_wrapper(env_wrapper):
-    def __init__(self):
-        super().__init__()
-        self.__env = gym.make("CartPole-v1")
-
-    @property
-    def env(self):
-        return self.__env
-
-    @property
-    def action_space(self):
-        return self.env.action_space
-
-    @property
-    def state_space(self):
-        return self.env.observation_space
-
-    @property
-    def action_space_sample(self):
-        return self.env.action_space.sample()
-
-    def reset(self):
-        state = self.env.reset()
-        state = np.reshape(state, [1, len(state)])
-        return state
-
-    def step(self, action):
-        s, r, d, info = self.env.step(action)
-
-        s = np.reshape(s, [1, len(s)])
-        return s, r, d, info
 
 
 class QNetwork:
@@ -213,7 +114,7 @@ class QNetwork:
             reward_sum = 0
             while True:
                 action = self.chose(state, self.env)
-
+                print(action)
                 next_state, reward, done, _ = self.env.step(action)
 
                 self.update(state, action, next_state, reward)
@@ -226,6 +127,7 @@ class QNetwork:
                     break
 
             self.decay_e(episode)
+            print(self.e)
 
             reward_sums.append(reward_sum)
             if que.full():
@@ -277,3 +179,4 @@ def qnetwork_cartpole():
     plot.plot(reward_sums)
     print(reward_sums)
     print("Score over time: " + str(sum(reward_sums) / max_episodes))
+
