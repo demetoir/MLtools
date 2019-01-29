@@ -17,13 +17,14 @@ def moving_average(a, n=3):
     return ret[n - 1:] / n
 
 
-class dqn_net:
+class QNetwork:
     def __init__(self, input_size, output_size, lr, name='main', sess=None):
         self.input_size = input_size
         self.output_size = output_size
         self.lr = lr
         self.name = name
         self.sess = sess
+        self.dueling = True
 
         self.build_network()
 
@@ -37,8 +38,16 @@ class dqn_net:
             stack.tanh()
             stack.linear(self.output_size)
 
-            self._proba = stack.last_layer
-            self._predict = tf.argmax(self._proba, axis=1)
+            if self.dueling:
+                last = stack.last_layer
+                self._value = linear(last, 1, name='value')
+                self._advantage = linear(last, self.output_size, name='advantage')
+                self._proba = self._value + self._advantage - tf.reduce_mean(self._advantage, reduction_indices=1,
+                                                                             keep_dims=True)
+                self._predict = tf.argmax(self._proba, axis=1)
+            else:
+                self._proba = stack.last_layer
+                self._predict = tf.argmax(self._proba, axis=1)
 
             self.y = placeholder(tf.float32, [-1, self.output_size], 'Y')
 
@@ -54,6 +63,9 @@ class dqn_net:
     def train(self, xs, ys):
         loss, _ = self.sess.run([self.loss, self.train_op], feed_dict={self.x: xs, self.y: ys})
         return loss
+
+    def loss(self, xs, ys):
+        return self.sess.run(self.loss, feed_dict={self.x: xs, self.y: ys})
 
 
 class replay_memory:
@@ -114,13 +126,14 @@ class DQN:
         self.epsilon_decay = 0.995
         self.__replay_memory = replay_memory(100000)
 
-        self.main_net = dqn_net(state_space, action_space, self.lr, name='main', sess=self.sess)
-        self.target_net = dqn_net(state_space, action_space, self.lr, name='target', sess=self.sess)
+        self.main_qnet = QNetwork(state_space, action_space, self.lr, name='main', sess=self.sess)
+        self.target_qnet = QNetwork(state_space, action_space, self.lr, name='target', sess=self.sess)
 
         self.build_copy_weight()
 
         init_op = tf.global_variables_initializer()
         self.sess.run(init_op)
+        self.double = True
 
     @property
     def e(self):
@@ -159,7 +172,7 @@ class DQN:
         if np.random.rand(1) < self.e and random:
             action = env.action_space.sample()
         else:
-            action = self.main_net.predict(state)[0]
+            action = self.main_qnet.predict(state)[0]
 
         return action
 
@@ -171,16 +184,32 @@ class DQN:
         rewards = np.array(rewards)
         dones = np.array(dones)
 
+        # double
+        if self.double:
+            main_Q_predict = self.main_qnet.predict(next_states)
+            # print(main_Q_predict.shape)
+            # print(main_Q_predict)
+
+            target_Q_proba = self.target_qnet.proba(next_states)
+            # print(target_Q_proba.shape)
+            # print(target_Q_proba)
+            Q_next = target_Q_proba[np.arange(len(main_Q_predict)), main_Q_predict]
+            # print(Q_next)
+
+        else:
+            Q_next = np.max(self.target_qnet.proba(next_states), 1)
+
         X = states
-        Q_next = np.max(self.target_net.proba(next_states), 1)
+
+        # Q_next = np.max(self.target_net.proba(next_states), 1)
 
         Q = rewards + self.discount_factor * Q_next * ~dones
 
-        y = self.main_net.proba(states)
+        y = self.main_qnet.proba(states)
         y[np.arange(len(X)), actions] = Q
 
         # Train our network using target and predicted Q values on each episode
-        return self.main_net.train(X, y)
+        return self.main_qnet.train(X, y)
 
     def train(self, n_episodes, n_windows=10):
         ma_scalar = moving_average_scalar(n_windows)
@@ -244,6 +273,7 @@ class DQN:
 
         return reward_sum
 
+
 def dqn_cartpole():
     env = gym_cartpole_v1_wrapper()
 
@@ -258,8 +288,8 @@ def dqn_cartpole():
     reward_sums = dqn.train(max_episodes)
 
     reward_sums = moving_average(reward_sums, 100)
-    from script.util.PlotTools import PlotTools
-    plot = PlotTools(save=False, show=True)
-    plot.plot(reward_sums)
+    # from script.util.PlotTools import PlotTools
+    # plot = PlotTools(save=False, show=True)
+    # plot.plot(reward_sums)
     print(reward_sums)
     print("Score over time: " + str(sum(reward_sums) / max_episodes))
