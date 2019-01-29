@@ -18,13 +18,13 @@ def moving_average(a, n=3):
 
 
 class QNetwork:
-    def __init__(self, input_size, output_size, lr, name='main', sess=None):
+    def __init__(self, input_size, output_size, lr, name='main', sess=None, dueling=True):
         self.input_size = input_size
         self.output_size = output_size
         self.lr = lr
         self.name = name
         self.sess = sess
-        self.dueling = True
+        self.dueling = dueling
 
         self.build_network()
 
@@ -32,10 +32,10 @@ class QNetwork:
         with tf.variable_scope(self.name):
             self.x = placeholder(tf.float32, [-1, self.input_size], name='x')
             stack = Stacker(self.x)
-            stack.linear(24)
-            stack.tanh()
-            stack.linear(48)
-            stack.tanh()
+            stack.linear(64)
+            stack.relu()
+            stack.linear(64)
+            stack.relu()
             stack.linear(self.output_size)
 
             if self.dueling:
@@ -68,7 +68,7 @@ class QNetwork:
         return self.sess.run(self.loss, feed_dict={self.x: xs, self.y: ys})
 
 
-class replay_memory:
+class ReplayMemory:
     def __init__(self, max_size):
         self.max_size = max_size
         self._memory = deque()
@@ -110,7 +110,7 @@ class moving_average_scalar:
 
 
 class DQN:
-    def __init__(self, env, lr, discount_factor, state_space, action_space, sess=None):
+    def __init__(self, env, lr, discount_factor, state_space, action_space, sess=None, double=True, dueling=True):
         self.env = env
         self.lr = lr
         self.discount_factor = discount_factor
@@ -124,16 +124,21 @@ class DQN:
         self._e = 1.
         self.epsilon_min = 0.01
         self.epsilon_decay = 0.995
-        self.__replay_memory = replay_memory(100000)
+        self.__replay_memory = ReplayMemory(100000)
 
-        self.main_qnet = QNetwork(state_space, action_space, self.lr, name='main', sess=self.sess)
-        self.target_qnet = QNetwork(state_space, action_space, self.lr, name='target', sess=self.sess)
+        self.double = double
+        self.dueling = dueling
+        self.weight_copy_interval = 10
+        self.batch_size = 32
+        self.train_interval = 10
+
+        self.main_Qnet = QNetwork(state_space, action_space, self.lr, name='main', sess=self.sess, dueling=dueling)
+        self.target_Qnet = QNetwork(state_space, action_space, self.lr, name='target', sess=self.sess, dueling=dueling)
 
         self.build_copy_weight()
 
         init_op = tf.global_variables_initializer()
         self.sess.run(init_op)
-        self.double = True
 
     @property
     def e(self):
@@ -172,7 +177,7 @@ class DQN:
         if np.random.rand(1) < self.e and random:
             action = env.action_space.sample()
         else:
-            action = self.main_qnet.predict(state)[0]
+            action = self.main_Qnet.predict(state)[0]
 
         return action
 
@@ -186,30 +191,21 @@ class DQN:
 
         # double
         if self.double:
-            main_Q_predict = self.main_qnet.predict(next_states)
-            # print(main_Q_predict.shape)
-            # print(main_Q_predict)
-
-            target_Q_proba = self.target_qnet.proba(next_states)
-            # print(target_Q_proba.shape)
-            # print(target_Q_proba)
+            main_Q_predict = self.main_Qnet.predict(next_states)
+            target_Q_proba = self.target_Qnet.proba(next_states)
             Q_next = target_Q_proba[np.arange(len(main_Q_predict)), main_Q_predict]
-            # print(Q_next)
-
         else:
-            Q_next = np.max(self.target_qnet.proba(next_states), 1)
+            Q_next = np.max(self.target_Qnet.proba(next_states), 1)
 
         X = states
 
-        # Q_next = np.max(self.target_net.proba(next_states), 1)
-
         Q = rewards + self.discount_factor * Q_next * ~dones
 
-        y = self.main_qnet.proba(states)
+        y = self.main_Qnet.proba(states)
         y[np.arange(len(X)), actions] = Q
 
         # Train our network using target and predicted Q values on each episode
-        return self.main_qnet.train(X, y)
+        return self.main_Qnet.train(X, y)
 
     def train(self, n_episodes, n_windows=10):
         ma_scalar = moving_average_scalar(n_windows)
@@ -237,15 +233,16 @@ class DQN:
                     break
 
             # print(f'e: {self.e}')
-            if episode % 10 == 0:
+            if episode % self.train_interval == 0 and len(self.replay_memory) >= self.batch_size:
                 l_sum = 0.
                 for i in range(50):
-                    batch = self.replay_memory.sample(10)
+                    batch = self.replay_memory.sample(self.batch_size)
 
                     loss = self.train_batch(batch)
                     l_sum += loss
-                print(f"loss sum : {l_sum / 50}")
+                tqdm.tqdm.write(f"loss: {l_sum / 50}")
 
+            if episode % self.weight_copy_interval == 0:
                 self.copy_main_to_target()
 
             reward_sums.append(reward_sum)
