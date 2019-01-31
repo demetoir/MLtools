@@ -1,19 +1,56 @@
 import numpy as np
+from numba import jit  # import the decorator
 
 
 # copy and modified from bellow
 # https://gist.github.com/simoninithomas/d6adc6edb0a7f37d6323a5e3d2ab72ec#file-dueling-deep-q-learning-with-doom-double-dqns-and-prioritized-experience-replay-ipynb
 
-class SumTree:
-    data_pointer = 0
 
-    def __init__(self, capacity):
+@jit
+def jit_SumTree_update(tree, tree_index, priority):
+    # Change = new priority score - former priority score
+    diff = priority - tree[tree_index]
+    tree[tree_index] = priority
+
+    # then propagate the diff through tree
+    while tree_index != 0:  # this method is faster than the recursive loop in the reference code
+        tree_index = (tree_index - 1) // 2
+        tree[tree_index] += diff
+    return tree
+
+
+@jit
+def jit_SumTree_get_leaf(tree, v):
+    parent_index = 0
+    while True:  # the while loop is faster than the method in the reference code
+        left_child_index = 2 * parent_index + 1
+        right_child_index = left_child_index + 1
+
+        # If we reach bottom, end the search
+        if left_child_index >= len(tree):
+            leaf_index = parent_index
+            break
+
+        if v <= tree[left_child_index]:
+            parent_index = left_child_index
+        else:
+            v -= tree[left_child_index]
+            parent_index = right_child_index
+
+    return leaf_index
+
+
+# @jitclass(spec)
+class SumTree:
+    def __init__(self, capacity, jit=False):
+        self.data_pointer = 0
         self.capacity = capacity  # Number of leaf nodes (final nodes) that contains experiences
 
         self.tree = np.zeros(2 * capacity - 1)
 
         # Contains the experiences (so the size of data is capacity)
         self.data = np.zeros(capacity, dtype=object)
+        self.jit = jit
 
     def add(self, priority, data):
         # Look at what index we want to put the experience
@@ -26,38 +63,13 @@ class SumTree:
         self.update(tree_index, priority)
 
         # Add 1 to data_pointer
-        self.data_pointer += 1
-        if self.data_pointer >= self.capacity:
-            self.data_pointer = 0
-
-        # self.data_pointer = (self.data_pointer + 1) % self.leaf_size
+        self.data_pointer = (self.data_pointer + 1) % self.capacity
 
     def update(self, tree_index, priority):
-        # Change = new priority score - former priority score
-        diff = priority - self.tree[tree_index]
-        self.tree[tree_index] = priority
-
-        # then propagate the diff through tree
-        while tree_index != 0:  # this method is faster than the recursive loop in the reference code
-            tree_index = (tree_index - 1) // 2
-            self.tree[tree_index] += diff
+        self.tree = jit_SumTree_update(self.tree, tree_index, priority)
 
     def get_leaf(self, v):
-        parent_index = 0
-        while True:  # the while loop is faster than the method in the reference code
-            left_child_index = 2 * parent_index + 1
-            right_child_index = left_child_index + 1
-
-            # If we reach bottom, end the search
-            if left_child_index >= len(self.tree):
-                leaf_index = parent_index
-                break
-
-            if v <= self.tree[left_child_index]:
-                parent_index = left_child_index
-            else:
-                v -= self.tree[left_child_index]
-                parent_index = right_child_index
+        leaf_index = jit_SumTree_get_leaf(self.tree, v)
 
         data_index = leaf_index - self.capacity + 1
 
@@ -137,10 +149,10 @@ class PERMemory:  # stored as ( s, a, r, s_ ) in SumTree
 
         return idxs, batch, IS_weights
 
-    def batch_update(self, tree_idx, abs_errors):
+    def batch_update(self, tree_idxs, abs_errors):
         abs_errors += self.e  # convert to abs and avoid 0
         clipped_errors = np.minimum(abs_errors, self.absolute_error_upper)
         ps = np.power(clipped_errors, self.alpha)
 
-        for ti, p in zip(tree_idx, ps):
+        for ti, p in zip(tree_idxs, ps):
             self.tree.update(ti, p)
