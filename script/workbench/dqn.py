@@ -1,6 +1,4 @@
 import math
-import random
-from collections import deque
 from queue import Queue
 
 import numpy as np
@@ -9,6 +7,7 @@ import tqdm
 from script.util.Stacker import Stacker
 from script.util.tensor_ops import *
 from script.workbench.PERMemory import PERMemory
+from script.workbench.ReplayMemory import ReplayMemory
 from script.workbench.gym_wrapper import gym_cartpole_v1_wrapper
 
 
@@ -35,6 +34,8 @@ class QNetwork:
             self.x = placeholder(tf.float32, [-1, self.input_size], name='x')
 
             stack = Stacker(self.x)
+            stack.linear(128)
+            stack.relu()
             stack.linear(128)
             stack.relu()
             stack.linear(128)
@@ -114,23 +115,6 @@ class QNetwork:
             loss = np.mean(loss)
 
         return loss
-
-
-class ReplayMemory:
-    def __init__(self, max_size):
-        self.max_size = max_size
-        self._memory = deque()
-
-    def __len__(self):
-        return len(self._memory)
-
-    def sample(self, n):
-        return random.sample(self._memory, n)
-
-    def store(self, item):
-        self._memory.append(item)
-        if len(self._memory) > self.max_size:
-            self._memory.popleft()
 
 
 class moving_average_scalar:
@@ -293,7 +277,7 @@ class DQN:
             # print(f'e: {self.e}')
             if episode % self.train_interval == 0 and len(self.replay_memory) >= self.batch_size:
                 l_sum = 0.
-                for i in range(50):
+                for i in range(64):
                     if self.use_PERMemory:
                         tree_idx, batch, IS_weights = self.replay_memory.sample(self.batch_size)
                         loss = self.train_batch(batch, IS_weights)
@@ -336,7 +320,7 @@ class DQN:
 
 def dqn_cartpole():
     env = gym_cartpole_v1_wrapper()
-    env.env._max_episode_steps = 10000
+    # env.env._max_episode_steps = 10000
 
     observation_space = 4
     action_space = 2
