@@ -6,8 +6,8 @@ import tqdm
 
 from script.util.Stacker import Stacker
 from script.util.tensor_ops import *
-from script.workbench.PERMemory import PERMemory
-from script.workbench.ReplayMemory import ReplayMemory
+from script.workbench.RL_study.PERMemory import PERMemory
+from script.workbench.RL_study.ReplayMemory import ReplayMemory
 from script.workbench.gym_wrapper import gym_cartpole_v1_wrapper
 
 
