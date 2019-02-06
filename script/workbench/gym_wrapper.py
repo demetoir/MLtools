@@ -76,6 +76,7 @@ class gym_cartpole_v1_wrapper(env_wrapper):
     def __init__(self):
         super().__init__()
         self.__env = gym.make("CartPole-v1")
+        self._score = 0
 
     @property
     def env(self):
@@ -96,10 +97,22 @@ class gym_cartpole_v1_wrapper(env_wrapper):
     def reset(self):
         state = self.env.reset()
         state = np.reshape(state, [1, len(state)])
+
+        self.reset_score()
         return state
 
     def step(self, action):
         s, r, d, info = self.env.step(action)
 
         s = np.reshape(s, [1, len(s)])
+
+        self._score += r
+
         return s, r, d, info
+
+    @property
+    def score(self):
+        return self._score
+
+    def reset_score(self):
+        self._score = 0
