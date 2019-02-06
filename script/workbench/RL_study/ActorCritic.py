@@ -87,12 +87,11 @@ class Critic:
 
 
 class ActorCritic:
-    def __init__(self, env, discount_factor, state_space, action_space, sess=None,
+    def __init__(self, env, state_space, action_space, sess=None,
                  actor_lr=0.001, critic_lr=0.01,
                  weight_copy_interval=10, train_interval=10,
                  batch_size=32):
         self.env = env
-        self.discount_factor = discount_factor
         self.state_space = state_space
         self.action_space = action_space
 
@@ -143,12 +142,6 @@ class ActorCritic:
             print(f'episode = {i_episode}, reward={score}, ma={ma_reward:5.2f}')
 
 
-def moving_average(a, n=3):
-    ret = np.cumsum(a, dtype=float)
-    ret[n:] = ret[n:] - ret[:-n]
-    return ret[n - 1:] / n
-
-
 def ActorCritic_cartpole():
     env = gym_cartpole_v1_wrapper()
     # env.env._max_episode_steps = 10000
@@ -156,7 +149,6 @@ def ActorCritic_cartpole():
     observation_space = 4
     action_space = 2
 
-    lr = 0.01
     discount_factor = 0.99
     max_episodes = 1000
     # max_episodes = 30
@@ -164,7 +156,7 @@ def ActorCritic_cartpole():
     train_interval = 10
     batch_size = 32
     actor_critic = ActorCritic(
-        env, lr, discount_factor, observation_space, action_space,
+        env, discount_factor, observation_space, action_space,
         train_interval=train_interval,
         batch_size=batch_size,
         actor_lr=0.001,
