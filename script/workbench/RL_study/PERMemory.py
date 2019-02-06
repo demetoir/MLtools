@@ -40,7 +40,6 @@ def jit_SumTree_get_leaf(tree, v):
     return leaf_index
 
 
-# @jitclass(spec)
 class SumTree:
     def __init__(self, capacity, jit=False):
         self.data_pointer = 0
@@ -156,3 +155,24 @@ class PERMemory:  # stored as ( s, a, r, s_ ) in SumTree
 
         for ti, p in zip(tree_idxs, ps):
             self.tree.update(ti, p)
+
+
+def timeit_store(n=10000):
+    mem = PERMemory(100000)
+    state, action, next_state, reward, done = ([1, 2], 1, [1, 2], 1, 0)
+    data = (state, action, next_state, reward, done)
+    for i in range(n):
+        mem.store(data)
+
+
+def timeit_sample(n=10000):
+    mem = PERMemory(100000)
+    for i in range(n):
+        tree_idx, batch, IS_weights = mem.sample(64)
+
+
+def update(n=10000):
+    mem = PERMemory(100000)
+    for i in range(n):
+        tree_idx, batch, IS_weights = mem.sample(64)
+        mem.batch_update(tree_idx, IS_weights)
