@@ -3,7 +3,6 @@ import time
 
 import gym
 import numpy as np
-import pylab
 
 from script.util.Stacker import Stacker
 from script.util.tensor_ops import *
@@ -21,8 +20,8 @@ https://github.com/tensorflow/models/blob/master/research/a3c_blogpost/a3c_cartp
 
 
 class Memory:
-    def __init__(self, action_size):
-        self.action_size = action_size
+    def __init__(self, action_shape):
+        self.action_shape = action_shape
         self.states = []
         self.rewards = []
         self.actions = []
@@ -34,26 +33,32 @@ class Memory:
 
     def store(self, state, action, reward):
         self.states.append(state)
-        act = np.zeros(self.action_size)
+        # to onehot
+        act = np.zeros(self.action_shape)
         act[action] = 1
         self.actions.append(act)
         self.rewards.append(reward)
 
 
 class Actor:
-    def __init__(self, state_size, action_size, lr, sess=None, name='actor'):
-        self.state_size = state_size
-        self.action_size = action_size
+    def __init__(self, state_shape, action_shape, lr, sess=None, name='actor'):
+        self.state_shape = state_shape
+        self.action_shape = action_shape
         self.lr = lr
         self.sess = sess
         self.name = name
+
+        self.action_flatten_size = int(np.prod(self.action_shape))
+
+        self.batch_state_shape = [None] + list(self.state_shape)
+        self.batch_action_shape = [None] + list(self.action_shape)
 
         self.build()
 
     def build(self):
         with tf.variable_scope(self.name):
-            self.states = placeholder(tf.float32, [None, self.state_size], 'state')
-            self.actions = tf.placeholder(tf.float32, [None, self.action_size], 'action')
+            self.states = placeholder(tf.float32, self.batch_state_shape, 'state')
+            self.actions = placeholder(tf.float32, self.batch_action_shape, 'action')
             self.advantages = tf.placeholder(tf.float32, [None, ], 'advantages')
 
             stack = Stacker(self.states)
@@ -61,7 +66,7 @@ class Actor:
             stack.relu()
             stack.linear(64)
             stack.relu()
-            stack.linear(self.action_size)
+            stack.linear(self.action_flatten_size)
             stack.softmax()
             self.policy = stack.last_layer
 
@@ -79,8 +84,16 @@ class Actor:
         return loss
 
     def get_action(self, states):
-        policy = self.sess.run(self.policy, {self.states: np.reshape(states, [1, self.state_size])})[0]
-        return np.random.choice(self.action_size, 1, p=policy)[0]
+        # todo shape... error
+        states = np.reshape(states, [1] + list(self.state_shape))
+        policys = self.sess.run(self.policy, {self.states: states})
+
+        actions = []
+        for policy in policys:
+            actions += [np.random.choice(np.arange(self.action_flatten_size), p=policy)]
+
+        # todo indice index out....
+        return actions[0]
 
     # todo Implement
     def save(self, name):
@@ -92,17 +105,18 @@ class Actor:
 
 
 class Critic:
-    def __init__(self, state_size, lr, sess=None, name='critic'):
-        self.state_size = state_size
+    def __init__(self, state_shape, lr, sess=None, name='critic'):
+        self.state_shape = state_shape
         self.lr = lr
         self.sess = sess
         self.name = name
-
+        self.batch_state_shape = [None] + list(self.state_shape)
         self.build()
 
     def build(self):
         with tf.variable_scope(self.name):
-            self.states = placeholder(tf.float32, [None, self.state_size], "state")
+            self.states = placeholder(tf.float32, self.batch_state_shape, 'state')
+
             self.discounted_rewards = tf.placeholder(tf.float32, None, 'discounted_reward')
 
             stack = Stacker(self.states)
@@ -139,16 +153,16 @@ class Critic:
 class A3CGlobal:
     def __init__(
             self,
-            state_size,
-            action_size,
+            state_shape,
+            action_shape,
             env_name,
             actor_lr=0.001,
             critic_lr=0.001,
             discount_factor=.99,
             sess=None
     ):
-        self.state_size = state_size
-        self.action_size = action_size
+        self.state_shape = state_shape
+        self.action_shape = action_shape
 
         self.env_name = env_name
 
@@ -160,8 +174,8 @@ class A3CGlobal:
         if self.sess is None:
             self.open()
 
-        self.actor = Actor(self.state_size, self.action_size, self.actor_lr, sess=self.sess)
-        self.critic = Critic(self.state_size, self.critic_lr, sess=self.sess)
+        self.actor = Actor(self.state_shape, self.action_shape, self.actor_lr, sess=self.sess)
+        self.critic = Critic(self.state_shape, self.critic_lr, sess=self.sess)
 
         self.init_op = tf.global_variables_initializer()
         self.sess.run(self.init_op)
@@ -193,14 +207,14 @@ class A3CLocal(threading.Thread):
         self.actor = a3c.actor
         self.critic = a3c.critic
         self.discount_factor = a3c.discount_factor
-        self.action_size = a3c.action_size
-        self.state_size = a3c.state_size
 
-        self.memory = Memory(a3c.action_size)
+        self.state_shape = a3c.state_shape
+
+        self.memory = Memory(a3c.action_shape)
 
     def run(self):
-
         global episode
+
         env = gym.make(self.env_name)
         env._max_episode_steps = 1000
         while episode < EPISODES:
@@ -233,7 +247,7 @@ class A3CLocal(threading.Thread):
         discounted_rewards = np.zeros_like(rewards)
         running_add = 0
         if not done:
-            running_add = self.critic.predict(np.reshape(states[-1], (1, self.state_size)))[0]
+            running_add = self.critic.predict(np.reshape(states[-1], (1, self.state_shape)))[0]
 
         for t in reversed(range(0, len(rewards))):
             running_add = running_add * self.discount_factor + rewards[t]
@@ -262,8 +276,8 @@ class A3CLocal(threading.Thread):
 class A3C:
     def __init__(
             self,
-            state_size,
-            action_size,
+            state_shape,
+            action_shape,
             env_name,
             actor_lr=0.001,
             critic_lr=0.001,
@@ -272,9 +286,9 @@ class A3C:
     ):
         self.threads = threads
         self.env_name = env_name
-        self.A3C_global = A3CGlobal(state_size, action_size, actor_lr, critic_lr, discount_factor)
+        self.A3C_global = A3CGlobal(state_shape, action_shape, actor_lr, critic_lr, discount_factor)
 
-    def train(self):
+    def train(self, episode):
         # self.load('./save_model/cartpole_a3c.h5')
         agents = [
             A3CLocal(i, self.env_name, self.A3C_global)
@@ -287,11 +301,6 @@ class A3C:
         while True:
             time.sleep(20)
 
-            plot = scores[:]
-            pylab.plot(range(len(plot)), plot, 'b')
-            # pylab.savefig("./save_graph/cartpole_a3c.png")
-
-            # self.save('./save_model/cartpole_a3c.h5')
             if episode >= EPISODES:
                 break
 
@@ -314,4 +323,23 @@ def A3C_cartpole():
     env.close()
 
     a3c = A3C(state_size, action_size, env_name, threads=8)
-    a3c.train()
+    a3c.train(2000)
+
+
+def test_input_shape():
+    env_name = 'CartPole-v1'
+    env = gym.make(env_name)
+    action_space_shape = np.array(env.action_space)
+    state_space_shape = np.array(env.observation_space)
+
+    action_space_shape = [2, ]
+    state_space_shape = [4, ]
+
+    # print(action_space_shape)
+    # print(state_space_shape)
+    env.close()
+
+    a3c = A3C(state_space_shape, action_space_shape, env_name, threads=1)
+    a3c.train(2000)
+
+    pass
