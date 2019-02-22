@@ -9,6 +9,7 @@ from script.util.tensor_ops import *
 from script.workbench.RL_study.PERMemory import PERMemory
 from script.workbench.RL_study.ReplayMemory import ReplayMemory
 from script.workbench.gym_wrapper import gym_cartpole_v1_wrapper
+from script.workbench.RL_study.InputShape import InputShape
 
 
 def moving_average(a, n=3):
@@ -19,8 +20,8 @@ def moving_average(a, n=3):
 
 class QNetwork:
     def __init__(self, input_size, output_size, lr, name='main', sess=None, dueling=True, PERMemory=True):
-        self.input_size = input_size
-        self.output_size = output_size
+        self.input_shape = InputShape(input_size)
+        self.output_shape = InputShape(output_size)
         self.lr = lr
         self.name = name
         self.sess = sess
@@ -31,7 +32,7 @@ class QNetwork:
 
     def build_network(self):
         with tf.variable_scope(self.name):
-            self.x = placeholder(tf.float32, [-1, self.input_size], name='x')
+            self.x = placeholder(tf.float32, self.input_shape.batch_shape, name='x')
 
             stack = Stacker(self.x)
             stack.linear(128)
@@ -40,13 +41,13 @@ class QNetwork:
             stack.relu()
             stack.linear(128)
             stack.relu()
-            stack.linear(self.output_size)
+            stack.linear(self.output_shape.flatten_size)
 
             # proba
             if self.dueling:
                 last = stack.last_layer
                 self._value = linear(last, 1, name='value')
-                self._advantage = linear(last, self.output_size, name='advantage')
+                self._advantage = linear(last, self.output_shape.flatten_size, name='advantage')
                 self._proba = self._value + self._advantage - tf.reduce_mean(self._advantage, reduction_indices=1,
                                                                              keep_dims=True)
             else:
@@ -54,11 +55,11 @@ class QNetwork:
 
             self._predict = tf.argmax(self._proba, axis=1)
 
-            self.y = placeholder(tf.float32, [-1, self.output_size], 'Y')
+            self.y = placeholder(tf.float32, self.output_shape.batch_shape, 'Y')
 
             # loss
             if self.PERMemory:
-                self.IS_weights = placeholder(tf.float32, [-1, ], name='IS_weights')
+                self.IS_weights = placeholder(tf.float32, [None, ], name='IS_weights')
                 loss = tf.reduce_mean((self._proba - self.y) * (self._proba - self.y), axis=1)
                 self.loss = identity(self.IS_weights * loss, name='loss')
 
@@ -142,14 +143,14 @@ class moving_average_scalar:
 
 
 class DQN:
-    def __init__(self, env, lr, discount_factor, state_space, action_space, sess=None, double=True, dueling=True,
+    def __init__(self, env, lr, discount_factor, state_shape, actions_shape, sess=None, double=True, dueling=True,
                  replay_memory_size=100000, use_PERMemory=True, weight_copy_interval=10, train_interval=10,
                  batch_size=32):
         self.env = env
         self.lr = lr
         self.discount_factor = discount_factor
-        self.state_space = state_space
-        self.action_space = action_space
+        self.state_shape = state_shape
+        self.actions_shape = actions_shape
 
         self.sess = sess
         if self.sess is None:
@@ -172,8 +173,8 @@ class DQN:
         self.batch_size = batch_size
         self.train_interval = train_interval
 
-        self.main_Qnet = QNetwork(state_space, action_space, self.lr, name='main', sess=self.sess, dueling=dueling)
-        self.target_Qnet = QNetwork(state_space, action_space, self.lr, name='target', sess=self.sess, dueling=dueling)
+        self.main_Qnet = QNetwork(state_shape, actions_shape, self.lr, name='main', sess=self.sess, dueling=dueling)
+        self.target_Qnet = QNetwork(state_shape, actions_shape, self.lr, name='target', sess=self.sess, dueling=dueling)
         self.build_copy_weight()
 
         init_op = tf.global_variables_initializer()
@@ -214,6 +215,7 @@ class DQN:
 
     def chose(self, state, env, random=True):
         if np.random.rand(1) < self.e and random:
+            # todo ...
             action = env.action_space.sample()
         else:
             action = self.main_Qnet.predict(state)[0]
@@ -318,12 +320,42 @@ class DQN:
         return reward_sum
 
 
+# def dqn_cartpole():
+#     env = gym_cartpole_v1_wrapper()
+#     # env.env._max_episode_steps = 10000
+#
+#     observation_space = 4
+#     action_space = 2
+#
+#     lr = 0.01
+#     discount_factor = 0.99
+#     max_episodes = 3000
+#     # max_episodes = 30
+#     dueling = True
+#     double = True
+#     use_PERMemory = True
+#     weight_copy_interval = 10
+#     train_interval = 10
+#     batch_size = 32
+#     dqn = DQN(env, lr, discount_factor, observation_space, action_shape, double=double, dueling=dueling,
+#               use_PERMemory=use_PERMemory, weight_copy_interval=weight_copy_interval, train_interval=train_interval,
+#               batch_size=batch_size)
+#     reward_sums = dqn.train(max_episodes)
+#
+#     reward_sums = moving_average(reward_sums, 100)
+#     # from script.util.PlotTools import PlotTools
+#     # plot = PlotTools(save=False, show=True)
+#     # plot.plot(reward_sums)
+#     print(reward_sums)
+#     print("Score over time: " + str(sum(reward_sums) / max_episodes))
+
+
 def dqn_cartpole():
     env = gym_cartpole_v1_wrapper()
     # env.env._max_episode_steps = 10000
 
-    observation_space = 4
-    action_space = 2
+    observation_shape = [4, ]
+    action_shape = [2, ]
 
     lr = 0.01
     discount_factor = 0.99
@@ -335,7 +367,7 @@ def dqn_cartpole():
     weight_copy_interval = 10
     train_interval = 10
     batch_size = 32
-    dqn = DQN(env, lr, discount_factor, observation_space, action_space, double=double, dueling=dueling,
+    dqn = DQN(env, lr, discount_factor, observation_shape, action_shape, double=double, dueling=dueling,
               use_PERMemory=use_PERMemory, weight_copy_interval=weight_copy_interval, train_interval=train_interval,
               batch_size=batch_size)
     reward_sums = dqn.train(max_episodes)
