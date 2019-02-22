@@ -792,10 +792,14 @@ def collect_vars(scope):
 
 
 def placeholder(dtype, shape, name):
-    if len(shape) == 0:
-        shape = []
-    elif shape[0] == -1:
-        shape[0] = None
+    try:
+        if hasattr(shape, '__iter__ '):
+            if len(shape) == 0:
+                shape = []
+            elif shape[0] == -1:
+                shape[0] = None
+    except BaseException as e:
+        raise e
 
     return tf.placeholder(dtype=dtype, shape=shape, name=name)
 
