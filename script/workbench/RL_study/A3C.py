@@ -8,6 +8,8 @@ from script.util.Stacker import Stacker
 from script.util.tensor_ops import *
 
 # global variables for threading
+from script.workbench.RL_study.InputShape import InputShape
+
 episode = 0
 scores = []
 
@@ -33,40 +35,35 @@ class Memory:
 
     def store(self, state, action, reward):
         self.states.append(state)
+        self.rewards.append(reward)
         # to onehot
         act = np.zeros(self.action_shape)
         act[action] = 1
         self.actions.append(act)
-        self.rewards.append(reward)
 
 
 class Actor:
     def __init__(self, state_shape, action_shape, lr, sess=None, name='actor'):
-        self.state_shape = state_shape
-        self.action_shape = action_shape
+        self.state_shape = InputShape(state_shape)
+        self.action_shape = InputShape(action_shape)
         self.lr = lr
         self.sess = sess
         self.name = name
-
-        self.action_flatten_size = int(np.prod(self.action_shape))
-
-        self.batch_state_shape = [None] + list(self.state_shape)
-        self.batch_action_shape = [None] + list(self.action_shape)
 
         self.build()
 
     def build(self):
         with tf.variable_scope(self.name):
-            self.states = placeholder(tf.float32, self.batch_state_shape, 'state')
-            self.actions = placeholder(tf.float32, self.batch_action_shape, 'action')
-            self.advantages = tf.placeholder(tf.float32, [None, ], 'advantages')
+            self.states = placeholder(tf.float32, self.state_shape.batch_shape, 'state')
+            self.actions = placeholder(tf.float32, self.action_shape.batch_shape, 'action')
+            self.advantages = placeholder(tf.float32, [None, ], 'advantages')
 
             stack = Stacker(self.states)
             stack.linear(64)
             stack.relu()
             stack.linear(64)
             stack.relu()
-            stack.linear(self.action_flatten_size)
+            stack.linear(self.action_shape.flatten_size)
             stack.softmax()
             self.policy = stack.last_layer
 
@@ -84,16 +81,23 @@ class Actor:
         return loss
 
     def get_action(self, states):
-        # todo shape... error
-        states = np.reshape(states, [1] + list(self.state_shape))
+        states = np.array(states)
+
+        if self.state_shape.is_same_shape(states):
+            states = np.reshape(states, [1] + list(self.state_shape.shape))
+        else:
+            raise TypeError(f'unexpected type {type(states)}')
+
         policys = self.sess.run(self.policy, {self.states: states})
 
         actions = []
         for policy in policys:
-            actions += [np.random.choice(np.arange(self.action_flatten_size), p=policy)]
+            actions += [np.random.choice(np.arange(self.action_shape.flatten_size), p=policy)]
 
-        # todo indice index out....
-        return actions[0]
+        if len(actions) == 1:
+            actions = actions[0]
+
+        return actions
 
     # todo Implement
     def save(self, name):
@@ -106,18 +110,16 @@ class Actor:
 
 class Critic:
     def __init__(self, state_shape, lr, sess=None, name='critic'):
-        self.state_shape = state_shape
+        self.state_shape = InputShape(state_shape)
         self.lr = lr
         self.sess = sess
         self.name = name
-        self.batch_state_shape = [None] + list(self.state_shape)
         self.build()
 
     def build(self):
         with tf.variable_scope(self.name):
-            self.states = placeholder(tf.float32, self.batch_state_shape, 'state')
-
-            self.discounted_rewards = tf.placeholder(tf.float32, None, 'discounted_reward')
+            self.states = placeholder(tf.float32, self.state_shape.batch_shape, 'state')
+            self.discounted_rewards = placeholder(tf.float32, None, 'discounted_reward')
 
             stack = Stacker(self.states)
             stack.linear(64)
@@ -318,17 +320,6 @@ class A3C:
 def A3C_cartpole():
     env_name = 'CartPole-v1'
     env = gym.make(env_name)
-    state_size = env.observation_space.shape[0]
-    action_size = env.action_space.n
-    env.close()
-
-    a3c = A3C(state_size, action_size, env_name, threads=8)
-    a3c.train(2000)
-
-
-def test_input_shape():
-    env_name = 'CartPole-v1'
-    env = gym.make(env_name)
     action_space_shape = np.array(env.action_space)
     state_space_shape = np.array(env.observation_space)
 
@@ -339,7 +330,7 @@ def test_input_shape():
     # print(state_space_shape)
     env.close()
 
-    a3c = A3C(state_space_shape, action_space_shape, env_name, threads=1)
+    a3c = A3C(state_space_shape, action_space_shape, env_name, threads=4)
     a3c.train(2000)
 
     pass
