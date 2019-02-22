@@ -4,79 +4,29 @@ import tqdm
 from script.util.Stacker import Stacker
 from script.util.tensor_ops import *
 from script.workbench.gym_wrapper import gym_cartpole_v1_wrapper
-
-
-class QNetwork:
-    def __init__(self, input_size, output_size, lr, name='main', sess=None, dueling=True):
-        self.input_size = input_size
-        self.output_size = output_size
-        self.lr = lr
-        self.name = name
-        self.sess = sess
-        self.dueling = dueling
-
-        self.build_network()
-
-    def build_network(self):
-        with tf.variable_scope(self.name):
-            self.x = placeholder(tf.float32, [-1, self.input_size], name='x')
-            stack = Stacker(self.x)
-            stack.linear(64)
-            stack.relu()
-            stack.linear(64)
-            stack.relu()
-            stack.linear(self.output_size)
-
-            if self.dueling:
-                last = stack.last_layer
-                self._value = linear(last, 1, name='value')
-                self._advantage = linear(last, self.output_size, name='advantage')
-                self._proba = self._value + self._advantage - tf.reduce_mean(self._advantage, reduction_indices=1,
-                                                                             keep_dims=True)
-                self._predict = tf.argmax(self._proba, axis=1)
-            else:
-                self._proba = stack.last_layer
-                self._predict = tf.argmax(self._proba, axis=1)
-
-            self.y = placeholder(tf.float32, [-1, self.output_size], 'Y')
-
-            self.loss = MSE_loss(self._proba, self.y, 'loss')
-            self.train_op = tf.train.AdamOptimizer(learning_rate=self.lr).minimize(self.loss)
-
-    def predict(self, xs):
-        return self.sess.run(self._predict, feed_dict={self.x: xs})
-
-    def proba(self, xs):
-        return self.sess.run(self._proba, feed_dict={self.x: xs})
-
-    def train(self, xs, ys):
-        loss, _ = self.sess.run([self.loss, self.train_op], feed_dict={self.x: xs, self.y: ys})
-        return loss
-
-    def loss(self, xs, ys):
-        return self.sess.run(self.loss, feed_dict={self.x: xs, self.y: ys})
+from script.workbench.RL_study.InputShape import InputShape
 
 
 class PolicyNetwork:
-    def __init__(self, lr, input_size, output_size, sess=None, name='policyNetwork'):
+    def __init__(self, lr, input_shape, output_shape, sess=None, name='policyNetwork'):
         self.lr = lr
-        self.input_size = input_size
-        self.output_size = output_size
+        self.input_shape = InputShape(input_shape)
+        self.output_shape = InputShape(output_shape)
         self.sess = sess
         self.name = name
         self.build_network()
 
     def build_network(self):
         with tf.variable_scope(self.name):
-            self.x = placeholder(tf.float32, [-1, self.input_size], name='x')
-            self.y = placeholder(tf.float32, [-1, self.output_size], 'Y')
-            self.discounted_episode_reward = placeholder(tf.float32, [-1, ], 'discounted_episode_reward')
+            self.x = placeholder(tf.float32, self.input_shape.batch_shape, name='x')
+            self.y = placeholder(tf.float32, self.output_shape.batch_shape, 'Y')
+            self.discounted_episode_reward = placeholder(tf.float32, [None, ], 'discounted_episode_reward')
             stack = Stacker(self.x)
             stack.linear(64)
             stack.relu()
             stack.linear(64)
             stack.relu()
-            stack.linear(self.output_size)
+            stack.linear(self.output_shape.flatten_size)
             stack.softmax()
 
             self._proba = stack.last_layer
@@ -102,10 +52,10 @@ class PolicyNetwork:
 
 
 class PolicyGradient:
-    def __init__(self, env, lr, discount_factor, state_size, action_state, name='main', sess=None):
+    def __init__(self, env, lr, discount_factor, state_shape, action_shape, name='main', sess=None):
         self.env = env
-        self.state_size = state_size
-        self.action_size = action_state
+        self.state_shape = state_shape
+        self.action_size = action_shape
         self.lr = lr
         self.name = name
         self.sess = sess
@@ -119,7 +69,7 @@ class PolicyGradient:
         self.episode_actions = []
         self.episode_rewards = []
 
-        self.polict_network = PolicyNetwork(self.lr, self.state_size, self.action_size, self.sess)
+        self.polict_network = PolicyNetwork(self.lr, self.state_shape, self.action_size, self.sess)
         # self.build_network()
         init_op = tf.global_variables_initializer()
         self.sess.run(init_op)
@@ -253,14 +203,36 @@ def moving_average(a, n=3):
 def policy_gradient_cartpole():
     env = gym_cartpole_v1_wrapper()
 
-    observation_space = 4
-    action_space = 2
+    observation_shape = 4
+    actions_shape = 2
 
     lr = 0.01
     discount_factor = 0.99
     max_episodes = 3000
     # max_episodes = 30
-    pg = PolicyGradient(env, lr, discount_factor, observation_space, action_space)
+    pg = PolicyGradient(env, lr, discount_factor, observation_shape, actions_shape)
+    reward_sums = pg.train(max_episodes)
+
+    reward_sums = moving_average(reward_sums, 100)
+    print(reward_sums)
+    print("Score over time: " + str(sum(reward_sums) / max_episodes))
+
+    # from script.util.PlotTools import PlotTools
+    # plot = PlotTools(save=False, show=True)
+    # plot.plot(reward_sums)
+
+
+def test_shape_policy_gradient_cartpole():
+    env = gym_cartpole_v1_wrapper()
+
+    observation_shape = [4, ]
+    actions_shape = [2, ]
+
+    lr = 0.01
+    discount_factor = 0.99
+    max_episodes = 3000
+    # max_episodes = 30
+    pg = PolicyGradient(env, lr, discount_factor, observation_shape, actions_shape)
     reward_sums = pg.train(max_episodes)
 
     reward_sums = moving_average(reward_sums, 100)
