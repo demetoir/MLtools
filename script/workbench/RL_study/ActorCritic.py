@@ -3,12 +3,13 @@ import numpy as np
 from script.util.Stacker import Stacker
 from script.util.tensor_ops import *
 from script.workbench.gym_wrapper import gym_cartpole_v1_wrapper
+from script.workbench.RL_study.InputShape import InputShape
 
 
 class Actor:
-    def __init__(self, state_size, action_size, lr=0.01, sess=None, name='actor'):
-        self.state_size = state_size
-        self.action_size = action_size
+    def __init__(self, state_shape, action_shape, lr=0.01, sess=None, name='actor'):
+        self.state_shape = InputShape(state_shape)
+        self.action_shape = InputShape(action_shape)
         self.lr = lr
         self.sess = sess
         self.name = name
@@ -17,16 +18,16 @@ class Actor:
 
     def build(self):
         with tf.variable_scope(self.name):
-            self.states = placeholder(tf.float32, [1, self.state_size], 'state')
-            self.actions = tf.placeholder(tf.int32, None, 'action')
-            self.td_error = tf.placeholder(tf.float32, None, 'td_error')
+            self.states = placeholder(tf.float32, self.state_shape.batch_shape, 'state')
+            self.actions = placeholder(tf.int32, None, 'action')
+            self.td_error = placeholder(tf.float32, None, 'td_error')
 
             stack = Stacker(self.states)
             stack.linear(64)
             stack.relu()
             stack.linear(64)
             stack.relu()
-            stack.linear(self.action_size)
+            stack.linear(self.action_shape.flatten_size)
             stack.softmax()
 
             self.proba = stack.last_layer
@@ -48,8 +49,8 @@ class Actor:
 
 
 class Critic:
-    def __init__(self, state_size, gamma=0.9, lr=0.01, sess=None, name='critic'):
-        self.state_size = state_size
+    def __init__(self, state_shape, gamma=0.9, lr=0.01, sess=None, name='critic'):
+        self.state_shape = InputShape(state_shape)
         self.gamma = gamma
         self.lr = lr
         self.sess = sess
@@ -59,9 +60,9 @@ class Critic:
 
     def build(self):
         with tf.variable_scope(self.name):
-            self.states = placeholder(tf.float32, [-1, self.state_size], "state")
-            self.value_next = tf.placeholder(tf.float32, [1, 1], "v_next")
-            self.rewards = tf.placeholder(tf.float32, None, 'rewards')
+            self.states = placeholder(tf.float32, self.state_shape.batch_shape, "state")
+            self.value_next = placeholder(tf.float32, [None, 1], "v_next")
+            self.rewards = placeholder(tf.float32, None, 'rewards')
 
             stack = Stacker(self.states)
             stack.linear(64)
@@ -87,13 +88,13 @@ class Critic:
 
 
 class ActorCritic:
-    def __init__(self, env, state_space, action_space, sess=None,
+    def __init__(self, env, state_shape, action_shape, sess=None,
                  actor_lr=0.001, critic_lr=0.01,
                  weight_copy_interval=10, train_interval=10,
                  batch_size=32):
         self.env = env
-        self.state_space = state_space
-        self.action_space = action_space
+        self.state_shape = state_shape
+        self.action_shape = action_shape
 
         self.sess = sess
         if self.sess is None:
@@ -103,8 +104,8 @@ class ActorCritic:
         self.batch_size = batch_size
         self.train_interval = train_interval
 
-        self.actor = Actor(self.state_space, self.action_space, sess=self.sess, lr=actor_lr)
-        self.critic = Critic(self.state_space, sess=self.sess, lr=critic_lr)
+        self.actor = Actor(self.state_shape, self.action_shape, sess=self.sess, lr=actor_lr)
+        self.critic = Critic(self.state_shape, sess=self.sess, lr=critic_lr)
 
         init_op = tf.global_variables_initializer()
         self.sess.run(init_op)
@@ -146,8 +147,8 @@ def ActorCritic_cartpole():
     env = gym_cartpole_v1_wrapper()
     # env.env._max_episode_steps = 10000
 
-    observation_space = 4
-    action_space = 2
+    observation_shape = [4, ]
+    action_shape = [2, ]
 
     discount_factor = 0.99
     max_episodes = 1000
@@ -156,7 +157,7 @@ def ActorCritic_cartpole():
     train_interval = 10
     batch_size = 32
     actor_critic = ActorCritic(
-        env, discount_factor, observation_space, action_space,
+        env, observation_shape, action_shape,
         train_interval=train_interval,
         batch_size=batch_size,
         actor_lr=0.001,
